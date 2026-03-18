@@ -5,3 +5,4 @@
  * @date 2026-03-18
  */
 export * from './subject'
+export * from './detail'

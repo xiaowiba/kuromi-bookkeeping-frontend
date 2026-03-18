@@ -30,3 +30,37 @@ export interface SubjectQuery {
 
 /** 科目分页查询条件 */
 export interface SubjectPageQuery extends SubjectQuery, PageQuery {}
+
+/** 明细响应类型 */
+export interface DetailResp {
+  id: string
+  userId: string
+  userNickname: string
+  subjectId: string
+  subjectName: string
+  subjectCategory: string
+  name: string
+  amount: number
+  detailDate: string
+  remark: string
+  hidden: number
+  createUserString: string
+  createTime: string
+  updateUserString: string
+  updateTime: string
+}
+
+/** 明细查询条件 */
+export interface DetailQuery {
+  userId?: string
+  name?: string
+  category?: string
+  subjectId?: string
+  month?: string
+  minAmount?: number
+  maxAmount?: number
+  sort: Array<string>
+}
+
+/** 明细分页查询条件 */
+export interface DetailPageQuery extends DetailQuery, PageQuery {}

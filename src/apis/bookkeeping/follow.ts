@@ -3,9 +3,12 @@
  *
  * @author Wangsongsong
  * @date 2026-03-18
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 新增用户选项列表接口，绕过数据权限
  */
 import type * as T from './type'
 import http from '@/utils/http'
+import type { LabelValueState } from '@/types/global'
 
 export type * from './type'
 
@@ -34,4 +37,9 @@ export function saveFollow(data: T.FollowReq) {
 /** @desc 删除关注关系 */
 export function deleteFollow(ids: Array<string | number>) {
   return http.del(`${BASE_URL}`, ids)
+}
+
+/** @desc 查询用户选项列表（不走数据权限） */
+export function listFollowUserOptions() {
+  return http.get<LabelValueState[]>(`${BASE_URL}/user-options`)
 }

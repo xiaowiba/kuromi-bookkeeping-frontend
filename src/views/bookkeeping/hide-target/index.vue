@@ -79,14 +79,15 @@
  * @date 2026-03-18
  * @update 2026-03-19 @Wangsongsong
  * @desc 增加隐私模式守卫和修改隐私密码功能
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 用户选项改为调用 bookkeeping 专用接口，统一绕过数据权限
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { listHideTargetByUserId, listMyHideTarget, saveHideTarget } from '@/apis/bookkeeping/hide-target'
-import { listMyFollow } from '@/apis/bookkeeping/follow'
+import { listFollowUserOptions } from '@/apis/bookkeeping/follow'
 import { setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import type { HideTargetResp } from '@/apis/bookkeeping/type'
-import { listUserDict } from '@/apis/system/user'
 import type { LabelValueState } from '@/types/global'
 import { usePrivacyStore, useUserStore } from '@/stores'
 
@@ -130,36 +131,18 @@ const pwdSaving = ref(false)
 /**
  * 加载用户选项
  *
- * 超管：调用 listUserDict 获取所有用户
- * 普通用户：从关注列表构建可选用户（自己 + 关注的人）
+ * 统一调用 bookkeeping 模块专用接口获取所有用户选项，
+ * 不走数据权限过滤
  *
  * @author Wangsongsong
  * @date 2026-03-18
- * @update 2026-03-18 @Wangsongsong
- * @desc 普通用户通过关注列表构建用户选项，解决 listUserDict 返回空的问题
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 改为调用 bookkeeping 专用接口，解决普通用户数据权限导致返回空的问题
  */
 const loadUserOptions = async () => {
   try {
-    if (isAdmin.value) {
-      const { data } = await listUserDict({ status: 1 })
-      userOptions.value = data
-    } else {
-      const options: LabelValueState[] = []
-      options.push({
-        label: userStore.userInfo.nickname || userStore.userInfo.username,
-        value: String(userStore.userInfo.id),
-      })
-      const { data: followList } = await listMyFollow()
-      if (followList && followList.length > 0) {
-        followList.forEach((item) => {
-          options.push({
-            label: item.followUserNickname,
-            value: item.followUserId,
-          })
-        })
-      }
-      userOptions.value = options
-    }
+    const { data } = await listFollowUserOptions()
+    userOptions.value = data
   } catch {
     userOptions.value = []
   }

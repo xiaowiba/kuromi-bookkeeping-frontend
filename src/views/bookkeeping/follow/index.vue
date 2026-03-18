@@ -44,12 +44,13 @@
  *
  * @author Wangsongsong
  * @date 2026-03-18
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 用户选项改为调用 bookkeeping 专用接口，解决普通用户数据权限导致返回空的问题
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { h, onMounted, reactive, ref } from 'vue'
 import AddModal from './AddModal.vue'
-import { type FollowResp, deleteFollow, listFollow } from '@/apis/bookkeeping/follow'
-import { listUserDict } from '@/apis/system/user'
+import { type FollowResp, deleteFollow, listFollow, listFollowUserOptions } from '@/apis/bookkeeping/follow'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive, useTable } from '@/hooks'
 import type { LabelValueState } from '@/types/global'
@@ -66,10 +67,12 @@ const userOptions = ref<LabelValueState[]>([])
  *
  * @author Wangsongsong
  * @date 2026-03-18
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 改为调用 bookkeeping 模块专用接口，绕过数据权限
  */
 const loadUserOptions = async () => {
   if (userOptions.value.length) return
-  const { data } = await listUserDict({ status: 1 })
+  const { data } = await listFollowUserOptions()
   userOptions.value = data
 }
 

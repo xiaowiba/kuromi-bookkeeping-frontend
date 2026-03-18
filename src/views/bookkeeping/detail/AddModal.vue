@@ -29,7 +29,7 @@ import { useWindowSize } from '@vueuse/core'
 import { computed, reactive, ref, watch } from 'vue'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { listSubject } from '@/apis/bookkeeping/subject'
-import { listUserDict } from '@/apis/system/user'
+import { listFollowUserOptions } from '@/apis/bookkeeping/follow'
 import { type ColumnItem, GiForm } from '@/components/GiForm'
 import { useResetReactive } from '@/hooks'
 import { useDict } from '@/hooks/app'
@@ -206,10 +206,12 @@ watch(() => form.subjectId, (val) => {
  *
  * @author Wangsongsong
  * @date 2026-03-18
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 改为调用 bookkeeping 专用接口，绕过数据权限
  */
 const loadUserOptions = async () => {
   if (userOptions.value.length) return
-  const { data } = await listUserDict({ status: 1 })
+  const { data } = await listFollowUserOptions()
   userOptions.value = data
 }
 

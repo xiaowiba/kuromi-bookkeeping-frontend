@@ -24,6 +24,11 @@
           <template #icon><icon-lock /></template>
           退出隐私模式
         </a-button>
+        <!-- 隐私模式下进入隐藏配置 -->
+        <a-button v-if="privacyStore.isPrivacyMode" size="small" style="margin-left: 8px" @click="router.push('/bookkeeping/hide-target')">
+          <template #icon><icon-settings /></template>
+          隐藏配置
+        </a-button>
       </template>
       <template #subjectCategory="{ record }">
         <GiCellTag :value="record.subjectCategory" :dict="bk_subject_category" />
@@ -88,11 +93,11 @@
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
 import { computed, h, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import AddModal from './AddModal.vue'
 import { type DetailResp, deleteDetail, listDetail } from '@/apis/bookkeeping/detail'
-import { listMyFollow } from '@/apis/bookkeeping/follow'
+import { listMyFollow, listFollowUserOptions } from '@/apis/bookkeeping/follow'
 import { hasPrivacyPassword, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
-import { listUserDict } from '@/apis/system/user'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive, useTable } from '@/hooks'
 import { useDict } from '@/hooks/app'
@@ -104,6 +109,7 @@ import mittBus from '@/utils/mitt'
 
 defineOptions({ name: 'BookkeepingDetail' })
 
+const router = useRouter()
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
 const { bk_subject_category } = useDict('bk_subject_category')
@@ -133,7 +139,7 @@ const userOptions = ref<LabelValueState[]>([])
 const loadUserOptions = async () => {
   if (userOptions.value.length) return
   if (isAdmin.value) {
-    const { data } = await listUserDict({ status: 1 })
+    const { data } = await listFollowUserOptions()
     userOptions.value = data
   } else {
     const options: LabelValueState[] = [

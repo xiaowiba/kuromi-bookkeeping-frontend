@@ -6,3 +6,4 @@
  */
 export * from './subject'
 export * from './detail'
+export * from './follow'

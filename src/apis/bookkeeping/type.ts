@@ -64,3 +64,28 @@ export interface DetailQuery {
 
 /** 明细分页查询条件 */
 export interface DetailPageQuery extends DetailQuery, PageQuery {}
+
+/** 关注响应类型 */
+export interface FollowResp {
+  id: string
+  userId: string
+  userNickname: string
+  followUserId: string
+  followUserNickname: string
+  createTime: string
+}
+
+/** 关注查询条件 */
+export interface FollowQuery {
+  userId?: string
+  sort?: Array<string>
+}
+
+/** 关注分页查询条件 */
+export interface FollowPageQuery extends FollowQuery, PageQuery {}
+
+/** 关注配置请求参数 */
+export interface FollowReq {
+  userId: string | number
+  followUserIds: Array<string | number>
+}

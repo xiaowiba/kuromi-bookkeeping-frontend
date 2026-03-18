@@ -106,36 +106,39 @@ const {
 } = useTable((page) => listSubject({ ...queryForm, ...page }), { immediate: true })
 
 const columns: TableInstance['columns'] = [
-  {
-    title: '序号',
-    width: 66,
-    align: 'center',
-    render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + (pagination.current - 1) * pagination.pageSize),
-  },
-  { title: '类型名称', dataIndex: 'name', minWidth: 120, ellipsis: true, tooltip: true },
-  { title: '所属分类', dataIndex: 'category', slotName: 'category', width: 120, align: 'center' },
-  { title: '图标', dataIndex: 'icon', width: 100, align: 'center', ellipsis: true, tooltip: true },
-  {
-    title: '排序',
-    dataIndex: 'sort',
-    width: 80,
-    align: 'center',
-    sortable: { sortDirections: ['ascend', 'descend'] },
-  },
+  // {
+  //   title: '序号',
+  //   width: 66,
+  //   align: 'center',
+  //   render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + (pagination.current - 1) * pagination.pageSize),
+  // },
+  // { title: '图标', dataIndex: 'icon', width: 80, align: 'center', ellipsis: true, tooltip: true },
+  { title: '类型名称', dataIndex: 'name', ellipsis: true, tooltip: true, align: 'center' },
+  { title: '所属分类', dataIndex: 'category', slotName: 'category', width: 60, align: 'center' },
+  // {
+  //   title: '排序',
+  //   dataIndex: 'sort',
+  //   width: 80,
+  //   align: 'center',
+  //   sortable: { sortDirections: ['ascend', 'descend'] },
+  // },
   { title: '是否默认', dataIndex: 'isDefault', slotName: 'isDefault', width: 100, align: 'center' },
   { title: '状态', dataIndex: 'status', slotName: 'status', width: 100, align: 'center' },
-  { title: '创建人', dataIndex: 'createUserString', width: 140, ellipsis: true, tooltip: true, show: false },
-  { title: '创建时间', dataIndex: 'createTime', width: 180, show: false },
-  { title: '修改人', dataIndex: 'updateUserString', width: 140, ellipsis: true, tooltip: true, show: false },
-  { title: '修改时间', dataIndex: 'updateTime', width: 180, show: false },
+  // { title: '创建人', dataIndex: 'createUserString', width: 140, ellipsis: true, tooltip: true, show: false },
+  // { title: '创建时间', dataIndex: 'createTime', width: 180, show: false },
+  // { title: '修改人', dataIndex: 'updateUserString', width: 140, ellipsis: true, tooltip: true, show: false },
+  // { title: '修改时间', dataIndex: 'updateTime', width: 180, show: false },
   {
     title: '操作',
     dataIndex: 'action',
     slotName: 'action',
-    width: 130,
+    width: 80,
     align: 'center',
     fixed: !isMobile() ? 'right' : undefined,
-    show: has.hasPermOr(['bookkeeping:subject:update', 'bookkeeping:subject:delete']),
+    show: has.hasPermOr([
+      'bookkeeping:subject:update',
+      'bookkeeping:subject:delete',
+    ]),
   },
 ]
 
@@ -144,6 +147,7 @@ const reset = () => {
   queryForm.name = undefined
   queryForm.category = undefined
   queryForm.status = undefined
+  // resetForm()
   search()
 }
 

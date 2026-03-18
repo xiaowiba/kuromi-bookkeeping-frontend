@@ -22,6 +22,7 @@
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
+import { computed, reactive, ref } from 'vue'
 import { addSubject, getSubject, updateSubject } from '@/apis/bookkeeping/subject'
 import { type ColumnItem, GiForm } from '@/components/GiForm'
 import { useResetReactive } from '@/hooks'
@@ -66,10 +67,9 @@ const columns: ColumnItem[] = reactive([
     field: 'category',
     type: 'select',
     span: 24,
-    required: true,
-    options: bk_subject_category,
+    rules: [{ required: true, message: '请选择所属分类' }],
     props: {
-      placeholder: '请选择所属分类',
+      options: bk_subject_category,
     },
     disabled: () => isDefaultSubject.value,
   },

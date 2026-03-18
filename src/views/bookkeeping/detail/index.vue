@@ -1,9 +1,5 @@
 <template>
   <GiPageLayout>
-    <!-- 左侧树预留：如需左侧分类树，取消注释并创建对应的 Tree 组件 -->
-    <!-- <template #left>
-      <CategoryTree @node-click="handleSelectCategory" />
-    </template> -->
     <GiTable
       row-key="id"
       :data="dataList"
@@ -23,6 +19,11 @@
           <template #icon><icon-plus /></template>
           <template #default>新增</template>
         </a-button>
+        <!-- 隐私模式退出按钮 -->
+        <a-button v-if="privacyStore.isPrivacyMode" status="warning" size="small" style="margin-left: 12px" @click="onExitPrivacy">
+          <template #icon><icon-lock /></template>
+          退出隐私模式
+        </a-button>
       </template>
       <template #subjectCategory="{ record }">
         <GiCellTag :value="record.subjectCategory" :dict="bk_subject_category" />
@@ -31,6 +32,7 @@
         <span :style="{ color: record.amount < 0 ? '#f53f3f' : '#00b42a', fontWeight: 'bold' }">
           {{ record.amount < 0 ? record.amount.toFixed(2) : `+${record.amount.toFixed(2)}` }}
         </span>
+        <a-tag v-if="privacyStore.isPrivacyMode && record.hidden === 1" color="orangered" size="small" style="margin-left: 4px">隐</a-tag>
       </template>
       <template #hidden="{ record }">
         <a-tag v-if="record.hidden === 1" color="orangered" size="small">隐藏</a-tag>
@@ -52,6 +54,19 @@
     </GiTable>
 
     <AddModal ref="AddModalRef" @save-success="search" />
+
+    <!-- 密码验证弹窗 -->
+    <a-modal v-model:visible="verifyModalVisible" title="请输入密码" :width="360" :mask-closable="false" simple @before-ok="onVerifyPassword" @close="verifyPassword = ''">
+      <a-input-password v-model="verifyPassword" placeholder="请输入隐私密码" allow-clear />
+    </a-modal>
+
+    <!-- 首次设置密码弹窗 -->
+    <a-modal v-model:visible="setupModalVisible" title="设置隐私密码" :width="360" :mask-closable="false" :esc-to-close="false" simple @before-ok="onSetupPassword">
+      <a-space direction="vertical" fill>
+        <a-input-password v-model="setupForm.password" placeholder="请输入隐私密码" allow-clear />
+        <a-input-password v-model="setupForm.confirmPassword" placeholder="请再次输入密码" allow-clear />
+      </a-space>
+    </a-modal>
   </GiPageLayout>
 </template>
 
@@ -65,28 +80,39 @@
  * @desc 查询条件增加用户下拉选择（仅管理员可见）
  * @update 2026-03-18 @Wangsongsong
  * @desc 非超管用户通过关注列表构建用户下拉选项，可查看关注的人的明细
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 集成隐私模式：隐蔽入口、密码验证/设置、隐私模式查询参数、退出按钮
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 超管增加"是否隐藏"筛选条件，默认展示全部
  */
 import type { TableInstance } from '@arco-design/web-vue'
-import { computed, h, onMounted, reactive, ref } from 'vue'
+import { Message } from '@arco-design/web-vue'
+import { computed, h, onMounted, onUnmounted, reactive, ref } from 'vue'
 import AddModal from './AddModal.vue'
 import { type DetailResp, deleteDetail, listDetail } from '@/apis/bookkeeping/detail'
 import { listMyFollow } from '@/apis/bookkeeping/follow'
+import { hasPrivacyPassword, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import { listUserDict } from '@/apis/system/user'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive, useTable } from '@/hooks'
 import { useDict } from '@/hooks/app'
-import { useUserStore } from '@/stores'
+import { usePrivacyStore, useUserStore } from '@/stores'
 import type { LabelValueState } from '@/types/global'
 import { isMobile } from '@/utils'
 import has from '@/utils/has'
+import mittBus from '@/utils/mitt'
 
 defineOptions({ name: 'BookkeepingDetail' })
 
 const userStore = useUserStore()
+const privacyStore = usePrivacyStore()
 const { bk_subject_category } = useDict('bk_subject_category')
 
 /** 是否超级管理员 */
 const isAdmin = computed(() => userStore.roles.includes('super_admin'))
+
+/** 是否拥有隐藏权限 */
+const hasHidePermission = computed(() => has.hasPermOr(['bk:hide-target:manage']))
 
 /** 用户选项列表 */
 const userOptions = ref<LabelValueState[]>([])
@@ -110,11 +136,9 @@ const loadUserOptions = async () => {
     const { data } = await listUserDict({ status: 1 })
     userOptions.value = data
   } else {
-    // 当前用户自己
     const options: LabelValueState[] = [
       { label: userStore.userInfo.nickname, value: userStore.userInfo.id },
     ]
-    // 加载关注的人
     try {
       const { data } = await listMyFollow()
       if (data && data.length > 0) {
@@ -128,10 +152,6 @@ const loadUserOptions = async () => {
     userOptions.value = options
   }
 }
-
-onMounted(() => {
-  loadUserOptions()
-})
 
 /**
  * 获取当前月份字符串（yyyy-MM 格式）
@@ -195,6 +215,22 @@ const queryFormColumns: ColumnItem[] = reactive([
       allowClear: true,
     },
   },
+  {
+    type: 'select',
+    label: '是否隐藏',
+    field: 'hidden',
+    span: { xs: 24, sm: 8, xxl: 6 },
+    show: () => isAdmin.value,
+    props: {
+      options: [
+        { label: '全部', value: '' },
+        { label: '正常', value: 0 },
+        { label: '隐藏', value: 1 },
+      ],
+      placeholder: '请选择',
+      allowClear: true,
+    },
+  },
 ])
 
 const {
@@ -203,7 +239,7 @@ const {
   pagination,
   search,
   handleDelete,
-} = useTable((page) => listDetail({ ...queryForm, ...page }), { immediate: true })
+} = useTable((page) => listDetail({ ...queryForm, ...page, privacyMode: privacyStore.isPrivacyMode }), { immediate: true })
 
 const columns: TableInstance['columns'] = [
   {
@@ -219,7 +255,7 @@ const columns: TableInstance['columns'] = [
   { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 100, align: 'right' },
   { title: '明细日期', dataIndex: 'detailDate', width: 100, align: 'center' },
   { title: '备注', dataIndex: 'remark', minWidth: 120, ellipsis: true, tooltip: true },
-  { title: '隐藏', dataIndex: 'hidden', slotName: 'hidden', width: 60, align: 'center', show: false },
+  { title: '隐藏', dataIndex: 'hidden', slotName: 'hidden', width: 60, align: 'center', show: (has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value },
   { title: '创建人', dataIndex: 'createUserString', width: 100, ellipsis: true, tooltip: true, show: false },
   { title: '创建时间', dataIndex: 'createTime', width: 160, show: false },
   { title: '修改人', dataIndex: 'updateUserString', width: 100, ellipsis: true, tooltip: true, show: false },
@@ -263,6 +299,149 @@ const onAdd = () => {
 const onUpdate = (record: DetailResp) => {
   AddModalRef.value?.onUpdate(record.id)
 }
+
+// ==================== 隐私模式相关 ====================
+
+/** 版权区域点击计数器 */
+let footerClickCount = 0
+let footerClickTimer: ReturnType<typeof setTimeout> | null = null
+
+/** 密码验证弹窗 */
+const verifyModalVisible = ref(false)
+const verifyPassword = ref('')
+
+/** 首次设置密码弹窗 */
+const setupModalVisible = ref(false)
+const setupForm = reactive({ password: '', confirmPassword: '' })
+
+/**
+ * 页脚版权区域点击事件（通过 mitt 监听）
+ *
+ * 连续点击 3 次触发隐私模式入口
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 改为监听 GiFooter 的 mitt 事件，用底部版权区域作为隐蔽入口
+ */
+const onFooterClick = () => {
+  if (!hasHidePermission.value) return
+  footerClickCount++
+  if (footerClickTimer) clearTimeout(footerClickTimer)
+  footerClickTimer = setTimeout(() => { footerClickCount = 0 }, 2000)
+  if (footerClickCount >= 3) {
+    footerClickCount = 0
+    if (footerClickTimer) clearTimeout(footerClickTimer)
+    if (privacyStore.isPrivacyMode) {
+      Message.info('当前已在隐私模式')
+      return
+    }
+    checkAndShowPasswordModal()
+  }
+}
+
+/**
+ * 检查是否已设置隐私密码，决定弹出验证还是设置弹窗
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+const checkAndShowPasswordModal = async () => {
+  try {
+    const { data } = await hasPrivacyPassword()
+    if (data.hasPassword) {
+      verifyPassword.value = ''
+      verifyModalVisible.value = true
+    } else {
+      setupForm.password = ''
+      setupForm.confirmPassword = ''
+      setupModalVisible.value = true
+    }
+  } catch {
+    Message.error('检查密码状态失败')
+  }
+}
+
+/**
+ * 验证隐私密码
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+const onVerifyPassword = async () => {
+  if (!verifyPassword.value) {
+    Message.warning('请输入密码')
+    return false
+  }
+  try {
+    const { data } = await verifyPrivacyPassword({ password: verifyPassword.value })
+    if (data.verified) {
+      privacyStore.enterPrivacyMode()
+      Message.success('已进入隐私模式')
+      verifyPassword.value = ''
+      search()
+      return true
+    } else {
+      Message.error('密码错误')
+      return false
+    }
+  } catch {
+    Message.error('验证失败')
+    return false
+  }
+}
+
+/**
+ * 首次设置隐私密码
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+const onSetupPassword = async () => {
+  if (!setupForm.password) {
+    Message.warning('请输入密码')
+    return false
+  }
+  if (setupForm.password.length < 4) {
+    Message.warning('密码长度不能少于4位')
+    return false
+  }
+  if (setupForm.password !== setupForm.confirmPassword) {
+    Message.warning('两次输入的密码不一致')
+    return false
+  }
+  try {
+    await setPrivacyPassword({ password: setupForm.password })
+    privacyStore.enterPrivacyMode()
+    Message.success('密码设置成功，已进入隐私模式')
+    search()
+    return true
+  } catch {
+    Message.error('设置密码失败')
+    return false
+  }
+}
+
+/**
+ * 退出隐私模式
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+const onExitPrivacy = () => {
+  privacyStore.exitPrivacyMode()
+  Message.success('已退出隐私模式')
+  search()
+}
+
+onMounted(() => {
+  loadUserOptions()
+  mittBus.on('footer-click', onFooterClick)
+})
+
+onUnmounted(() => {
+  mittBus.off('footer-click', onFooterClick)
+})
 </script>
 
 <style scoped lang="scss"></style>

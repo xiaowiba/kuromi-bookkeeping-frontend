@@ -7,6 +7,7 @@ export * from './modules/tabs'
 export * from './modules/dict'
 export * from './modules/user'
 export * from './modules/tenant'
+export * from './modules/privacy'
 
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)

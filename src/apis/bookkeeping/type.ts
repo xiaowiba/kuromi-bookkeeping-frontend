@@ -105,3 +105,24 @@ export interface HideTargetReq {
   userId: string | number
   targetUserIds: Array<string | number>
 }
+
+/** 隐私密码验证请求 */
+export interface PrivacyVerifyReq {
+  password: string
+}
+
+/** 隐私密码验证响应 */
+export interface PrivacyVerifyResp {
+  verified: boolean
+}
+
+/** 隐私密码设置/修改请求 */
+export interface PrivacyPasswordReq {
+  password: string
+  oldPassword?: string
+}
+
+/** 是否已设置隐私密码响应 */
+export interface PrivacyHasPasswordResp {
+  hasPassword: boolean
+}

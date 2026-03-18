@@ -1,41 +1,69 @@
 <template>
   <GiPageLayout>
-    <a-card title="隐藏对象配置">
-      <template #extra>
-        <a-space>
-          <a-select
-            v-if="isAdmin"
-            v-model="selectedUserId"
-            placeholder="请选择用户"
-            allow-search
-            style="width: 200px"
-            @change="onUserChange"
-          >
-            <a-option v-for="item in userOptions" :key="item.value" :value="item.value" :label="item.label" />
-          </a-select>
-        </a-space>
-      </template>
+    <!-- 未进入隐私模式时的提示 -->
+    <template v-if="!privacyStore.isPrivacyMode">
+      <a-result status="warning" title="请先进入隐私模式" subtitle="请在明细管理页面通过隐蔽入口进入隐私模式后再访问此页面" />
+    </template>
 
-      <a-alert style="margin-bottom: 16px">
-        以下勾选的用户，将看不到你标记为"隐藏"的明细。
-      </a-alert>
+    <!-- 隐私模式下显示正常内容 -->
+    <template v-else>
+      <a-card title="隐藏对象配置">
+        <template #extra>
+          <a-space>
+            <a-select
+              v-if="isAdmin"
+              v-model="selectedUserId"
+              placeholder="请选择用户"
+              allow-search
+              style="width: 200px"
+              @change="onUserChange"
+            >
+              <a-option v-for="item in userOptions" :key="item.value" :value="item.value" :label="item.label" />
+            </a-select>
+          </a-space>
+        </template>
 
-      <a-spin :loading="loading" style="width: 100%">
-        <a-checkbox-group v-model="checkedTargetIds" direction="vertical">
-          <a-checkbox v-for="item in targetUserOptions" :key="item.value" :value="item.value">
-            {{ item.label }}
-          </a-checkbox>
-        </a-checkbox-group>
+        <a-alert style="margin-bottom: 16px">
+          以下勾选的用户，将看不到你标记为"隐藏"的明细。
+        </a-alert>
 
-        <a-empty v-if="targetUserOptions.length === 0" description="暂无可选用户" />
-      </a-spin>
+        <a-spin :loading="loading" style="width: 100%">
+          <a-checkbox-group v-model="checkedTargetIds" direction="vertical">
+            <a-checkbox v-for="item in targetUserOptions" :key="item.value" :value="item.value">
+              {{ item.label }}
+            </a-checkbox>
+          </a-checkbox-group>
 
-      <div style="margin-top: 24px">
-        <a-button type="primary" :loading="saving" @click="onSave">
-          保存配置
-        </a-button>
-      </div>
-    </a-card>
+          <a-empty v-if="targetUserOptions.length === 0" description="暂无可选用户" />
+        </a-spin>
+
+        <div style="margin-top: 24px">
+          <a-button type="primary" :loading="saving" @click="onSave">
+            保存配置
+          </a-button>
+        </div>
+      </a-card>
+
+      <!-- 修改隐私密码 -->
+      <a-card title="修改隐私密码" style="margin-top: 16px">
+        <a-form :model="pwdForm" layout="vertical" style="max-width: 400px">
+          <a-form-item label="原密码" required>
+            <a-input-password v-model="pwdForm.oldPassword" placeholder="请输入原密码" allow-clear />
+          </a-form-item>
+          <a-form-item label="新密码" required>
+            <a-input-password v-model="pwdForm.newPassword" placeholder="请输入新密码" allow-clear />
+          </a-form-item>
+          <a-form-item label="确认新密码" required>
+            <a-input-password v-model="pwdForm.confirmPassword" placeholder="请再次输入新密码" allow-clear />
+          </a-form-item>
+          <a-form-item>
+            <a-button type="primary" :loading="pwdSaving" @click="onChangePassword">
+              修改密码
+            </a-button>
+          </a-form-item>
+        </a-form>
+      </a-card>
+    </template>
   </GiPageLayout>
 </template>
 
@@ -44,23 +72,28 @@
  * 隐藏对象配置页面
  *
  * 用户可勾选要对其隐藏明细的目标用户，
- * 超管可切换用户查看/配置不同用户的隐藏对象
+ * 超管可切换用户查看/配置不同用户的隐藏对象。
+ * 页面需在隐私模式下才可访问，同时提供修改隐私密码功能。
  *
  * @author Wangsongsong
  * @date 2026-03-18
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 增加隐私模式守卫和修改隐私密码功能
  */
 import { Message } from '@arco-design/web-vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { listHideTargetByUserId, listMyHideTarget, saveHideTarget } from '@/apis/bookkeeping/hide-target'
 import { listMyFollow } from '@/apis/bookkeeping/follow'
+import { setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import type { HideTargetResp } from '@/apis/bookkeeping/type'
 import { listUserDict } from '@/apis/system/user'
 import type { LabelValueState } from '@/types/global'
-import { useUserStore } from '@/stores'
+import { usePrivacyStore, useUserStore } from '@/stores'
 
 defineOptions({ name: 'BookkeepingHideTarget' })
 
 const userStore = useUserStore()
+const privacyStore = usePrivacyStore()
 const isAdmin = computed(() => userStore.roles.includes('super_admin'))
 const currentUserId = computed(() => String(userStore.userInfo.id))
 
@@ -89,6 +122,11 @@ const checkedTargetIds = ref<Array<string | number>>([])
 const loading = ref(false)
 const saving = ref(false)
 
+// ==================== 修改密码相关 ====================
+
+const pwdForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
+const pwdSaving = ref(false)
+
 /**
  * 加载用户选项
  *
@@ -106,14 +144,11 @@ const loadUserOptions = async () => {
       const { data } = await listUserDict({ status: 1 })
       userOptions.value = data
     } else {
-      // 普通用户：从关注列表获取可选用户
       const options: LabelValueState[] = []
-      // 添加自己
       options.push({
         label: userStore.userInfo.nickname || userStore.userInfo.username,
         value: String(userStore.userInfo.id),
       })
-      // 添加关注的人
       const { data: followList } = await listMyFollow()
       if (followList && followList.length > 0) {
         followList.forEach((item) => {
@@ -186,9 +221,57 @@ const onSave = async () => {
   }
 }
 
+/**
+ * 修改隐私密码
+ *
+ * 先验证原密码，再设置新密码
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+const onChangePassword = async () => {
+  if (!pwdForm.oldPassword) {
+    Message.warning('请输入原密码')
+    return
+  }
+  if (!pwdForm.newPassword) {
+    Message.warning('请输入新密码')
+    return
+  }
+  if (pwdForm.newPassword.length < 4) {
+    Message.warning('新密码长度不能少于4位')
+    return
+  }
+  if (pwdForm.newPassword !== pwdForm.confirmPassword) {
+    Message.warning('两次输入的新密码不一致')
+    return
+  }
+  pwdSaving.value = true
+  try {
+    // 先验证原密码
+    const { data } = await verifyPrivacyPassword({ password: pwdForm.oldPassword })
+    if (!data.verified) {
+      Message.error('原密码错误')
+      return
+    }
+    // 设置新密码
+    await setPrivacyPassword({ password: pwdForm.newPassword, oldPassword: pwdForm.oldPassword })
+    Message.success('密码修改成功')
+    pwdForm.oldPassword = ''
+    pwdForm.newPassword = ''
+    pwdForm.confirmPassword = ''
+  } catch {
+    Message.error('修改密码失败')
+  } finally {
+    pwdSaving.value = false
+  }
+}
+
 onMounted(async () => {
-  await loadUserOptions()
-  await loadHideTargets()
+  if (privacyStore.isPrivacyMode) {
+    await loadUserOptions()
+    await loadHideTargets()
+  }
 })
 </script>
 

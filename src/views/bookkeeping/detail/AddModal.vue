@@ -21,6 +21,8 @@
  * @date 2026-03-18
  * @update 2026-03-18 @Wangsongsong
  * @desc 优化用户字段角色控制、分类级联科目、科目联动名称
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 隐藏开关仅在隐私模式下显示
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
@@ -31,8 +33,9 @@ import { listUserDict } from '@/apis/system/user'
 import { type ColumnItem, GiForm } from '@/components/GiForm'
 import { useResetReactive } from '@/hooks'
 import { useDict } from '@/hooks/app'
-import { useUserStore } from '@/stores'
+import { usePrivacyStore, useUserStore } from '@/stores'
 import type { LabelValueState } from '@/types/global'
+import has from '@/utils/has'
 
 const emit = defineEmits<{
   (e: 'save-success'): void
@@ -40,6 +43,7 @@ const emit = defineEmits<{
 
 const { width } = useWindowSize()
 const userStore = useUserStore()
+const privacyStore = usePrivacyStore()
 const { bk_subject_category } = useDict('bk_subject_category')
 
 /** 是否超级管理员 */
@@ -63,6 +67,7 @@ let lastAutoFillName = ''
 const [form, resetForm] = useResetReactive({
   detailDate: new Date().toISOString().slice(0, 10),
   category: '',
+  hidden: 0,
 })
 
 const columns: ColumnItem[] = reactive([
@@ -142,6 +147,17 @@ const columns: ColumnItem[] = reactive([
       maxLength: 200,
       showWordLimit: true,
       placeholder: '请输入备注',
+    },
+  },
+  {
+    label: '隐藏此笔',
+    field: 'hidden',
+    type: 'switch',
+    span: 24,
+    show: () => has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode,
+    props: {
+      checkedValue: 1,
+      uncheckedValue: 0,
     },
   },
 ])

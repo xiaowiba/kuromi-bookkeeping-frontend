@@ -17,13 +17,16 @@
 </template>
 
 <script setup lang="ts">
-import { useAppStore, useUserStore } from '@/stores'
+import { useAppStore, usePrivacyStore, useUserStore } from '@/stores'
 
 defineOptions({ name: 'App' })
 const userStore = useUserStore()
 const appStore = useAppStore()
+const privacyStore = usePrivacyStore()
 appStore.initTheme()
 appStore.initSiteConfig()
+// 初始化隐私模式可见性监听（切后台超时自动退出）
+privacyStore.initVisibilityListener()
 </script>
 
 <style scoped lang="scss">

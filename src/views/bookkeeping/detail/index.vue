@@ -63,11 +63,14 @@
  * @date 2026-03-18
  * @update 2026-03-18 @Wangsongsong
  * @desc 查询条件增加用户下拉选择（仅管理员可见）
+ * @update 2026-03-18 @Wangsongsong
+ * @desc 非超管用户通过关注列表构建用户下拉选项，可查看关注的人的明细
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import AddModal from './AddModal.vue'
 import { type DetailResp, deleteDetail, listDetail } from '@/apis/bookkeeping/detail'
+import { listMyFollow } from '@/apis/bookkeeping/follow'
 import { listUserDict } from '@/apis/system/user'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive, useTable } from '@/hooks'
@@ -92,12 +95,14 @@ const userOptions = ref<LabelValueState[]>([])
  * 加载用户选项
  *
  * 超管：调用用户字典接口获取所有用户
- * 非超管：仅显示当前登录用户
+ * 非超管：当前用户 + 关注的人
  *
  * @author Wangsongsong
  * @date 2026-03-18
  * @update 2026-03-18 @Wangsongsong
  * @desc 非超管不调用用户字典接口，直接用当前用户信息构造选项
+ * @update 2026-03-18 @Wangsongsong
+ * @desc 非超管通过关注列表构建用户下拉选项，可查看关注的人的明细
  */
 const loadUserOptions = async () => {
   if (userOptions.value.length) return
@@ -105,7 +110,22 @@ const loadUserOptions = async () => {
     const { data } = await listUserDict({ status: 1 })
     userOptions.value = data
   } else {
-    userOptions.value = [{ label: userStore.userInfo.nickname, value: userStore.userInfo.id }]
+    // 当前用户自己
+    const options: LabelValueState[] = [
+      { label: userStore.userInfo.nickname, value: userStore.userInfo.id },
+    ]
+    // 加载关注的人
+    try {
+      const { data } = await listMyFollow()
+      if (data && data.length > 0) {
+        data.forEach((item) => {
+          options.push({ label: item.followUserNickname, value: item.followUserId })
+        })
+      }
+    } catch {
+      // 加载失败不影响，至少有自己
+    }
+    userOptions.value = options
   }
 }
 
@@ -138,11 +158,10 @@ const queryFormColumns: ColumnItem[] = reactive([
     label: '所属用户',
     field: 'userId',
     span: { xs: 24, sm: 8, xxl: 6 },
-    disabled: () => !isAdmin.value,
     props: {
       options: userOptions,
       placeholder: '请选择用户',
-      allowClear: isAdmin.value,
+      allowClear: true,
       allowSearch: true,
     },
   },

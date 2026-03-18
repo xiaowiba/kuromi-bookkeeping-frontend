@@ -44,8 +44,7 @@ const { bk_subject_category } = useDict('bk_subject_category')
 
 /** 是否超级管理员 */
 const isAdmin = computed(() => userStore.roles.includes('super_admin'))
-console.log(userStore.roles)
-console.log(isAdmin)
+
 const dataId = ref('')
 const visible = ref(false)
 const isUpdate = computed(() => !!dataId.value)

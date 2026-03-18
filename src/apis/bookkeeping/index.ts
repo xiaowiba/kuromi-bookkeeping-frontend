@@ -7,3 +7,4 @@
 export * from './subject'
 export * from './detail'
 export * from './follow'
+export * from './hide-target'

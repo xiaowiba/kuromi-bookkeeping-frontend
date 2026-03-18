@@ -89,3 +89,19 @@ export interface FollowReq {
   userId: string | number
   followUserIds: Array<string | number>
 }
+
+/** 隐藏对象配置响应类型 */
+export interface HideTargetResp {
+  id: string
+  userId: string
+  userNickname: string
+  targetUserId: string
+  targetUserNickname: string
+  createTime: string
+}
+
+/** 隐藏对象配置请求参数 */
+export interface HideTargetReq {
+  userId: string | number
+  targetUserIds: Array<string | number>
+}

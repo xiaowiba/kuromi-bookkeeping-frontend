@@ -19,15 +19,19 @@
  *
  * @author Wangsongsong
  * @date 2026-03-18
+ * @update 2026-03-18 @Wangsongsong
+ * @desc 优化用户字段角色控制、分类级联科目、科目联动名称
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { listSubject } from '@/apis/bookkeeping/subject'
 import { listUserDict } from '@/apis/system/user'
 import { type ColumnItem, GiForm } from '@/components/GiForm'
 import { useResetReactive } from '@/hooks'
+import { useDict } from '@/hooks/app'
+import { useUserStore } from '@/stores'
 import type { LabelValueState } from '@/types/global'
 
 const emit = defineEmits<{
@@ -35,7 +39,13 @@ const emit = defineEmits<{
 }>()
 
 const { width } = useWindowSize()
+const userStore = useUserStore()
+const { bk_subject_category } = useDict('bk_subject_category')
 
+/** 是否超级管理员 */
+const isAdmin = computed(() => userStore.roles.includes('super_admin'))
+console.log(userStore.roles)
+console.log(isAdmin)
 const dataId = ref('')
 const visible = ref(false)
 const isUpdate = computed(() => !!dataId.value)
@@ -44,11 +54,16 @@ const formRef = ref<InstanceType<typeof GiForm>>()
 
 /** 用户选项列表 */
 const userOptions = ref<LabelValueState[]>([])
-/** 科目选项列表 */
+/** 全部科目数据（原始） */
+const allSubjects = ref<any[]>([])
+/** 当前分类下的科目选项 */
 const subjectOptions = ref<LabelValueState[]>([])
+/** 上一次自动填充的名称（避免覆盖用户手动输入） */
+let lastAutoFillName = ''
 
 const [form, resetForm] = useResetReactive({
   detailDate: new Date().toISOString().slice(0, 10),
+  category: '',
 })
 
 const columns: ColumnItem[] = reactive([
@@ -58,10 +73,23 @@ const columns: ColumnItem[] = reactive([
     type: 'select',
     span: 24,
     required: true,
+    show: () => isAdmin.value,
     props: {
       options: userOptions,
       placeholder: '请选择所属用户',
       allowSearch: true,
+    },
+  },
+  {
+    label: '分类',
+    field: 'category',
+    type: 'select',
+    span: 24,
+    required: true,
+    props: {
+      options: bk_subject_category,
+      placeholder: '请选择分类（支出/收入）',
+      allowClear: true,
     },
   },
   {
@@ -72,7 +100,7 @@ const columns: ColumnItem[] = reactive([
     required: true,
     props: {
       options: subjectOptions,
-      placeholder: '请选择所属科目',
+      placeholder: '请先选择分类',
       allowSearch: true,
     },
   },
@@ -120,6 +148,45 @@ const columns: ColumnItem[] = reactive([
 ])
 
 /**
+ * 监听分类变化，筛选对应科目选项
+ *
+ * @author Wangsongsong
+ * @date 2026-03-18
+ */
+watch(() => form.category, (val) => {
+  if (val) {
+    subjectOptions.value = allSubjects.value
+      .filter((item: any) => item.category === val)
+      .map((item: any) => ({ label: item.name, value: item.id }))
+  } else {
+    subjectOptions.value = []
+  }
+  // 切换分类时清空科目和名称
+  form.subjectId = undefined
+  form.name = ''
+  lastAutoFillName = ''
+})
+
+/**
+ * 监听科目变化，自动填充明细名称
+ *
+ * @author Wangsongsong
+ * @date 2026-03-18
+ */
+watch(() => form.subjectId, (val) => {
+  if (!val) return
+  const selected = subjectOptions.value.find((item) => item.value === val)
+  if (selected) {
+    const label = selected.label as string
+    // 仅在名称为空或等于上次自动填充值时才覆盖
+    if (!form.name || form.name === lastAutoFillName) {
+      form.name = label
+      lastAutoFillName = label
+    }
+  }
+})
+
+/**
  * 加载用户选项
  *
  * @author Wangsongsong
@@ -138,18 +205,16 @@ const loadUserOptions = async () => {
  * @date 2026-03-18
  */
 const loadSubjectOptions = async () => {
-  if (subjectOptions.value.length) return
+  if (allSubjects.value.length) return
   const { data } = await listSubject({ sort: ['sort,asc'], page: 1, size: 200 } as any)
-  subjectOptions.value = data.list.map((item: any) => ({
-    label: `${item.name}（${item.category === 'expense' ? '支出' : '收入'}）`,
-    value: item.id,
-  }))
+  allSubjects.value = data.list
 }
 
 /** 重置 */
 const reset = () => {
   formRef.value?.formRef?.resetFields()
   resetForm()
+  lastAutoFillName = ''
 }
 
 /** 保存 */
@@ -157,6 +222,10 @@ const save = async () => {
   try {
     const isInvalid = await formRef.value?.formRef?.validate()
     if (isInvalid) return false
+    // 非管理员自动设置当前用户 ID
+    if (!isAdmin.value) {
+      form.userId = userStore.userInfo.id
+    }
     if (isUpdate.value) {
       await updateDetail(form, dataId.value)
       Message.success('修改成功')
@@ -175,7 +244,16 @@ const save = async () => {
 const onAdd = async () => {
   reset()
   dataId.value = ''
-  await Promise.all([loadUserOptions(), loadSubjectOptions()])
+  lastAutoFillName = ''
+  const tasks: Promise<any>[] = [loadSubjectOptions()]
+  if (isAdmin.value) {
+    tasks.push(loadUserOptions())
+  }
+  await Promise.all(tasks)
+  // 非管理员默认设置当前用户
+  if (!isAdmin.value) {
+    form.userId = userStore.userInfo.id
+  }
   visible.value = true
 }
 
@@ -183,13 +261,28 @@ const onAdd = async () => {
 const onUpdate = async (id: string) => {
   reset()
   dataId.value = id
-  await Promise.all([loadUserOptions(), loadSubjectOptions()])
+  lastAutoFillName = ''
+  const tasks: Promise<any>[] = [loadSubjectOptions()]
+  if (isAdmin.value) {
+    tasks.push(loadUserOptions())
+  }
+  await Promise.all(tasks)
   const { data } = await getDetail(id)
   // 金额取绝对值回显（后端存储带正负号）
   if (data.amount != null) {
     data.amount = Math.abs(data.amount) as any
   }
+  // 回填分类（从详情的 subjectCategory 获取）
+  form.category = data.subjectCategory || ''
+  // 等分类 watch 触发后再赋值科目和名称
+  await new Promise((resolve) => setTimeout(resolve, 0))
   Object.assign(form, data)
+  // 记录当前名称为自动填充值，避免编辑时被覆盖
+  lastAutoFillName = data.name || ''
+  // 非管理员不显示用户选择
+  if (!isAdmin.value) {
+    form.userId = data.userId
+  }
   visible.value = true
 }
 

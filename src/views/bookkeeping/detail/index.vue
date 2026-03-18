@@ -9,7 +9,7 @@
       :data="dataList"
       :columns="columns"
       :loading="loading"
-      :scroll="{ x: '100%', y: '100%', minWidth: 1200 }"
+      :scroll="{ x: '100%', y: '100%', minWidth: 900 }"
       :pagination="pagination"
       :disabled-tools="['size']"
       :disabled-column-keys="['name']"
@@ -61,26 +61,91 @@
  *
  * @author Wangsongsong
  * @date 2026-03-18
+ * @update 2026-03-18 @Wangsongsong
+ * @desc 查询条件增加用户下拉选择（仅管理员可见）
  */
 import type { TableInstance } from '@arco-design/web-vue'
-import { h, reactive, ref } from 'vue'
+import { computed, h, onMounted, reactive, ref } from 'vue'
 import AddModal from './AddModal.vue'
 import { type DetailResp, deleteDetail, listDetail } from '@/apis/bookkeeping/detail'
+import { listUserDict } from '@/apis/system/user'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive, useTable } from '@/hooks'
 import { useDict } from '@/hooks/app'
+import { useUserStore } from '@/stores'
+import type { LabelValueState } from '@/types/global'
 import { isMobile } from '@/utils'
 import has from '@/utils/has'
 
 defineOptions({ name: 'BookkeepingDetail' })
 
+const userStore = useUserStore()
 const { bk_subject_category } = useDict('bk_subject_category')
+
+/** 是否超级管理员 */
+const isAdmin = computed(() => userStore.roles.includes('super_admin'))
+
+/** 用户选项列表 */
+const userOptions = ref<LabelValueState[]>([])
+
+/**
+ * 加载用户选项
+ *
+ * 超管：调用用户字典接口获取所有用户
+ * 非超管：仅显示当前登录用户
+ *
+ * @author Wangsongsong
+ * @date 2026-03-18
+ * @update 2026-03-18 @Wangsongsong
+ * @desc 非超管不调用用户字典接口，直接用当前用户信息构造选项
+ */
+const loadUserOptions = async () => {
+  if (userOptions.value.length) return
+  if (isAdmin.value) {
+    const { data } = await listUserDict({ status: 1 })
+    userOptions.value = data
+  } else {
+    userOptions.value = [{ label: userStore.userInfo.nickname, value: userStore.userInfo.id }]
+  }
+}
+
+onMounted(() => {
+  loadUserOptions()
+})
+
+/**
+ * 获取当前月份字符串（yyyy-MM 格式）
+ *
+ * @author Wangsongsong
+ * @date 2026-03-18
+ */
+const getCurrentMonth = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  return `${year}-${month}`
+}
 
 const [queryForm, resetForm] = useResetReactive({
   sort: ['detailDate,desc', 'id,desc'],
+  month: getCurrentMonth(),
+  userId: userStore.userInfo.id,
 })
 
 const queryFormColumns: ColumnItem[] = reactive([
+  {
+    type: 'select',
+    label: '所属用户',
+    field: 'userId',
+    span: { xs: 24, sm: 8, xxl: 6 },
+    disabled: () => !isAdmin.value,
+    props: {
+      options: userOptions,
+      placeholder: '请选择用户',
+      allowClear: isAdmin.value,
+      allowSearch: true,
+    },
+  },
   {
     type: 'input',
     label: '明细名称',
@@ -128,18 +193,18 @@ const columns: TableInstance['columns'] = [
     align: 'center',
     render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + (pagination.current - 1) * pagination.pageSize),
   },
-  { title: '明细名称', dataIndex: 'name', minWidth: 120, ellipsis: true, tooltip: true },
-  { title: '所属用户', dataIndex: 'userNickname', width: 120, ellipsis: true, tooltip: true },
-  { title: '科目', dataIndex: 'subjectName', width: 100, align: 'center' },
-  { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 80, align: 'center' },
-  { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 120, align: 'right' },
-  { title: '明细日期', dataIndex: 'detailDate', width: 120, align: 'center' },
-  { title: '备注', dataIndex: 'remark', minWidth: 150, ellipsis: true, tooltip: true },
-  { title: '隐藏', dataIndex: 'hidden', slotName: 'hidden', width: 80, align: 'center', show: false },
-  { title: '创建人', dataIndex: 'createUserString', width: 140, ellipsis: true, tooltip: true, show: false },
-  { title: '创建时间', dataIndex: 'createTime', width: 180, show: false },
-  { title: '修改人', dataIndex: 'updateUserString', width: 140, ellipsis: true, tooltip: true, show: false },
-  { title: '修改时间', dataIndex: 'updateTime', width: 180, show: false },
+  { title: '明细名称', dataIndex: 'name', minWidth: 100, ellipsis: true, tooltip: true },
+  { title: '所属用户', dataIndex: 'userNickname', width: 90, ellipsis: true, tooltip: true },
+  { title: '科目', dataIndex: 'subjectName', width: 80, align: 'center' },
+  { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center' },
+  { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 100, align: 'right' },
+  { title: '明细日期', dataIndex: 'detailDate', width: 100, align: 'center' },
+  { title: '备注', dataIndex: 'remark', minWidth: 120, ellipsis: true, tooltip: true },
+  { title: '隐藏', dataIndex: 'hidden', slotName: 'hidden', width: 60, align: 'center', show: false },
+  { title: '创建人', dataIndex: 'createUserString', width: 100, ellipsis: true, tooltip: true, show: false },
+  { title: '创建时间', dataIndex: 'createTime', width: 160, show: false },
+  { title: '修改人', dataIndex: 'updateUserString', width: 100, ellipsis: true, tooltip: true, show: false },
+  { title: '修改时间', dataIndex: 'updateTime', width: 160, show: false },
   {
     title: '操作',
     dataIndex: 'action',

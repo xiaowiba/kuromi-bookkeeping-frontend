@@ -13,6 +13,9 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 用户新增/编辑弹窗
+ */
 import { Message, type TreeNodeData } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
 import { addUser, getUser, updateUser } from '@/apis/system/user'

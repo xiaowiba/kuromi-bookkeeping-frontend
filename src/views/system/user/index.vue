@@ -87,6 +87,9 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 用户管理列表页面
+ */
 import type { TableInstance } from '@arco-design/web-vue'
 import DeptTree from './dept/index.vue'
 import AddDrawer from './AddDrawer.vue'

@@ -1,6 +1,7 @@
 <template>
   <GiPageLayout>
     <GiTable
+      ref="tableRef"
       row-key="id"
       :data="dataList"
       :columns="columns"
@@ -12,7 +13,15 @@
       @refresh="search"
     >
       <template #top>
-        <GiForm v-model="queryForm" search :columns="queryFormColumns" size="medium" @search="search" @reset="reset" />
+        <GiForm 
+          v-model="queryForm" 
+          search 
+          :columns="queryFormColumns" 
+          :default-collapsed="isMobile()" 
+          size="medium" 
+          @search="search" 
+          @reset="reset" 
+        />
       </template>
       <template #toolbar-left>
         <a-button v-permission="['bookkeeping:detail:create']" type="primary" @click="onAdd">
@@ -89,6 +98,8 @@
  * @desc 集成隐私模式：隐蔽入口、密码验证/设置、隐私模式查询参数、退出按钮
  * @update 2026-03-19 @Wangsongsong
  * @desc 超管增加"是否隐藏"筛选条件，默认展示全部
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 移动端优化：默认全屏模式、默认收起搜索条件、分页页码最大化
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
@@ -245,7 +256,16 @@ const {
   pagination,
   search,
   handleDelete,
-} = useTable((page) => listDetail({ ...queryForm, ...page, privacyMode: privacyStore.isPrivacyMode }), { immediate: true })
+} = useTable(
+  (page) => listDetail({ ...queryForm, ...page, privacyMode: privacyStore.isPrivacyMode }), 
+  { 
+    immediate: true,
+    paginationOption: isMobile() ? { defaultPageSize: 50 } : undefined,
+  },
+)
+
+/** 表格引用 */
+const tableRef = ref()
 
 const columns: TableInstance['columns'] = [
   {
@@ -444,6 +464,17 @@ const onExitPrivacy = () => {
 onMounted(() => {
   loadUserOptions()
   mittBus.on('footer-click', onFooterClick)
+  
+  // 移动端默认进入全屏模式
+  if (isMobile() && tableRef.value) {
+    // 延迟执行，确保组件已完全挂载
+    setTimeout(() => {
+      const giTable = tableRef.value as any
+      if (giTable && typeof giTable.toggleFullscreen === 'function') {
+        giTable.toggleFullscreen()
+      }
+    }, 100)
+  }
 })
 
 onUnmounted(() => {

@@ -227,6 +227,7 @@ const handleTableChange = (...args: any[]) => {
 
 defineExpose({
   tableRef,
+  toggleFullscreen,
   resetColumns: () => columnSettingRef.value?.resetColumns?.(),
   saveColumns: () => columnSettingRef.value?.saveColumns?.(),
 })

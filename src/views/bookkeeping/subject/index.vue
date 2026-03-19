@@ -5,6 +5,7 @@
       <CategoryTree @node-click="handleSelectCategory" />
     </template> -->
     <GiTable
+      ref="tableRef"
       row-key="id"
       :data="dataList"
       :columns="columns"
@@ -16,7 +17,15 @@
       @refresh="search"
     >
       <template #top>
-        <GiForm v-model="queryForm" search :columns="queryFormColumns" size="medium" @search="search" @reset="reset" />
+        <GiForm 
+          v-model="queryForm" 
+          search 
+          :columns="queryFormColumns" 
+          :default-collapsed="isMobile()" 
+          size="medium" 
+          @search="search" 
+          @reset="reset" 
+        />
       </template>
       <template #toolbar-left>
         <a-button v-permission="['bookkeeping:subject:create']" type="primary" @click="onAdd">
@@ -61,12 +70,13 @@
  * @author Wangsongsong
  * @date 2026-03-18
  * @update 2026-03-18 @Wangsongsong
- * @desc 统一列表页面风格，搜索表单改用 GiForm 组件，
- *       补全表格列，预留左侧树位置
+ * @desc 统一列表页面风格，搜索表单改用 GiForm 组件，补全表格列，预留左侧树位置
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 移动端优化：默认全屏模式、默认收起搜索条件、分页页码最大化
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
-import { h, reactive, ref } from 'vue'
+import { h, onMounted, reactive, ref } from 'vue'
 import AddModal from './AddModal.vue'
 import { type SubjectQuery, type SubjectResp, deleteSubject, listSubject } from '@/apis/bookkeeping/subject'
 import type { ColumnItem } from '@/components/GiForm'
@@ -122,7 +132,16 @@ const {
   pagination,
   search,
   handleDelete,
-} = useTable((page) => listSubject({ ...queryForm, ...page }), { immediate: true })
+} = useTable(
+  (page) => listSubject({ ...queryForm, ...page }), 
+  { 
+    immediate: true,
+    paginationOption: isMobile() ? { defaultPageSize: 50 } : undefined,
+  },
+)
+
+/** 表格引用 */
+const tableRef = ref()
 
 const columns: TableInstance['columns'] = [
   {
@@ -183,6 +202,25 @@ const onAdd = () => {
 const onUpdate = (record: SubjectResp) => {
   AddModalRef.value?.onUpdate(record.id)
 }
+
+/**
+ * 组件挂载后处理移动端全屏
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+onMounted(() => {
+  // 移动端默认进入全屏模式
+  if (isMobile() && tableRef.value) {
+    // 延迟执行，确保组件已完全挂载
+    setTimeout(() => {
+      const giTable = tableRef.value as any
+      if (giTable && typeof giTable.toggleFullscreen === 'function') {
+        giTable.toggleFullscreen()
+      }
+    }, 100)
+  }
+})
 </script>
 
 <style scoped lang="scss"></style>

@@ -3,6 +3,8 @@
  *
  * @author Wangsongsong
  * @date 2026-03-18
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 增加明细统计接口，用于统计总支出和总收入
  */
 import type * as T from './type'
 import http from '@/utils/http'
@@ -34,4 +36,14 @@ export function updateDetail(data: any, id: string) {
 /** @desc 删除明细 */
 export function deleteDetail(id: string) {
   return http.del(`${BASE_URL}`, { ids: [id] })
+}
+
+/**
+ * 查询明细统计数据
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+export function getDetailStatistics(query: T.DetailPageQuery) {
+  return http.get<T.DetailStatisticsResp>(`${BASE_URL}/statistics`, query)
 }

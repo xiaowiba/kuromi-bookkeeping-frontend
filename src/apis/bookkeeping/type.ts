@@ -3,6 +3,8 @@
  *
  * @author Wangsongsong
  * @date 2026-03-18
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 增加明细统计响应类型 DetailStatisticsResp
  */
 
 /** 科目响应类型 */
@@ -64,6 +66,21 @@ export interface DetailQuery {
 
 /** 明细分页查询条件 */
 export interface DetailPageQuery extends DetailQuery, PageQuery {}
+
+/**
+ * 明细统计响应类型
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+export interface DetailStatisticsResp {
+  /** 总支出 */
+  totalExpense: number
+  /** 总收入 */
+  totalIncome: number
+  /** 净收入 */
+  netIncome: number
+}
 
 /** 关注响应类型 */
 export interface FollowResp {

@@ -6,11 +6,11 @@
       :data="dataList"
       :columns="columns"
       :loading="loading"
-      :scroll="{ x: '100%', y: '100%', minWidth: 900 }"
+      :scroll="isMobile() ? { x: '100%', y: '100%' } : { x: '100%', y: '100%', minWidth: 900 }"
       :pagination="pagination"
       :disabled-tools="['size']"
       :disabled-column-keys="['name']"
-      @refresh="search"
+      @refresh="searchMethod"
     >
       <template #top>
         <GiForm
@@ -19,7 +19,7 @@
           :columns="queryFormColumns"
           :default-collapsed="isMobile()"
           size="medium"
-          @search="search"
+          @search="searchMethod"
           @reset="reset"
         />
       </template>
@@ -39,9 +39,22 @@
           隐藏配置
         </a-button>
       </template>
+      <template #toolbar-right>
+        <!-- 统计数据展示 -->
+        <div class="statistics-container">
+          <div class="statistics-item expense">
+            <span class="label">总支出：</span>
+            <span class="value">{{ statistics.totalExpense.toFixed(2) }}</span>
+          </div>
+          <div class="statistics-item income">
+            <span class="label">总收入：</span>
+            <span class="value">{{ statistics.totalIncome.toFixed(2) }}</span>
+          </div>
+        </div>
+      </template>
       <!-- 移动端紧凑布局 -->
       <template #mobileDetail="{ record }">
-        <div class="mobile-detail-compact">
+        <div class="mobile-detail-compact" :class="{ 'is-hidden': privacyStore.isPrivacyMode && record.hidden === 1 }">
           <!-- 第一行：主要信息 -->
           <div class="compact-row info-line">
             <span class="user-name">{{ record.userNickname }}</span>
@@ -52,7 +65,6 @@
             <span class="amount" :style="{ color: record.amount < 0 ? '#f53f3f' : '#00b42a' }">
               {{ record.amount < 0 ? record.amount.toFixed(2) : `+${record.amount.toFixed(2)}` }}
             </span>
-            <a-tag v-if="privacyStore.isPrivacyMode && record.hidden === 1" color="orangered" size="small">隐</a-tag>
           </div>
           <!-- 第二行：备注信息（如果有） -->
           <div v-if="record.remark" class="compact-row remark-line">
@@ -114,7 +126,7 @@
       </template>
     </GiTable>
 
-    <AddModal ref="AddModalRef" @save-success="search" />
+    <AddModal ref="AddModalRef" @save-success="onSaveSuccess" />
 
     <!-- 密码验证弹窗 -->
     <a-modal v-model:visible="verifyModalVisible" title="请输入密码" :width="360" :mask-closable="false" simple @before-ok="onVerifyPassword" @close="verifyPassword = ''">
@@ -153,13 +165,22 @@
  *       第二行：备注信息（如果有备注）
  *       最后一行：大尺寸操作按钮
  *       字体加大，便于移动端阅读
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 修复移动端表格横向滚动问题：移动端不设置 minWidth，避免不必要的横向滚动
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 移动端隐藏数据优化：不显示"隐"标签，改用橙色背景色区分隐藏数据
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 增加明细统计功能：
+ *       在刷新按钮左边显示总支出和总收入统计数据
+ *       统计数据通过后端接口获取，统计所有符合查询条件的明细
+ *       不区分PC端和移动端，统一显示
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
 import { computed, h, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AddModal from './AddModal.vue'
-import { type DetailResp, deleteDetail, listDetail } from '@/apis/bookkeeping/detail'
+import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
 import { listFollowUserOptions, listMyFollow } from '@/apis/bookkeeping/follow'
 import { hasPrivacyPassword, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import type { ColumnItem } from '@/components/GiForm'
@@ -311,8 +332,46 @@ const {
   handleDelete,
 } = useTable(
   (page) => listDetail({ ...queryForm, ...page, privacyMode: privacyStore.isPrivacyMode }),
-  { immediate: true, paginationOption: isMobile() ? { defaultPageSize: 50 } : undefined },
+  { immediate: false, paginationOption: isMobile() ? { defaultPageSize: 50 } : undefined },
 )
+
+/**
+ * 统计数据
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+const statistics = ref({
+  totalExpense: 0,
+  totalIncome: 0,
+  netIncome: 0,
+})
+
+/**
+ * 加载统计数据
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+const loadStatistics = async () => {
+  try {
+    const { data } = await getDetailStatistics({ ...queryForm, privacyMode: privacyStore.isPrivacyMode })
+    statistics.value = data
+  } catch {
+    // 加载失败不影响列表展示
+    statistics.value = { totalExpense: 0, totalIncome: 0, netIncome: 0 }
+  }
+}
+
+/**
+ * 统一的查询方法，同时加载列表和统计数据
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+const searchMethod = async () => {
+  await Promise.all([search(), loadStatistics()])
+}
 
 /** 表格引用 */
 const tableRef = ref()
@@ -363,7 +422,7 @@ const columns: TableInstance['columns'] = [
 /** 重置查询条件 */
 const reset = () => {
   resetForm()
-  search()
+  searchMethod()
 }
 
 /** 删除明细 */
@@ -384,6 +443,16 @@ const onAdd = () => {
 /** 修改 */
 const onUpdate = (record: DetailResp) => {
   AddModalRef.value?.onUpdate(record.id)
+}
+
+/**
+ * 保存成功后刷新列表和统计数据
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ */
+const onSaveSuccess = () => {
+  searchMethod()
 }
 
 // ==================== 隐私模式相关 ====================
@@ -439,7 +508,7 @@ const onVerifyPassword = async () => {
       privacyStore.enterPrivacyMode()
       Message.success('已进入隐私模式')
       verifyPassword.value = ''
-      search()
+      searchMethod()
       return true
     } else {
       Message.error('密码错误')
@@ -474,7 +543,7 @@ const onSetupPassword = async () => {
     await setPrivacyPassword({ password: setupForm.password })
     privacyStore.enterPrivacyMode()
     Message.success('密码设置成功，已进入隐私模式')
-    search()
+    searchMethod()
     return true
   } catch {
     Message.error('设置密码失败')
@@ -491,7 +560,7 @@ const onSetupPassword = async () => {
 const onExitPrivacy = () => {
   privacyStore.exitPrivacyMode()
   Message.success('已退出隐私模式')
-  search()
+  searchMethod()
 }
 
 /**
@@ -523,6 +592,8 @@ const onFooterClick = () => {
 onMounted(() => {
   loadUserOptions()
   mittBus.on('footer-click', onFooterClick)
+  // 初始加载数据和统计
+  searchMethod()
   // 移动端默认进入全屏模式
   if (isMobile() && tableRef.value) {
     // 延迟执行，确保组件已完全挂载
@@ -541,12 +612,53 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+// 统计数据样式
+.statistics-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-right: 12px;
+
+  .statistics-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 500;
+
+    .label {
+      color: var(--color-text-2);
+    }
+
+    .value {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    &.expense .value {
+      color: #f53f3f;
+    }
+
+    &.income .value {
+      color: #00b42a;
+    }
+  }
+}
+
 // 移动端紧凑布局样式
 .mobile-detail-compact {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 4px 0;
+
+  // 隐藏数据的背景色
+  &.is-hidden {
+    background-color: rgba(255, 125, 0, 0.08);
+    border-radius: 4px;
+    padding: 8px;
+    margin: -4px 0;
+  }
 
   .compact-row {
     display: flex;

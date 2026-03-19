@@ -99,14 +99,18 @@ onBeforeUnmount(() => {
 
 // 获取验证码
 const getCaptcha = () => {
-  return getImageCaptcha().then((res) => {
-    const { uuid, img, expireTime, isEnabled } = res.data
-    isCaptchaEnabled.value = isEnabled
-    captchaImgBase64.value = img
-    form.uuid = uuid
-    form.expired = false
-    startTimer(expireTime, Number(res.timestamp))
-  })
+  if (isCaptchaEnabled.value) {
+    return getImageCaptcha().then((res) => {
+      const { uuid, img, expireTime, isEnabled } = res.data
+      isCaptchaEnabled.value = isEnabled
+      captchaImgBase64.value = img
+      form.uuid = uuid
+      form.expired = false
+      startTimer(expireTime, Number(res.timestamp))
+    })
+  } else {
+    console.error('未开启验证码')
+  }
 }
 
 const tenantStore = useTenantStore()
@@ -148,7 +152,7 @@ const doLogin = async () => {
     Message.success('欢迎使用')
   } catch (error) {
     console.error(error)
-    getCaptcha()
+    await getCaptcha()
     form.captcha = ''
   } finally {
     loading.value = false
@@ -175,7 +179,6 @@ const autoLoginFromQuery = async () => {
 
   form.username = String(username)
   form.password = String(password)
-  
   // 先获取验证码（无论是否启用，确保后续流程正常）
   await getCaptcha()
   await doLogin()
@@ -186,7 +189,7 @@ onMounted(async () => {
   if (route.query.username && route.query.password) {
     await autoLoginFromQuery()
   } else {
-    getCaptcha()
+    await getCaptcha()
   }
 })
 </script>

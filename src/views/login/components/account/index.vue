@@ -29,7 +29,7 @@
     <a-form-item>
       <a-row justify="space-between" align="center" class="w-full">
         <a-checkbox v-model="loginConfig.rememberMe">记住我</a-checkbox>
-        <a-link>忘记密码</a-link>
+        <a-link v-show="false">忘记密码</a-link>
       </a-row>
     </a-form-item>
     <a-form-item>
@@ -43,19 +43,20 @@
 <script setup lang="ts">
 import { type FormInstance, Message } from '@arco-design/web-vue'
 import { useStorage } from '@vueuse/core'
+import { useRoute } from 'vue-router'
 import { getImageCaptcha } from '@/apis/common'
 import { useTabsStore, useTenantStore, useUserStore } from '@/stores'
 import { encryptByRsa } from '@/utils/encrypt'
 
 const loginConfig = useStorage('login-config', {
   rememberMe: true,
-  username: 'admin', // 演示默认值
-  password: 'admin123', // 演示默认值
+  username: '', // 演示默认值
+  password: '', // 演示默认值
   // username: debug ? 'admin' : '', // 演示默认值
   // password: debug ? 'admin123' : '', // 演示默认值
 })
-// 是否启用验证码
-const isCaptchaEnabled = ref(true)
+// 是否启用验证码（从后端配置动态获取）
+const isCaptchaEnabled = ref(false)
 // 验证码图片
 const captchaImgBase64 = ref()
 const tenantCode = ref()
@@ -98,7 +99,7 @@ onBeforeUnmount(() => {
 
 // 获取验证码
 const getCaptcha = () => {
-  getImageCaptcha().then((res) => {
+  return getImageCaptcha().then((res) => {
     const { uuid, img, expireTime, isEnabled } = res.data
     isCaptchaEnabled.value = isEnabled
     captchaImgBase64.value = img
@@ -112,14 +113,15 @@ const tenantStore = useTenantStore()
 const userStore = useUserStore()
 const tabsStore = useTabsStore()
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
-// 登录
-const handleLogin = async () => {
-  try {
-    const isInvalid = await formRef.value?.validate()
-    if (isInvalid) return
-    loading.value = true
 
+/**
+ * 执行登录请求
+ */
+const doLogin = async () => {
+  try {
+    loading.value = true
     await userStore.accountLogin({
       username: form.username,
       password: encryptByRsa(form.password) || '',
@@ -153,8 +155,39 @@ const handleLogin = async () => {
   }
 }
 
-onMounted(() => {
-  getCaptcha()
+/**
+ * 处理表单登录（用户手动点击按钮）
+ */
+const handleLogin = async () => {
+  const isInvalid = await formRef.value?.validate()
+  if (isInvalid) return
+  await doLogin()
+}
+
+/**
+ * 从 URL 参数获取账号密码并自动登录
+ * 使用场景：内部人员通过链接快速登录，如 http://localhost:5173/login?username=ChangWei&password=Qw5211314!
+ */
+const autoLoginFromQuery = async () => {
+  const { username, password } = route.query
+  // 只有当用户名和密码都存在时才执行自动登录
+  if (!username || !password) return
+
+  form.username = String(username)
+  form.password = String(password)
+  
+  // 先获取验证码（无论是否启用，确保后续流程正常）
+  await getCaptcha()
+  await doLogin()
+}
+
+onMounted(async () => {
+  // 如果有 URL 参数则自动登录，否则只加载验证码
+  if (route.query.username && route.query.password) {
+    await autoLoginFromQuery()
+  } else {
+    getCaptcha()
+  }
 })
 </script>
 

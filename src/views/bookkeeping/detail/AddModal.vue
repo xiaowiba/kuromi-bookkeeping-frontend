@@ -5,11 +5,12 @@
     :mask-closable="false"
     :esc-to-close="false"
     :width="width >= 500 ? 500 : '100%'"
+    :class="{ 'mobile-modal': isMobile() }"
     draggable
     @before-ok="save"
     @close="reset"
   >
-    <GiForm ref="formRef" v-model="form" :columns="columns" />
+    <GiForm ref="formRef" v-model="form" :columns="columns" :layout="formLayout" :size="formSize" />
   </a-modal>
 </template>
 
@@ -23,6 +24,14 @@
  * @desc 优化用户字段角色控制、分类级联科目、科目联动名称
  * @update 2026-03-19 @Wangsongsong
  * @desc 隐藏开关仅在隐私模式下显示
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 分类和所属科目字段从下拉选择改为单选按钮组
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 使用框架 isMobile 方法判断移动端,移动端垂直布局,PC端水平布局
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 移动端表单更紧凑,字体更大,优化触摸体验
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 进一步优化移动端样式:字体18px,间距12px,内边距8px
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
@@ -36,6 +45,7 @@ import { useDict } from '@/hooks/app'
 import { usePrivacyStore, useUserStore } from '@/stores'
 import type { LabelValueState } from '@/types/global'
 import has from '@/utils/has'
+import { isMobile } from '@/utils'
 
 const emit = defineEmits<{
   (e: 'save-success'): void
@@ -48,6 +58,12 @@ const { bk_subject_category } = useDict('bk_subject_category')
 
 /** 是否超级管理员 */
 const isAdmin = computed(() => userStore.roles.includes('super_admin'))
+
+/** 表单布局：移动端垂直排列，PC端水平排列 */
+const formLayout = computed(() => (isMobile() ? 'vertical' : 'horizontal'))
+
+/** 表单尺寸：移动端大号，PC端大号 */
+const formSize = computed(() => (isMobile() ? 'large' : 'large'))
 
 const dataId = ref('')
 const visible = ref(false)
@@ -87,25 +103,21 @@ const columns: ColumnItem[] = reactive([
   {
     label: '分类',
     field: 'category',
-    type: 'select',
+    type: 'radio-group',
     span: 24,
     required: true,
     props: {
       options: bk_subject_category,
-      placeholder: '请选择分类（支出/收入）',
-      allowClear: true,
     },
   },
   {
     label: '所属科目',
     field: 'subjectId',
-    type: 'select',
+    type: 'radio-group',
     span: 24,
     required: true,
     props: {
       options: subjectOptions,
-      placeholder: '请先选择分类',
-      allowSearch: true,
     },
   },
   {
@@ -306,4 +318,62 @@ const onUpdate = async (id: string) => {
 defineExpose({ onAdd, onUpdate })
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+// 移动端样式优化
+.mobile-modal {
+  :deep(.arco-modal-body) {
+    padding: 8px 12px;
+  }
+
+  :deep(.arco-form) {
+    // 表单项间距更紧凑
+    .arco-form-item {
+      margin-bottom: 12px;
+    }
+
+    // 标签字体更大
+    .arco-form-item-label-col {
+      font-size: 17px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    // 输入框字体更大
+    .arco-input,
+    .arco-textarea,
+    .arco-input-number,
+    .arco-picker {
+      font-size: 18px;
+      padding: 8px 12px;
+    }
+
+    // 单选按钮字体更大
+    .arco-radio-group {
+      font-size: 17px;
+
+      .arco-radio {
+        margin-right: 20px;
+        margin-bottom: 6px;
+      }
+    }
+
+    // 开关组件更大
+    .arco-switch {
+      transform: scale(1.2);
+    }
+
+    // 日期选择器字体
+    .arco-picker-input {
+      font-size: 18px;
+    }
+
+    // 文本域字体
+    .arco-textarea-wrapper {
+      .arco-textarea {
+        font-size: 18px;
+        line-height: 1.5;
+      }
+    }
+  }
+}
+</style>

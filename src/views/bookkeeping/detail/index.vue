@@ -96,7 +96,7 @@ import { computed, h, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AddModal from './AddModal.vue'
 import { type DetailResp, deleteDetail, listDetail } from '@/apis/bookkeeping/detail'
-import { listMyFollow, listFollowUserOptions } from '@/apis/bookkeeping/follow'
+import { listFollowUserOptions, listMyFollow } from '@/apis/bookkeeping/follow'
 import { hasPrivacyPassword, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive, useTable } from '@/hooks'
@@ -253,14 +253,15 @@ const columns: TableInstance['columns'] = [
     width: 66,
     align: 'center',
     render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + (pagination.current - 1) * pagination.pageSize),
+    show: false,
   },
-  { title: '明细名称', dataIndex: 'name', minWidth: 100, ellipsis: true, tooltip: true },
+  { title: '明细名称', dataIndex: 'name', width: 100, ellipsis: true, tooltip: true },
   { title: '所属用户', dataIndex: 'userNickname', width: 90, ellipsis: true, tooltip: true },
   { title: '科目', dataIndex: 'subjectName', width: 80, align: 'center' },
   { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center' },
   { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 100, align: 'right' },
-  { title: '明细日期', dataIndex: 'detailDate', width: 100, align: 'center' },
-  { title: '备注', dataIndex: 'remark', minWidth: 120, ellipsis: true, tooltip: true },
+  { title: '明细日期', dataIndex: 'detailDate', width: 120, align: 'center' },
+  { title: '备注', dataIndex: 'remark', minWidth: 80, ellipsis: true, tooltip: true },
   { title: '隐藏', dataIndex: 'hidden', slotName: 'hidden', width: 60, align: 'center', show: (has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value },
   { title: '创建人', dataIndex: 'createUserString', width: 100, ellipsis: true, tooltip: true, show: false },
   { title: '创建时间', dataIndex: 'createTime', width: 160, show: false },

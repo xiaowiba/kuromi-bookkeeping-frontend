@@ -13,14 +13,14 @@
       @refresh="search"
     >
       <template #top>
-        <GiForm 
-          v-model="queryForm" 
-          search 
-          :columns="queryFormColumns" 
-          :default-collapsed="isMobile()" 
-          size="medium" 
-          @search="search" 
-          @reset="reset" 
+        <GiForm
+          v-model="queryForm"
+          search
+          :columns="queryFormColumns"
+          :default-collapsed="isMobile()"
+          size="medium"
+          @search="search"
+          @reset="reset"
         />
       </template>
       <template #toolbar-left>
@@ -38,6 +38,53 @@
           <template #icon><icon-settings /></template>
           隐藏配置
         </a-button>
+      </template>
+      <!-- 移动端紧凑布局 -->
+      <template #mobileDetail="{ record }">
+        <div class="mobile-detail-compact">
+          <!-- 第一行：主要信息 -->
+          <div class="compact-row info-line">
+            <span class="user-name">{{ record.userNickname }}</span>
+            <span class="date-text">{{ record.detailDate }}</span>
+            <span class="subject-name">{{ record.subjectName }}</span>
+            <GiCellTag :value="record.subjectCategory" :dict="bk_subject_category" />
+            <span class="detail-name">{{ record.name }}</span>
+            <span class="amount" :style="{ color: record.amount < 0 ? '#f53f3f' : '#00b42a' }">
+              {{ record.amount < 0 ? record.amount.toFixed(2) : `+${record.amount.toFixed(2)}` }}
+            </span>
+            <a-tag v-if="privacyStore.isPrivacyMode && record.hidden === 1" color="orangered" size="small">隐</a-tag>
+          </div>
+          <!-- 第二行：备注信息（如果有） -->
+          <div v-if="record.remark" class="compact-row remark-line">
+            <span class="remark-text">{{ record.remark }}</span>
+          </div>
+          <!-- 最后一行：操作按钮 -->
+          <div class="compact-row action-row">
+            <a-space size="small">
+              <a-button 
+                v-permission="['bookkeeping:detail:update']" 
+                type="primary" 
+                size="large"
+                @click="onUpdate(record)"
+              >
+                <template #icon><icon-edit /></template>
+                <template #default>修改</template>
+              </a-button>
+              <a-button 
+                v-permission="['bookkeeping:detail:delete']" 
+                status="danger"
+                size="large"
+                @click="onDelete(record)"
+              >
+                <template #icon><icon-delete /></template>
+                <template #default>删除</template>
+              </a-button>
+            </a-space>
+          </div>
+        </div>
+      </template>
+      <template #userNickname="{ record }">
+        <span>{{ record.userNickname }}</span>
       </template>
       <template #subjectCategory="{ record }">
         <GiCellTag :value="record.subjectCategory" :dict="bk_subject_category" />
@@ -100,6 +147,12 @@
  * @desc 超管增加"是否隐藏"筛选条件，默认展示全部
  * @update 2026-03-19 @Wangsongsong
  * @desc 移动端优化：默认全屏模式、默认收起搜索条件、分页页码最大化
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 移动端列表优化：
+ *       第一行：主要数据信息（用户、日期、科目、分类、名称、金额）
+ *       第二行：备注信息（如果有备注）
+ *       最后一行：大尺寸操作按钮
+ *       字体加大，便于移动端阅读
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
@@ -257,11 +310,8 @@ const {
   search,
   handleDelete,
 } = useTable(
-  (page) => listDetail({ ...queryForm, ...page, privacyMode: privacyStore.isPrivacyMode }), 
-  { 
-    immediate: true,
-    paginationOption: isMobile() ? { defaultPageSize: 50 } : undefined,
-  },
+  (page) => listDetail({ ...queryForm, ...page, privacyMode: privacyStore.isPrivacyMode }),
+  { immediate: true, paginationOption: isMobile() ? { defaultPageSize: 50 } : undefined },
 )
 
 /** 表格引用 */
@@ -275,14 +325,23 @@ const columns: TableInstance['columns'] = [
     render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + (pagination.current - 1) * pagination.pageSize),
     show: false,
   },
-  { title: '明细名称', dataIndex: 'name', width: 100, ellipsis: true, tooltip: true },
-  { title: '所属用户', dataIndex: 'userNickname', width: 90, ellipsis: true, tooltip: true },
-  { title: '科目', dataIndex: 'subjectName', width: 80, align: 'center' },
-  { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center' },
-  { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 100, align: 'right' },
-  { title: '明细日期', dataIndex: 'detailDate', width: 120, align: 'center' },
-  { title: '备注', dataIndex: 'remark', minWidth: 80, ellipsis: true, tooltip: true },
-  { title: '隐藏', dataIndex: 'hidden', slotName: 'hidden', width: 60, align: 'center', show: (has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value },
+  // 移动端：单列展示所有信息
+  {
+    title: '明细信息',
+    dataIndex: 'mobileDetail',
+    slotName: 'mobileDetail',
+    width: 100,
+    show: isMobile(),
+  },
+  // PC端：保持原有列结构
+  { title: '明细名称', dataIndex: 'name', width: 100, ellipsis: true, tooltip: true, show: !isMobile() },
+  { title: '所属用户', dataIndex: 'userNickname', slotName: 'userNickname', width: 90, ellipsis: true, tooltip: true, show: !isMobile() },
+  { title: '科目', dataIndex: 'subjectName', width: 80, align: 'center', show: !isMobile() },
+  { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center', show: !isMobile() },
+  { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 100, align: 'right', show: !isMobile() },
+  { title: '明细日期', dataIndex: 'detailDate', width: 120, align: 'center', show: !isMobile() },
+  { title: '备注', dataIndex: 'remark', minWidth: 80, ellipsis: true, tooltip: true, show: !isMobile() },
+  { title: '隐藏', dataIndex: 'hidden', slotName: 'hidden', width: 60, align: 'center', show: ((has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value) && !isMobile() },
   { title: '创建人', dataIndex: 'createUserString', width: 100, ellipsis: true, tooltip: true, show: false },
   { title: '创建时间', dataIndex: 'createTime', width: 160, show: false },
   { title: '修改人', dataIndex: 'updateUserString', width: 100, ellipsis: true, tooltip: true, show: false },
@@ -297,7 +356,7 @@ const columns: TableInstance['columns'] = [
     show: has.hasPermOr([
       'bookkeeping:detail:update',
       'bookkeeping:detail:delete',
-    ]),
+    ]) && !isMobile(),
   },
 ]
 
@@ -340,32 +399,6 @@ const verifyPassword = ref('')
 /** 首次设置密码弹窗 */
 const setupModalVisible = ref(false)
 const setupForm = reactive({ password: '', confirmPassword: '' })
-
-/**
- * 页脚版权区域点击事件（通过 mitt 监听）
- *
- * 连续点击 3 次触发隐私模式入口
- *
- * @author Wangsongsong
- * @date 2026-03-19
- * @update 2026-03-19 @Wangsongsong
- * @desc 改为监听 GiFooter 的 mitt 事件，用底部版权区域作为隐蔽入口
- */
-const onFooterClick = () => {
-  if (!hasHidePermission.value) return
-  footerClickCount++
-  if (footerClickTimer) clearTimeout(footerClickTimer)
-  footerClickTimer = setTimeout(() => { footerClickCount = 0 }, 2000)
-  if (footerClickCount >= 3) {
-    footerClickCount = 0
-    if (footerClickTimer) clearTimeout(footerClickTimer)
-    if (privacyStore.isPrivacyMode) {
-      Message.info('当前已在隐私模式')
-      return
-    }
-    checkAndShowPasswordModal()
-  }
-}
 
 /**
  * 检查是否已设置隐私密码，决定弹出验证还是设置弹窗
@@ -461,10 +494,35 @@ const onExitPrivacy = () => {
   search()
 }
 
+/**
+ * 页脚版权区域点击事件（通过 mitt 监听）
+ *
+ * 连续点击 3 次触发隐私模式入口
+ *
+ * @author Wangsongsong
+ * @date 2026-03-19
+ * @update 2026-03-19 @Wangsongsong
+ * @desc 改为监听 GiFooter 的 mitt 事件，用底部版权区域作为隐蔽入口
+ */
+const onFooterClick = () => {
+  if (!hasHidePermission.value) return
+  footerClickCount++
+  if (footerClickTimer) clearTimeout(footerClickTimer)
+  footerClickTimer = setTimeout(() => { footerClickCount = 0 }, 2000)
+  if (footerClickCount >= 3) {
+    footerClickCount = 0
+    if (footerClickTimer) clearTimeout(footerClickTimer)
+    if (privacyStore.isPrivacyMode) {
+      Message.info('当前已在隐私模式')
+      return
+    }
+    checkAndShowPasswordModal()
+  }
+}
+
 onMounted(() => {
   loadUserOptions()
   mittBus.on('footer-click', onFooterClick)
-  
   // 移动端默认进入全屏模式
   if (isMobile() && tableRef.value) {
     // 延迟执行，确保组件已完全挂载
@@ -482,4 +540,68 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+// 移动端紧凑布局样式
+.mobile-detail-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+
+  .compact-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    line-height: 1.6;
+
+    // 第一行：主要信息
+    &.info-line {
+      font-size: 17px;
+
+      .user-name {
+        color: var(--color-text-1);
+        font-weight: 600;
+        font-size: 18px;
+      }
+
+      .date-text {
+        color: var(--color-text-3);
+        font-size: 16px;
+      }
+
+      .subject-name {
+        color: var(--color-text-2);
+        font-size: 16px;
+      }
+
+      .detail-name {
+        color: var(--color-text-1);
+        font-weight: 600;
+        font-size: 18px;
+      }
+
+      .amount {
+        font-weight: bold;
+        font-size: 19px;
+        white-space: nowrap;
+      }
+    }
+
+    // 第二行：备注信息
+    &.remark-line {
+      .remark-text {
+        color: var(--color-text-3);
+        font-size: 15px;
+        font-style: italic;
+        word-break: break-all;
+      }
+    }
+
+    // 最后一行：操作按钮
+    &.action-row {
+      padding-top: 4px;
+    }
+  }
+}
+</style>

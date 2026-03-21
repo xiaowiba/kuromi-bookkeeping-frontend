@@ -68,10 +68,17 @@
 
   <MobileDetailCreateFormSheet
     v-model:visible="formSheetVisible"
+    :detail-id="currentDetailId"
+    :detail-user-id="editingDetail?.userId || ''"
     :category="selectedCategory"
     :category-label="selectedCategoryLabel"
-    :subject-id="selectedSubject?.id || ''"
-    :subject-name="selectedSubject?.name || ''"
+    :subject-id="selectedSubjectId"
+    :subject-name="currentSubjectName"
+    :initial-name="editingDetail?.name || ''"
+    :initial-amount="editingDetailAmount"
+    :initial-detail-date="editingDetail?.detailDate || ''"
+    :initial-remark="editingDetail?.remark || ''"
+    :initial-hidden="editingDetail?.hidden ?? 0"
     @submit-success="handleSubmitSuccess"
   />
 </template>
@@ -83,23 +90,10 @@
  * @author Wangsongsong
  * @date 2026-03-21
  * @update 2026-03-21 @Wangsongsong
- * @desc 改为全屏分类选择页，默认选中支出，并将科目改为带图标的宫格展示
- * @update 2026-03-21 @Wangsongsong
- * @desc 将分类切换改为 TDesign Mobile Tabs，以贴近移动端效果图
- * @update 2026-03-21 @Wangsongsong
- * @desc 按照UI效果图重构分类选择页头部和科目宫格样式
- * @update 2026-03-21 @Wangsongsong
- * @desc 调整顶部Tabs还原度，并将科目宫格改为自适应换行
- * @update 2026-03-21 @Wangsongsong
- * @desc 改为头部居中Tabs和宫格平均分布换行，贴近选择分类效果图
- * @update 2026-03-21 @Wangsongsong
- * @desc 继续微调头部黄底区域的字体、间距和下划线尺寸
- * @update 2026-03-21 @Wangsongsong
- * @desc 将选中科目的图标高亮态调整为偏黄色效果
- * @update 2026-03-21 @Wangsongsong
- * @desc 放大分类图标尺寸，提升宫格图标识别度
+ * @desc 支持接收明细ID并回填编辑数据，使移动端编辑复用新记账表单流程
  */
 import { computed, ref, watch } from 'vue'
+import { type DetailResp, getDetail } from '@/apis/bookkeeping/detail'
 import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
 import GiSvgIcon from '@/components/GiSvgIcon/index.vue'
 import { useDict } from '@/hooks/app'
@@ -107,6 +101,7 @@ import MobileDetailCreateFormSheet from './MobileDetailCreateFormSheet.vue'
 
 interface Props {
   visible: boolean
+  detailId?: string
 }
 
 const props = defineProps<Props>()
@@ -131,12 +126,14 @@ const popupVisible = computed({
   get: () => props.visible,
   set: (value: boolean) => emit('update:visible', value),
 })
+const currentDetailId = computed(() => props.detailId || '')
 
 const optionsLoading = ref(false)
 const formSheetVisible = ref(false)
 const allSubjects = ref<SubjectResp[]>([])
 const selectedCategory = ref('')
 const selectedSubjectId = ref('')
+const editingDetail = ref<DetailResp | null>(null)
 
 const subjectIconPool = [
   'customer-service',
@@ -231,19 +228,35 @@ const visibleSubjects = computed(() => {
 })
 
 const selectedSubject = computed(() =>
-  visibleSubjects.value.find(item => item.id === selectedSubjectId.value) || null,
+  allSubjects.value.find(item => item.id === selectedSubjectId.value) || null,
 )
+const currentSubjectName = computed(() => selectedSubject.value?.name || editingDetail.value?.subjectName || '')
+const editingDetailAmount = computed(() => {
+  if (editingDetail.value?.amount == null) return ''
+  return String(Math.abs(Number(editingDetail.value.amount)))
+})
 
 const resetState = () => {
   selectedCategory.value = resolveDefaultCategory()
   selectedSubjectId.value = ''
   formSheetVisible.value = false
+  editingDetail.value = null
 }
 
 const loadSubjectOptions = async () => {
   if (allSubjects.value.length) return
   const { data } = await listSubject({ sort: ['sort,asc'], page: 1, size: 200 } as any)
   allSubjects.value = data.list
+}
+
+const fillStateByDetail = async (id: string) => {
+  const { data } = await getDetail(id)
+  const matchedSubject = allSubjects.value.find(item => item.id === data.subjectId)
+
+  editingDetail.value = data
+  selectedCategory.value = data.subjectCategory || matchedSubject?.category || resolveDefaultCategory()
+  selectedSubjectId.value = data.subjectId || ''
+  formSheetVisible.value = true
 }
 
 const handleCategoryChange = (category: string | number) => {
@@ -282,8 +295,8 @@ const handleSubmitSuccess = () => {
 }
 
 watch(
-  () => props.visible,
-  async (visible) => {
+  [() => props.visible, currentDetailId],
+  async ([visible]) => {
     if (!visible) {
       resetState()
       return
@@ -293,6 +306,9 @@ watch(
     optionsLoading.value = true
     try {
       await loadSubjectOptions()
+      if (currentDetailId.value) {
+        await fillStateByDetail(currentDetailId.value)
+      }
     } finally {
       optionsLoading.value = false
     }

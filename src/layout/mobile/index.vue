@@ -18,11 +18,6 @@
 
     <MobileDetailCreatePopup
       v-model:visible="createPopupVisible"
-      @save-success="handleSaveSuccess"
-    />
-
-    <MobileDetailAddPopup
-      v-model:visible="editPopupVisible"
       :detail-id="editingDetailId"
       @save-success="handleSaveSuccess"
     />
@@ -41,12 +36,13 @@
  * @desc 补充移动端明细编辑事件，统一管理新增/编辑弹层
  * @update 2026-03-21 @Wangsongsong
  * @desc 新增移动端新增专用表单组件，新增与编辑分离挂载
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 将移动端明细编辑入口切换为复用新记账表单流程，不再挂载旧编辑弹层
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileTabBar from './components/MobileTabBar.vue'
 import MobileDetailCreatePopup from '@/views/mobile/bookkeeping/detail/components/MobileDetailCreatePopup.vue'
-import MobileDetailAddPopup from '@/views/mobile/bookkeeping/detail/components/MobileDetailAddPopup.vue'
 import mittBus from '@/utils/mitt'
 import { bindMobileRemResize } from '@/utils/mobile-rem'
 
@@ -56,7 +52,6 @@ const route = useRoute()
 const router = useRouter()
 
 const createPopupVisible = ref(false)
-const editPopupVisible = ref(false)
 const editingDetailId = ref('')
 const rootPaths = ['/m/bookkeeping/detail', '/m/report', '/m/me']
 let cleanupMobileRemResize: (() => void) | null = null
@@ -66,12 +61,13 @@ const showNavbar = computed(() => route.path !== '/m/bookkeeping/detail')
 const showBack = computed(() => !rootPaths.includes(route.path))
 
 const openAddPopup = () => {
+  editingDetailId.value = ''
   createPopupVisible.value = true
 }
 
 const openEditPopup = (id: string) => {
   editingDetailId.value = id
-  editPopupVisible.value = true
+  createPopupVisible.value = true
 }
 
 const handleSaveSuccess = () => {
@@ -95,7 +91,7 @@ const handleBack = () => {
   router.push('/m/bookkeeping/detail')
 }
 
-watch(editPopupVisible, (value) => {
+watch(createPopupVisible, (value) => {
   if (!value) {
     editingDetailId.value = ''
   }

@@ -14,7 +14,7 @@
 
         <div class="mobile-create-sheet__heading">
           <p class="mobile-create-sheet__eyebrow">{{ categoryLabel }}</p>
-          <h3 class="mobile-create-sheet__title">填写明细</h3>
+          <h3 class="mobile-create-sheet__title">{{ sheetTitle }}</h3>
           <p class="mobile-create-sheet__subject">{{ subjectName }}</p>
         </div>
 
@@ -40,7 +40,7 @@
               {{ form.amount ? '已录入金额' : '点击输入金额' }}
             </span>
             <strong class="mobile-create-sheet__amount-value">
-              {{ form.amount ? `¥ ${form.amount}` : '¥ 0' }}
+              {{ form.amount ? `￥ ${form.amount}` : '￥ 0' }}
             </strong>
           </button>
         </div>
@@ -79,7 +79,7 @@
           返回选择科目
         </t-button>
         <t-button block theme="primary" size="large" :loading="submitting" @click="handleSubmit">
-          完成
+          {{ submitButtonText }}
         </t-button>
       </div>
     </div>
@@ -112,25 +112,34 @@
 
 <script setup lang="ts">
 /**
- * 移动端新增明细表单层
+ * 移动端新增/编辑明细表单层
  *
  * @author Wangsongsong
  * @date 2026-03-21
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 复用新增表单层承接移动端明细编辑，并补充编辑态回填与保存逻辑
  */
 import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, reactive, ref, watch } from 'vue'
-import { addDetail } from '@/apis/bookkeeping/detail'
+import { addDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { usePrivacyStore, useUserStore } from '@/stores'
 import has from '@/utils/has'
 import MobileAmountKeyboard from './MobileAmountKeyboard.vue'
 
 interface Props {
   visible: boolean
+  detailId?: string
+  detailUserId?: string
   category: string
   categoryLabel: string
   subjectId: string
   subjectName: string
+  initialName?: string
+  initialAmount?: string | number
+  initialDetailDate?: string
+  initialRemark?: string
+  initialHidden?: number
 }
 
 const props = defineProps<Props>()
@@ -152,28 +161,37 @@ const sheetVisible = computed({
   set: (value: boolean) => emit('update:visible', value),
 })
 
+const isUpdate = computed(() => !!props.detailId)
+const sheetTitle = computed(() => (isUpdate.value ? '编辑明细' : '填写明细'))
+const submitButtonText = computed(() => (isUpdate.value ? '保存' : '完成'))
 const canManageHidden = computed(() => has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode)
 const datePickerVisible = ref(false)
 const amountKeyboardVisible = ref(false)
 const datePickerValue = ref(getToday())
 const submitting = ref(false)
 
+const resolveInitialAmount = () => {
+  const amount = props.initialAmount
+  if (amount === '' || amount == null) return ''
+  return String(Math.abs(Number(amount)))
+}
+
 const createDefaultForm = () => ({
-  userId: userStore.userInfo.id,
+  userId: props.detailUserId || userStore.userInfo.id,
   category: props.category,
   subjectId: props.subjectId,
-  name: props.subjectName || '',
-  amount: '',
-  detailDate: getToday(),
-  remark: '',
-  hidden: 0,
+  name: props.initialName || props.subjectName || '',
+  amount: resolveInitialAmount(),
+  detailDate: props.initialDetailDate || getToday(),
+  remark: props.initialRemark || '',
+  hidden: props.initialHidden ?? 0,
 })
 
 const form = reactive(createDefaultForm())
 
-const resetForm = () => {
+const syncFormFromProps = () => {
   Object.assign(form, createDefaultForm())
-  datePickerValue.value = form.detailDate
+  datePickerValue.value = form.detailDate || getToday()
   datePickerVisible.value = false
   amountKeyboardVisible.value = false
 }
@@ -240,16 +258,24 @@ const validateForm = () => {
 const handleSubmit = async () => {
   if (!validateForm()) return
 
+  const payload = {
+    ...form,
+    name: String(form.name || '').trim(),
+    remark: String(form.remark || '').trim(),
+    amount: Number(form.amount),
+    userId: form.userId || userStore.userInfo.id,
+  }
+
   submitting.value = true
   try {
-    await addDetail({
-      ...form,
-      name: String(form.name || '').trim(),
-      remark: String(form.remark || '').trim(),
-      amount: Number(form.amount),
-      userId: userStore.userInfo.id,
-    })
-    Message.success('新增成功')
+    if (isUpdate.value && props.detailId) {
+      await updateDetail(payload, props.detailId)
+      Message.success('修改成功')
+    } else {
+      await addDetail(payload)
+      Message.success('新增成功')
+    }
+
     sheetVisible.value = false
     emit('submit-success')
   } finally {
@@ -259,12 +285,8 @@ const handleSubmit = async () => {
 
 watch(
   () => props.visible,
-  (visible) => {
-    if (visible) {
-      resetForm()
-      return
-    }
-    resetForm()
+  () => {
+    syncFormFromProps()
   },
 )
 </script>

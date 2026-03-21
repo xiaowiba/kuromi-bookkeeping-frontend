@@ -747,9 +747,10 @@ onUnmounted(() => {
 }
 
 .mobile-detail-hero {
-  padding: 12px 16px 28px;
+  //padding: 12px 16px 28px;
+  padding: 6px 8px 10px 8px;
   background: linear-gradient(180deg, #f9d86d 0%, #f2c338 100%);
-  border-radius: 0 0 30px 30px;
+  border-radius: 0 0 20px 20px;
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.25);
 }
 
@@ -836,7 +837,7 @@ onUnmounted(() => {
   grid-template-columns: 72px 1fr 72px;
   gap: 10px;
   align-items: center;
-  margin-top: 12px;
+  margin-top: 6px;
 }
 
 .mobile-detail-hero__month-nav {
@@ -887,7 +888,7 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 8px;
   overflow: hidden;
 }
 
@@ -1017,7 +1018,7 @@ onUnmounted(() => {
 
 .mobile-detail-ledger {
   //margin: 12px 16px 0;
-  margin: 12px 0 0;
+  margin: 6px 0 0;
 
   :deep(.t-loading) {
     display: block;
@@ -1030,8 +1031,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
-  padding: 0 12px 0;
+  //margin-bottom: 12px;
+  padding: 0 8px 6px;
 }
 
 .mobile-detail-ledger__title {
@@ -1042,15 +1043,15 @@ onUnmounted(() => {
 }
 
 .mobile-detail-ledger__meta {
-  margin: 6px 0 0;
+  margin: 0;
   color: #8a7a68;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .mobile-detail-ledger__refresh {
-  height: 36px;
-  padding: 0 14px;
+  //height: 36px;
+  padding: 8px 12px;
   border: none;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.9);
@@ -1078,8 +1079,11 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
-  padding: 0 2px;
+  //margin-bottom: 6px;
+  padding: 8px;
+  //border: 1px solid red;
+  background: rgba(255, 255, 255, 0.98);
+  border-bottom: 1px solid rgba(93, 74, 42, 0.06);
 }
 
 .mobile-detail-group__date-line {
@@ -1159,12 +1163,14 @@ onUnmounted(() => {
 
 .mobile-detail-row__badge.is-expense {
   background: #f5f1e6;
-  color: #5d4a2a;
+  //color: #5d4a2a;
+  color: rgb(245, 63, 63);
 }
 
 .mobile-detail-row__badge.is-income {
   background: #eef8f2;
-  color: #0f8a59;
+  //color: #0f8a59;
+  color: rgb(0, 180, 42);
 }
 
 .mobile-detail-row__badge.is-neutral {
@@ -1235,11 +1241,13 @@ onUnmounted(() => {
 }
 
 .mobile-detail-row__amount.is-income {
-  color: #0f8a59;
+  //color: #0f8a59;
+  color: rgb(0, 180, 42);
 }
 
 .mobile-detail-row__amount.is-expense {
-  color: #54505a;
+  //color: #54505a;
+  color: rgb(245, 63, 63);
 }
 
 .mobile-detail-row__more {

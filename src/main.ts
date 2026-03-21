@@ -1,6 +1,8 @@
 import { createApp } from 'vue'
 import ArcoVue, { Card, Drawer, Modal } from '@arco-design/web-vue'
+import TDesign from 'tdesign-mobile-vue'
 import '@/styles/arco-ui/index.less'
+import 'tdesign-mobile-vue/es/style/index.css'
 // import '@arco-themes/vue-gi-demo/index.less'
 // import '@arco-design/web-vue/dist/arco.css'
 
@@ -17,6 +19,7 @@ import '@/styles/css/transition.css'
 
 // 导入全局scss主文件
 import '@/styles/index.scss'
+import '@/styles/mobile.scss'
 
 // 支持SVG
 import 'virtual:svg-icons-register'
@@ -37,6 +40,7 @@ Drawer._context = app._context
 app.use(router)
 app.use(pinia)
 app.use(ArcoVue)
+app.use(TDesign)
 app.use(ArcoVueIcon)
 app.use(directives)
 

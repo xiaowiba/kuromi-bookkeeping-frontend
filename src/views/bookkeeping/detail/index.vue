@@ -174,6 +174,8 @@
  *       在刷新按钮左边显示总支出和总收入统计数据
  *       统计数据通过后端接口获取，统计所有符合查询条件的明细
  *       不区分PC端和移动端，统一显示
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 复用共享的明细用户选项加载逻辑，统一桌面端与移动端口径
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
@@ -181,16 +183,15 @@ import { computed, h, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AddModal from './AddModal.vue'
 import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
-import { listFollowUserOptions, listMyFollow } from '@/apis/bookkeeping/follow'
 import { hasPrivacyPassword, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive, useTable } from '@/hooks'
 import { useDict } from '@/hooks/app'
 import { usePrivacyStore, useUserStore } from '@/stores'
-import type { LabelValueState } from '@/types/global'
 import { isMobile } from '@/utils'
 import has from '@/utils/has'
 import mittBus from '@/utils/mitt'
+import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 
 defineOptions({ name: 'BookkeepingDetail' })
 
@@ -198,51 +199,10 @@ const router = useRouter()
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
 const { bk_subject_category } = useDict('bk_subject_category')
-
-/** 是否超级管理员 */
-const isAdmin = computed(() => userStore.roles.includes('super_admin'))
+const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
 
 /** 是否拥有隐藏权限 */
 const hasHidePermission = computed(() => has.hasPermOr(['bk:hide-target:manage']))
-
-/** 用户选项列表 */
-const userOptions = ref<LabelValueState[]>([])
-
-/**
- * 加载用户选项
- *
- * 超管：调用用户字典接口获取所有用户
- * 非超管：当前用户 + 关注的人
- *
- * @author Wangsongsong
- * @date 2026-03-18
- * @update 2026-03-18 @Wangsongsong
- * @desc 非超管不调用用户字典接口，直接用当前用户信息构造选项
- * @update 2026-03-18 @Wangsongsong
- * @desc 非超管通过关注列表构建用户下拉选项，可查看关注的人的明细
- */
-const loadUserOptions = async () => {
-  if (userOptions.value.length) return
-  if (isAdmin.value) {
-    const { data } = await listFollowUserOptions()
-    userOptions.value = data
-  } else {
-    const options: LabelValueState[] = [
-      { label: userStore.userInfo.nickname, value: userStore.userInfo.id },
-    ]
-    try {
-      const { data } = await listMyFollow()
-      if (data && data.length > 0) {
-        data.forEach((item) => {
-          options.push({ label: item.followUserNickname, value: item.followUserId })
-        })
-      }
-    } catch {
-      // 加载失败不影响，至少有自己
-    }
-    userOptions.value = options
-  }
-}
 
 /**
  * 获取当前月份字符串（yyyy-MM 格式）

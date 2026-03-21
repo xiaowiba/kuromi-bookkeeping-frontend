@@ -1,11 +1,12 @@
 import { Button, Message, Notification, Space } from '@arco-design/web-vue'
 import NProgress from 'nprogress'
 import type { Router } from 'vue-router'
+import { setRouteEmitter } from '@/hooks'
 import { useRouteStore, useUserStore } from '@/stores'
 import { getToken } from '@/utils/auth'
 import { isHttp } from '@/utils/validate'
+import { getDefaultTerminalHomePath, resolveTerminalTargetPath } from '@/router/terminal'
 import 'nprogress/nprogress.css'
-import { setRouteEmitter } from '@/hooks'
 
 NProgress.configure({
   easing: 'ease', // 动画方式
@@ -28,7 +29,7 @@ const onCloseUpdateSystem = (id: string) => {
 }
 // 提示用户更新弹窗
 const handleNotification = () => {
-  const id = `updateModel`
+  const id = 'updateModel'
   Notification.info({
     id,
     title: '新版本更新',
@@ -65,7 +66,6 @@ const compareTag = async () => {
     versionTag = newVersionTag
   } else if (versionTag !== newVersionTag) {
     // 如果 ETag 或 Last-Modified 发生变化，则认为有更新
-    // 提示用户更新
     handleNotification()
   }
 }
@@ -79,59 +79,82 @@ export const resetHasRouteFlag = () => {
   hasRouteFlag = false
 }
 
+const resolveTerminalRoute = (to: Parameters<Router['beforeEach']>[0]) => {
+  const terminalTargetPath = resolveTerminalTargetPath(to.path)
+  if (!terminalTargetPath || terminalTargetPath === to.path) {
+    return null
+  }
+
+  return {
+    path: terminalTargetPath,
+    query: to.query,
+    hash: to.hash,
+    replace: true,
+  }
+}
+
 /** 初始化路由守卫 */
 export const setupRouterGuard = (router: Router) => {
-  router.beforeEach(async (to, from, next) => {
+  router.beforeEach(async (to) => {
     NProgress.start()
     const userStore = useUserStore()
     const routeStore = useRouteStore()
-    // 判断该用户是否登录
-    if (getToken()) {
-      if (to.path === '/login') {
-        // 如果已经登录，并准备进入 Login 页面，则重定向到主页
-        next()
-      } else {
+
+    try {
+      if (getToken()) {
+        if (to.path === '/login') {
+          return {
+            path: getDefaultTerminalHomePath(),
+            replace: true,
+          }
+        }
+
         if (!hasRouteFlag) {
           try {
             await userStore.getInfo()
+
             if (userStore.userInfo.pwdExpired && to.path !== '/pwdExpired') {
               Message.warning('密码已过期，请修改密码')
-              next('/pwdExpired')
+              return '/pwdExpired'
             }
+
             const accessRoutes = await routeStore.generateRoutes()
             accessRoutes.forEach((route) => {
               if (!isHttp(route.path)) {
-                router.addRoute(route) // 动态添加可访问路由表
+                router.addRoute(route)
               }
             })
             hasRouteFlag = true
-            // 确保添加路由已完成
-            // 设置 replace: true, 因此导航将不会留下历史记录
-            next({ ...to, replace: true })
-          } catch (error: any) {
-            // 过程中发生任何错误，都直接重置 Token，并重定向到登录页面
-            await userStore.logoutCallBack()
-            next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
-          }
-        } else {
-          next()
-        }
-      }
-    } else {
-      // 如果没有 Token
-      if (whiteList.includes(to.path)) {
-        // 如果在免登录的白名单中，则直接进入
-        next()
-      } else {
-        // 其他没有访问权限的页面将被重定向到登录页面
-        next(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
-      }
-    }
 
-    // 生产环境开启检测版本更新
-    const isProd = import.meta.env.PROD
-    if (isProd) {
-      await compareTag()
+            const terminalRoute = resolveTerminalRoute(to)
+            if (terminalRoute) {
+              return terminalRoute
+            }
+
+            return { ...to, replace: true }
+          } catch (error) {
+            await userStore.logoutCallBack()
+            return `/login?redirect=${encodeURIComponent(to.fullPath)}`
+          }
+        }
+
+        const terminalRoute = resolveTerminalRoute(to)
+        if (terminalRoute) {
+          return terminalRoute
+        }
+
+        return true
+      }
+
+      if (whiteList.includes(to.path)) {
+        return true
+      }
+
+      return `/login?redirect=${encodeURIComponent(to.fullPath)}`
+    } finally {
+      if (import.meta.env.PROD) {
+        await compareTag()
+      }
     }
   })
 
@@ -143,6 +166,7 @@ export const setupRouterGuard = (router: Router) => {
     NProgress.done()
   })
 }
+
 /**
  * 设置页面路由守卫
  * @description 处理路由变化时的页面级操作，如路由变化事件通知
@@ -150,7 +174,6 @@ export const setupRouterGuard = (router: Router) => {
  */
 export const setupPageGuard = (router: Router) => {
   router.beforeEach((to, from) => {
-    // 触发路由变化事件，通知所有监听器
     setRouteEmitter(to, from)
   })
 }

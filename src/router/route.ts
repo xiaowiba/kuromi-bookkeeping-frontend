@@ -12,6 +12,39 @@ export const systemRoutes: RouteRecordRaw[] = [
     meta: { hidden: true },
   },
   {
+    path: '/m',
+    name: 'MobileRoot',
+    component: Layout,
+    redirect: '/m/bookkeeping/detail',
+    meta: { hidden: true },
+    children: [
+      {
+        path: 'bookkeeping/detail',
+        name: 'MobileBookkeepingDetail',
+        component: () => import('@/views/mobile/bookkeeping/detail/index.vue'),
+        meta: { title: '明细', hidden: true, showInTabs: false, isMobile: true },
+      },
+      {
+        path: 'report',
+        name: 'MobileReport',
+        component: () => import('@/views/mobile/report/index.vue'),
+        meta: { title: '报表', hidden: true, showInTabs: false, isMobile: true },
+      },
+      {
+        path: 'me',
+        name: 'MobileMe',
+        component: () => import('@/views/mobile/me/index.vue'),
+        meta: { title: '我的', hidden: true, showInTabs: false, isMobile: true },
+      },
+      {
+        path: 'subject',
+        name: 'MobileSubject',
+        component: () => import('@/views/mobile/subject/index.vue'),
+        meta: { title: '科目', hidden: true, showInTabs: false, isMobile: true },
+      },
+    ],
+  },
+  {
     path: '/',
     name: 'Dashboard',
     component: Layout,

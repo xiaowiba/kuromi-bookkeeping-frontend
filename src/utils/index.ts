@@ -229,7 +229,8 @@ export const sortTree: SortTree = (values) => {
 
 /** @desc 是否是h5环境 */
 export const isMobile = () => {
-  return browse().isMobile
+  const isViewportMobile = typeof window !== 'undefined' && window.innerWidth <= 571
+  return browse().isMobile || isViewportMobile
 }
 
 /** @desc 问候 */

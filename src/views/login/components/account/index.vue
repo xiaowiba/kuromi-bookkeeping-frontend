@@ -45,6 +45,7 @@ import { type FormInstance, Message } from '@arco-design/web-vue'
 import { useStorage } from '@vueuse/core'
 import { useRoute } from 'vue-router'
 import { getImageCaptcha } from '@/apis/common'
+import { getDefaultTerminalHomePath, resolveTerminalTargetPath } from '@/router/terminal'
 import { useTabsStore, useTenantStore, useUserStore } from '@/stores'
 import { encryptByRsa } from '@/utils/encrypt'
 
@@ -140,10 +141,16 @@ const doLogin = async () => {
     // 如果有重定向参数，解码并直接跳转到完整路径
     if (redirect) {
       const redirectPath = decodeURIComponent(redirect as string)
-      await router.push(redirectPath)
+      const resolvedRoute = router.resolve(redirectPath)
+      const targetPath = resolveTerminalTargetPath(resolvedRoute.path) || resolvedRoute.path
+      await router.push({
+        path: targetPath,
+        query: resolvedRoute.query,
+        hash: resolvedRoute.hash,
+      })
     } else {
       await router.push({
-        path: '/',
+        path: getDefaultTerminalHomePath(),
         query: {
           ...othersQuery,
         },

@@ -1,0 +1,126 @@
+/**
+ * 移动端独立框架样式
+ *
+ * @author Wangsongsong
+ * @date 2026-03-21
+ */
+
+:root {
+  --mobile-brand: rgb(var(--arcoblue-6));
+  --mobile-brand-soft: rgba(var(--arcoblue-6), 0.12);
+  --mobile-surface: rgba(255, 255, 255, 0.88);
+  --mobile-border: rgba(15, 23, 42, 0.08);
+  --mobile-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  --mobile-radius-lg: 24px;
+  --mobile-radius-md: 18px;
+}
+
+body {
+  background-color: #eef3f8;
+}
+
+.mobile-page {
+  min-height: 100%;
+  padding: 16px 16px 28px;
+  background:
+    radial-gradient(circle at top left, rgba(var(--arcoblue-2), 0.95) 0%, transparent 34%),
+    linear-gradient(180deg, #f7fafc 0%, #edf2f7 100%);
+}
+
+.mobile-panel {
+  background: var(--mobile-surface);
+  border: 1px solid var(--mobile-border);
+  border-radius: var(--mobile-radius-lg);
+  box-shadow: var(--mobile-shadow);
+  backdrop-filter: blur(16px);
+}
+
+.mobile-panel--compact {
+  border-radius: var(--mobile-radius-md);
+}
+
+.mobile-section-title {
+  margin: 0 0 12px;
+  color: var(--color-text-1);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.mobile-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-text-2);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.mobile-chip.is-active {
+  border-color: rgba(var(--arcoblue-5), 0.35);
+  background: var(--mobile-brand-soft);
+  color: var(--mobile-brand);
+}
+
+.mobile-empty {
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--color-text-3);
+  font-size: 14px;
+}
+
+.mobile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-field__label {
+  color: var(--color-text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mobile-input,
+.mobile-select,
+.mobile-textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-text-1);
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.mobile-input:focus,
+.mobile-select:focus,
+.mobile-textarea:focus {
+  border-color: rgba(var(--arcoblue-5), 0.45);
+  box-shadow: 0 0 0 4px rgba(var(--arcoblue-6), 0.08);
+}
+
+.mobile-select {
+  appearance: none;
+}
+
+.mobile-textarea {
+  min-height: 88px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.mobile-form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}

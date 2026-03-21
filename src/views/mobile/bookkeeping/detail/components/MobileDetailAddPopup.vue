@@ -1,0 +1,387 @@
+<template>
+  <t-popup
+    v-model:visible="popupVisible"
+    placement="bottom"
+    destroy-on-close
+    class="mobile-detail-popup"
+  >
+    <div class="mobile-detail-popup__panel">
+      <div class="mobile-detail-popup__header">
+        <div>
+          <p class="mobile-detail-popup__eyebrow">移动端独立表单</p>
+          <h3 class="mobile-detail-popup__title">{{ popupTitle }}</h3>
+        </div>
+        <button class="mobile-detail-popup__close" type="button" @click="popupVisible = false">
+          关闭
+        </button>
+      </div>
+
+      <t-loading :loading="optionsLoading">
+        <div class="mobile-detail-popup__form">
+          <div v-if="isAdmin" class="mobile-field">
+            <label class="mobile-field__label">记账用户</label>
+            <select v-model="form.userId" class="mobile-select">
+              <option value="">请选择用户</option>
+              <option v-for="item in userOptions" :key="item.value" :value="item.value">
+                {{ item.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">分类</label>
+            <div class="mobile-detail-popup__chips">
+              <button
+                v-for="item in bkSubjectCategory"
+                :key="item.value"
+                type="button"
+                class="mobile-chip"
+                :class="{ 'is-active': form.category === String(item.value) }"
+                @click="handleCategoryChange(String(item.value))"
+              >
+                {{ item.label }}
+              </button>
+            </div>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">所属科目</label>
+            <select v-model="form.subjectId" class="mobile-select">
+              <option value="">请选择科目</option>
+              <option v-for="item in subjectOptions" :key="item.value" :value="item.value">
+                {{ item.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">明细名称</label>
+            <input
+              v-model.trim="form.name"
+              class="mobile-input"
+              type="text"
+              maxlength="100"
+              placeholder="请输入明细名称"
+            />
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">金额</label>
+            <input
+              v-model="form.amount"
+              class="mobile-input"
+              type="number"
+              min="0.01"
+              step="0.01"
+              placeholder="请输入金额"
+            />
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">明细日期</label>
+            <input v-model="form.detailDate" class="mobile-input" type="date" />
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">备注</label>
+            <textarea
+              v-model.trim="form.remark"
+              class="mobile-textarea"
+              maxlength="200"
+              placeholder="选填，补充说明这笔明细"
+            />
+          </div>
+
+          <label v-if="canManageHidden" class="mobile-detail-popup__switch">
+            <span>隐私模式下隐藏该明细</span>
+            <input v-model="hiddenChecked" type="checkbox" />
+          </label>
+
+          <div class="mobile-form-actions">
+            <t-button block variant="outline" size="large" @click="popupVisible = false">
+              取消
+            </t-button>
+            <t-button block theme="primary" size="large" :loading="submitting" @click="handleSubmit">
+              {{ submitButtonText }}
+            </t-button>
+          </div>
+        </div>
+      </t-loading>
+    </div>
+  </t-popup>
+</template>
+
+<script setup lang="ts">
+/**
+ * 移动端明细新增/编辑弹层
+ *
+ * @author Wangsongsong
+ * @date 2026-03-21
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 补充编辑态回填，并复用共享的用户选项加载逻辑
+ */
+import { Message } from '@arco-design/web-vue'
+import { computed, reactive, ref, watch } from 'vue'
+import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
+import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
+import { useDict } from '@/hooks/app'
+import { usePrivacyStore, useUserStore } from '@/stores'
+import has from '@/utils/has'
+import { useDetailUserOptions } from '@/views/bookkeeping/shared/useDetailUserOptions'
+
+interface Props {
+  visible: boolean
+  detailId?: string
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  (e: 'update:visible', value: boolean): void
+  (e: 'save-success'): void
+}>()
+
+defineOptions({ name: 'MobileDetailAddPopup' })
+
+const userStore = useUserStore()
+const privacyStore = usePrivacyStore()
+const { bk_subject_category: bkSubjectCategory } = useDict('bk_subject_category')
+const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
+
+const popupVisible = computed({
+  get: () => props.visible,
+  set: (value: boolean) => emit('update:visible', value),
+})
+const currentDetailId = computed(() => props.detailId || '')
+const isUpdate = computed(() => !!currentDetailId.value)
+const popupTitle = computed(() => (isUpdate.value ? '编辑明细' : '新增明细'))
+const submitButtonText = computed(() => (isUpdate.value ? '保存修改' : '保存'))
+const canManageHidden = computed(() => has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode)
+
+const optionsLoading = ref(false)
+const submitting = ref(false)
+const allSubjects = ref<SubjectResp[]>([])
+const lastAutoFillName = ref('')
+
+const createDefaultForm = () => ({
+  userId: userStore.userInfo.id,
+  category: '',
+  subjectId: '',
+  name: '',
+  amount: '',
+  detailDate: new Date().toISOString().slice(0, 10),
+  remark: '',
+  hidden: 0,
+})
+
+const form = reactive(createDefaultForm())
+
+const hiddenChecked = computed({
+  get: () => form.hidden === 1,
+  set: (value: boolean) => {
+    form.hidden = value ? 1 : 0
+  },
+})
+
+const subjectOptions = computed(() =>
+  allSubjects.value
+    .filter(item => !form.category || item.category === form.category)
+    .map(item => ({
+      label: item.name,
+      value: item.id,
+    })),
+)
+
+const resetForm = () => {
+  Object.assign(form, createDefaultForm())
+  lastAutoFillName.value = ''
+}
+
+const loadSubjectOptions = async () => {
+  if (allSubjects.value.length) return
+  const { data } = await listSubject({ sort: ['sort,asc'], page: 1, size: 200 } as any)
+  allSubjects.value = data.list
+}
+
+const ensureOptionsLoaded = async () => {
+  const tasks: Promise<any>[] = [loadSubjectOptions()]
+  if (isAdmin.value) {
+    tasks.push(loadUserOptions())
+  }
+  await Promise.all(tasks)
+}
+
+const fillFormByDetail = async (id: string) => {
+  const { data } = await getDetail(id)
+  Object.assign(form, createDefaultForm(), {
+    ...data,
+    category: data.subjectCategory || '',
+    amount: data.amount != null ? String(Math.abs(Number(data.amount))) : '',
+    detailDate: data.detailDate || new Date().toISOString().slice(0, 10),
+    hidden: data.hidden ?? 0,
+  })
+  lastAutoFillName.value = data.name || ''
+}
+
+const handleCategoryChange = (category: string) => {
+  form.category = category
+  form.subjectId = ''
+  form.name = ''
+  lastAutoFillName.value = ''
+}
+
+const validateForm = () => {
+  if (isAdmin.value && !form.userId) {
+    Message.warning('请选择记账用户')
+    return false
+  }
+  if (!form.category) {
+    Message.warning('请选择分类')
+    return false
+  }
+  if (!form.subjectId) {
+    Message.warning('请选择科目')
+    return false
+  }
+  if (!form.name) {
+    Message.warning('请输入明细名称')
+    return false
+  }
+  if (!form.amount || Number(form.amount) <= 0) {
+    Message.warning('请输入正确的金额')
+    return false
+  }
+  if (!form.detailDate) {
+    Message.warning('请选择明细日期')
+    return false
+  }
+  return true
+}
+
+const handleSubmit = async () => {
+  if (!validateForm()) return
+
+  submitting.value = true
+  try {
+    const payload = {
+      ...form,
+      amount: Number(form.amount),
+      userId: isAdmin.value ? form.userId : userStore.userInfo.id,
+    }
+
+    if (isUpdate.value) {
+      await updateDetail(payload, currentDetailId.value)
+      Message.success('修改成功')
+    } else {
+      await addDetail(payload)
+      Message.success('新增成功')
+    }
+
+    popupVisible.value = false
+    emit('save-success')
+  } finally {
+    submitting.value = false
+  }
+}
+
+watch([() => props.visible, currentDetailId], async ([visible]) => {
+  if (!visible) {
+    resetForm()
+    return
+  }
+
+  resetForm()
+  optionsLoading.value = true
+  try {
+    await ensureOptionsLoaded()
+    if (currentDetailId.value) {
+      await fillFormByDetail(currentDetailId.value)
+    }
+  } finally {
+    optionsLoading.value = false
+  }
+})
+
+watch(() => form.subjectId, (value) => {
+  if (!value) return
+
+  const current = subjectOptions.value.find(item => item.value === value)
+  if (!current) return
+
+  if (!form.name || form.name === lastAutoFillName.value) {
+    form.name = String(current.label)
+    lastAutoFillName.value = String(current.label)
+  }
+})
+</script>
+
+<style scoped lang="scss">
+.mobile-detail-popup__panel {
+  padding: 18px 16px calc(24px + env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0;
+  background:
+    radial-gradient(circle at top right, rgba(var(--arcoblue-2), 0.9) 0%, transparent 36%),
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.mobile-detail-popup__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.mobile-detail-popup__eyebrow {
+  margin: 0 0 6px;
+  color: rgb(var(--arcoblue-6));
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mobile-detail-popup__title {
+  margin: 0;
+  color: var(--color-text-1);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.mobile-detail-popup__close {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-3);
+  font-size: 14px;
+}
+
+.mobile-detail-popup__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mobile-detail-popup__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mobile-detail-popup__switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--color-text-2);
+  font-size: 14px;
+}
+
+.mobile-detail-popup__switch input {
+  width: 18px;
+  height: 18px;
+}
+</style>

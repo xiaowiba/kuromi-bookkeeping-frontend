@@ -32,13 +32,14 @@
  * @desc 移动端表单更紧凑,字体更大,优化触摸体验
  * @update 2026-03-19 @Wangsongsong
  * @desc 进一步优化移动端样式:字体18px,间距12px,内边距8px
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 复用共享的明细用户选项加载逻辑，统一桌面端与移动端口径
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
 import { computed, reactive, ref, watch } from 'vue'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { listSubject } from '@/apis/bookkeeping/subject'
-import { listFollowUserOptions } from '@/apis/bookkeeping/follow'
 import { type ColumnItem, GiForm } from '@/components/GiForm'
 import { useResetReactive } from '@/hooks'
 import { useDict } from '@/hooks/app'
@@ -46,6 +47,7 @@ import { usePrivacyStore, useUserStore } from '@/stores'
 import type { LabelValueState } from '@/types/global'
 import has from '@/utils/has'
 import { isMobile } from '@/utils'
+import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 
 const emit = defineEmits<{
   (e: 'save-success'): void
@@ -55,9 +57,7 @@ const { width } = useWindowSize()
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
 const { bk_subject_category } = useDict('bk_subject_category')
-
-/** 是否超级管理员 */
-const isAdmin = computed(() => userStore.roles.includes('super_admin'))
+const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
 
 /** 表单布局：移动端垂直排列，PC端水平排列 */
 const formLayout = computed(() => (isMobile() ? 'vertical' : 'horizontal'))
@@ -71,8 +71,6 @@ const isUpdate = computed(() => !!dataId.value)
 const title = computed(() => (isUpdate.value ? '修改明细' : '新增明细'))
 const formRef = ref<InstanceType<typeof GiForm>>()
 
-/** 用户选项列表 */
-const userOptions = ref<LabelValueState[]>([])
 /** 全部科目数据（原始） */
 const allSubjects = ref<any[]>([])
 /** 当前分类下的科目选项 */
@@ -212,20 +210,6 @@ watch(() => form.subjectId, (val) => {
     }
   }
 })
-
-/**
- * 加载用户选项
- *
- * @author Wangsongsong
- * @date 2026-03-18
- * @update 2026-03-19 @Wangsongsong
- * @desc 改为调用 bookkeeping 专用接口，绕过数据权限
- */
-const loadUserOptions = async () => {
-  if (userOptions.value.length) return
-  const { data } = await listFollowUserOptions()
-  userOptions.value = data
-}
 
 /**
  * 加载科目选项

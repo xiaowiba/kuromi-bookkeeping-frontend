@@ -1,6 +1,16 @@
 import { URL, fileURLToPath } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
+import pxtorem from 'postcss-pxtorem'
 import createVitePlugins from './config/plugins'
+import { MOBILE_REM_ROOT_VALUE } from './src/constants/mobile'
+
+const isMobileRemTarget = (filePath = '') => {
+  const normalizedFilePath = filePath.replace(/\\/g, '/')
+
+  return normalizedFilePath.includes('/src/views/mobile/')
+    || normalizedFilePath.includes('/src/layout/mobile/')
+    || normalizedFilePath.includes('/src/styles/mobile.scss')
+}
 
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd()) as ImportMetaEnv
@@ -17,6 +27,18 @@ export default defineConfig(({ command, mode }) => {
     },
     // 引入sass全局样式变量
     css: {
+      postcss: {
+        plugins: [
+          pxtorem({
+            rootValue: MOBILE_REM_ROOT_VALUE,
+            unitPrecision: 5,
+            propList: ['*'],
+            mediaQuery: true,
+            minPixelValue: 2,
+            exclude: filePath => !isMobileRemTarget(filePath),
+          }),
+        ],
+      },
       preprocessorOptions: {
         scss: {
           additionalData: `@use "@/styles/var.scss" as *;`,

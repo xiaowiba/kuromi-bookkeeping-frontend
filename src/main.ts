@@ -10,6 +10,7 @@ import 'tdesign-mobile-vue/es/style/index.css'
 import ArcoVueIcon from '@arco-design/web-vue/es/icon'
 import App from './App.vue'
 import router from './router'
+import { syncMobileRemByPath } from '@/utils/mobile-rem'
 
 // 使用动画库
 import 'animate.css/animate.min.css'
@@ -33,11 +34,16 @@ import pinia from '@/stores'
 // 对特定组件进行默认配置
 Card.props.bordered = false
 
+syncMobileRemByPath(window.location.pathname)
+
 const app = createApp(App)
 Modal._context = app._context
 Drawer._context = app._context
 
 app.use(router)
+router.afterEach((to) => {
+  syncMobileRemByPath(to.path)
+})
 app.use(pinia)
 app.use(ArcoVue)
 app.use(TDesign)

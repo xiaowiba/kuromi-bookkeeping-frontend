@@ -40,6 +40,7 @@ import { useRoute, useRouter } from 'vue-router'
 import MobileTabBar from './components/MobileTabBar.vue'
 import MobileDetailAddPopup from '@/views/mobile/bookkeeping/detail/components/MobileDetailAddPopup.vue'
 import mittBus from '@/utils/mitt'
+import { bindMobileRemResize } from '@/utils/mobile-rem'
 
 defineOptions({ name: 'LayoutMobile' })
 
@@ -49,6 +50,7 @@ const router = useRouter()
 const addPopupVisible = ref(false)
 const editingDetailId = ref('')
 const rootPaths = ['/m/bookkeeping/detail', '/m/report', '/m/me']
+let cleanupMobileRemResize: (() => void) | null = null
 
 const pageTitle = computed(() => (route.meta.title as string) || '移动端')
 const showNavbar = computed(() => route.path !== '/m/bookkeeping/detail')
@@ -92,11 +94,14 @@ watch(addPopupVisible, (value) => {
 })
 
 onMounted(() => {
+  cleanupMobileRemResize = bindMobileRemResize()
   mittBus.on('mobile-detail-add-open', openAddPopup)
   mittBus.on('mobile-detail-edit-open', openEditPopup)
 })
 
 onUnmounted(() => {
+  cleanupMobileRemResize?.()
+  cleanupMobileRemResize = null
   mittBus.off('mobile-detail-add-open', openAddPopup)
   mittBus.off('mobile-detail-edit-open', openEditPopup)
 })

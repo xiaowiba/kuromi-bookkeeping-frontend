@@ -1016,7 +1016,8 @@ onUnmounted(() => {
 }
 
 .mobile-detail-ledger {
-  margin: 12px 16px 0;
+  //margin: 12px 16px 0;
+  margin: 12px 0 0;
 
   :deep(.t-loading) {
     display: block;
@@ -1030,6 +1031,7 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+  padding: 0 12px 0;
 }
 
 .mobile-detail-ledger__title {
@@ -1119,7 +1121,7 @@ onUnmounted(() => {
   box-sizing: border-box;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.98);
-  border-radius: 20px;
+  //border-radius: 20px;
   box-shadow: 0 8px 18px rgba(65, 45, 11, 0.04);
 }
 

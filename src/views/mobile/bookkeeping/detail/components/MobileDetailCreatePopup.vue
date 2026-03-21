@@ -1,0 +1,498 @@
+<template>
+  <t-popup
+    v-model:visible="popupVisible"
+    placement="center"
+    destroy-on-close
+    :z-index="1400"
+    :close-on-overlay-click="false"
+  >
+    <div class="mobile-create-screen">
+      <header class="mobile-create-screen__header">
+        <span class="mobile-create-screen__header-side" />
+        <div class="mobile-create-screen__tabs-wrap">
+          <t-tabs
+            v-model="selectedCategory"
+            class="mobile-create-screen__category-tabs"
+            theme="line"
+            size="large"
+            :list="categoryTabList"
+            bottom-line-mode="auto"
+            :show-bottom-line="true"
+            :space-evenly="false"
+            @change="handleCategoryChange"
+          />
+        </div>
+        <button
+          type="button"
+          class="mobile-create-screen__cancel-btn"
+          @click="popupVisible = false"
+        >
+          取消
+        </button>
+      </header>
+
+      <section class="mobile-create-screen__body">
+        <t-loading :loading="optionsLoading">
+          <div v-if="visibleSubjects.length" class="mobile-create-screen__subject-grid">
+            <button
+              v-for="item in visibleSubjects"
+              :key="item.id"
+              type="button"
+              class="mobile-create-screen__subject-card"
+              :class="{ 'is-active': selectedSubjectId === item.id }"
+              @click="handleSubjectSelect(item)"
+            >
+              <span class="mobile-create-screen__subject-icon">
+                <img
+                  v-if="resolveSubjectIconUrl(item)"
+                  :src="resolveSubjectIconUrl(item)"
+                  :alt="item.name"
+                >
+                <GiSvgIcon
+                  v-else
+                  :name="resolveSubjectSvgIcon(item)"
+                  size="0.8rem"
+                />
+              </span>
+              <span class="mobile-create-screen__subject-name">{{ item.name }}</span>
+            </button>
+          </div>
+
+          <div v-else class="mobile-create-screen__empty">
+            当前分类下暂无可用科目
+          </div>
+        </t-loading>
+      </section>
+    </div>
+  </t-popup>
+
+  <MobileDetailCreateFormSheet
+    v-model:visible="formSheetVisible"
+    :category="selectedCategory"
+    :category-label="selectedCategoryLabel"
+    :subject-id="selectedSubject?.id || ''"
+    :subject-name="selectedSubject?.name || ''"
+    @submit-success="handleSubmitSuccess"
+  />
+</template>
+
+<script setup lang="ts">
+/**
+ * 移动端新增明细选择弹层
+ *
+ * @author Wangsongsong
+ * @date 2026-03-21
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 改为全屏分类选择页，默认选中支出，并将科目改为带图标的宫格展示
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 将分类切换改为 TDesign Mobile Tabs，以贴近移动端效果图
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 按照UI效果图重构分类选择页头部和科目宫格样式
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 调整顶部Tabs还原度，并将科目宫格改为自适应换行
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 改为头部居中Tabs和宫格平均分布换行，贴近选择分类效果图
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 继续微调头部黄底区域的字体、间距和下划线尺寸
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 将选中科目的图标高亮态调整为偏黄色效果
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 放大分类图标尺寸，提升宫格图标识别度
+ */
+import { computed, ref, watch } from 'vue'
+import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
+import GiSvgIcon from '@/components/GiSvgIcon/index.vue'
+import { useDict } from '@/hooks/app'
+import MobileDetailCreateFormSheet from './MobileDetailCreateFormSheet.vue'
+
+interface Props {
+  visible: boolean
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  (e: 'update:visible', value: boolean): void
+  (e: 'save-success'): void
+}>()
+
+defineOptions({ name: 'MobileDetailCreatePopup' })
+
+const { bk_subject_category: bkSubjectCategory } = useDict('bk_subject_category')
+
+const localSubjectIconModules = import.meta.glob('@/assets/icons/*.svg')
+const localSubjectIconSet = new Set(
+  Object.keys(localSubjectIconModules).map((path) => {
+    const matched = path.match(/\/([^/]+)\.svg$/)
+    return matched?.[1] || ''
+  }).filter(Boolean),
+)
+
+const popupVisible = computed({
+  get: () => props.visible,
+  set: (value: boolean) => emit('update:visible', value),
+})
+
+const optionsLoading = ref(false)
+const formSheetVisible = ref(false)
+const allSubjects = ref<SubjectResp[]>([])
+const selectedCategory = ref('')
+const selectedSubjectId = ref('')
+
+const subjectIconPool = [
+  'customer-service',
+  'gift',
+  'calendar',
+  'location',
+  'storage',
+  'fire',
+  'music',
+  'compass',
+  'phone',
+  'palette',
+  'bulb',
+  'home',
+  'user',
+  'user-group',
+  'message',
+  'mobile',
+  'tool',
+  'protect',
+  'book',
+  'project',
+]
+
+const subjectKeywordIconMap: Array<[string, string]> = [
+  ['餐', 'customer-service'],
+  ['购', 'gift'],
+  ['日', 'calendar'],
+  ['交', 'location'],
+  ['菜', 'storage'],
+  ['果', 'fire'],
+  ['零', 'gift'],
+  ['运', 'compass'],
+  ['娱', 'music'],
+  ['通', 'phone'],
+  ['服', 'palette'],
+  ['美', 'bulb'],
+  ['住', 'home'],
+  ['居', 'home'],
+  ['孩', 'user'],
+  ['长', 'user-group'],
+  ['社', 'message'],
+  ['旅', 'compass'],
+  ['烟', 'fire'],
+  ['数', 'mobile'],
+  ['汽', 'tool'],
+  ['医', 'protect'],
+  ['书', 'book'],
+  ['学', 'book'],
+  ['宠', 'user'],
+  ['礼', 'gift'],
+  ['办', 'project'],
+]
+
+const resolveDefaultCategory = () => {
+  const expenseItem = bkSubjectCategory.value.find((item) => {
+    const value = String(item.value)
+    return value === '1' || value === 'expense' || String(item.label).includes('支出')
+  })
+
+  if (expenseItem) {
+    return String(expenseItem.value)
+  }
+
+  return String(bkSubjectCategory.value[0]?.value || '')
+}
+
+const hashSubjectKey = (value: string) => {
+  let hash = 0
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash)
+}
+
+const categoryTabList = computed(() =>
+  bkSubjectCategory.value.map(item => ({
+    value: String(item.value),
+    label: String(item.label),
+  })),
+)
+
+const selectedCategoryLabel = computed(() => {
+  const current = bkSubjectCategory.value.find(item => String(item.value) === selectedCategory.value)
+  return current?.label || ''
+})
+
+const visibleSubjects = computed(() => {
+  if (!selectedCategory.value) return []
+  return allSubjects.value.filter(item => item.category === selectedCategory.value && item.status === 1)
+})
+
+const selectedSubject = computed(() =>
+  visibleSubjects.value.find(item => item.id === selectedSubjectId.value) || null,
+)
+
+const resetState = () => {
+  selectedCategory.value = resolveDefaultCategory()
+  selectedSubjectId.value = ''
+  formSheetVisible.value = false
+}
+
+const loadSubjectOptions = async () => {
+  if (allSubjects.value.length) return
+  const { data } = await listSubject({ sort: ['sort,asc'], page: 1, size: 200 } as any)
+  allSubjects.value = data.list
+}
+
+const handleCategoryChange = (category: string | number) => {
+  selectedCategory.value = String(category)
+  selectedSubjectId.value = ''
+}
+
+const handleSubjectSelect = (subject: SubjectResp) => {
+  selectedSubjectId.value = subject.id
+  formSheetVisible.value = true
+}
+
+const resolveSubjectIconUrl = (subject: SubjectResp) => {
+  const icon = String(subject.icon || '').trim()
+  if (!icon) return ''
+  if (/^(https?:\/\/|\/|data:image)/.test(icon)) return icon
+  return ''
+}
+
+const resolveSubjectSvgIcon = (subject: SubjectResp) => {
+  const icon = String(subject.icon || '').trim()
+  if (icon && localSubjectIconSet.has(icon)) return icon
+
+  const keywordIcon = subjectKeywordIconMap.find(([keyword]) => subject.name.includes(keyword))?.[1]
+  if (keywordIcon) return keywordIcon
+
+  const seed = `${subject.id}-${subject.name}-${subject.icon || ''}`
+  const index = hashSubjectKey(seed) % subjectIconPool.length
+  return subjectIconPool[index]
+}
+
+const handleSubmitSuccess = () => {
+  formSheetVisible.value = false
+  popupVisible.value = false
+  emit('save-success')
+}
+
+watch(
+  () => props.visible,
+  async (visible) => {
+    if (!visible) {
+      resetState()
+      return
+    }
+
+    resetState()
+    optionsLoading.value = true
+    try {
+      await loadSubjectOptions()
+    } finally {
+      optionsLoading.value = false
+    }
+  },
+)
+</script>
+
+<style scoped lang="scss">
+.mobile-create-screen {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  max-width: 11.4667rem;
+  height: 100dvh;
+  background: #fff;
+}
+
+.mobile-create-screen__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(env(safe-area-inset-top) + 1.16rem);
+  padding: calc(env(safe-area-inset-top) + 0.18rem) 0.24rem 0.08rem;
+  background: #ffd84d;
+  box-shadow: inset 0 -0.0133rem 0 rgba(0, 0, 0, 0.05);
+}
+
+.mobile-create-screen__header-side {
+  display: none;
+}
+
+.mobile-create-screen__tabs-wrap {
+  width: auto;
+  margin: 0 auto;
+  transform: translateY(0.02rem);
+}
+
+.mobile-create-screen__cancel-btn {
+  position: absolute;
+  right: 0.24rem;
+  bottom: 0.24rem;
+  border: none;
+  background: transparent;
+  color: #222;
+  font-size: 0.3rem;
+  font-weight: 400;
+  line-height: 1;
+  padding: 0;
+}
+
+.mobile-create-screen__category-tabs {
+  height: 100%;
+  background: transparent;
+  --td-tab-nav-background: transparent;
+  --td-tab-item-active-color: #222;
+  --td-brand-color: #333;
+}
+
+.mobile-create-screen__category-tabs :deep(.t-tabs) {
+  background: transparent;
+}
+
+.mobile-create-screen__category-tabs :deep(.t-tabs__nav),
+.mobile-create-screen__category-tabs :deep(.t-tabs__scroll),
+.mobile-create-screen__category-tabs :deep(.t-tabs__wrapper) {
+  height: 100%;
+  background: transparent !important;
+}
+
+.mobile-create-screen__category-tabs :deep(.t-tabs__scroll) {
+  overflow: visible;
+}
+
+.mobile-create-screen__category-tabs :deep(.t-tabs__wrapper) {
+  justify-content: center;
+  gap: 0.68rem;
+}
+
+.mobile-create-screen__category-tabs :deep(.t-tabs__item) {
+  padding: 0;
+}
+
+.mobile-create-screen__category-tabs :deep(.t-tabs__item--top) {
+  height: 0.92rem;
+}
+
+.mobile-create-screen__category-tabs :deep(.t-tabs__item-inner) {
+  min-height: 0.92rem;
+  color: #222;
+  font-size: 0.38rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.mobile-create-screen__category-tabs :deep(.t-tabs__item--active .t-tabs__item-inner) {
+  font-weight: 600;
+}
+
+.mobile-create-screen__category-tabs :deep(.t-tabs__track) {
+  height: 0.04rem;
+  min-width: 0.52rem;
+  border-radius: 999rem;
+  background: #333;
+}
+
+.mobile-create-screen__category-tabs :deep(.t-tabs__content) {
+  display: none;
+}
+
+.mobile-create-screen__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  background: #fff;
+  padding: 0.28rem 0.12rem calc(env(safe-area-inset-bottom) + 0.44rem);
+}
+
+.mobile-create-screen__subject-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  row-gap: 0.38rem;
+}
+
+.mobile-create-screen__subject-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.16rem;
+  min-height: 1.76rem;
+  flex: 0 0 25%;
+  width: 25%;
+  max-width: 25%;
+  border: none;
+  background: transparent;
+  padding: 0 0.06rem;
+}
+
+.mobile-create-screen__subject-card.is-active .mobile-create-screen__subject-icon {
+  background: linear-gradient(180deg, #ffe986 0%, #ffd84d 100%);
+  color: #5f4a00;
+  box-shadow: 0 0.08rem 0.18rem rgba(255, 209, 61, 0.28);
+}
+
+.mobile-create-screen__subject-card.is-active .mobile-create-screen__subject-name {
+  color: #1f1f1f;
+  font-weight: 500;
+}
+
+.mobile-create-screen__subject-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  //width: 1.18rem;
+  width: 1.5rem;
+  //height: 1.18rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: #f5f5f5;
+  color: #666;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.mobile-create-screen__subject-icon :deep(.svg-icon) {
+  width: 0.66rem;
+  height: 0.66rem;
+}
+
+.mobile-create-screen__subject-icon img {
+  width: 0.66rem;
+  height: 0.66rem;
+  object-fit: contain;
+}
+
+.mobile-create-screen__subject-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: #303133;
+  font-size: 0.4rem;
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mobile-create-screen__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  color: #909399;
+  font-size: 0.28rem;
+  line-height: 1.6;
+  text-align: center;
+  padding: 0 0.24rem;
+}
+</style>

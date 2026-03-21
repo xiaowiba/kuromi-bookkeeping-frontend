@@ -31,6 +31,7 @@
     <section class="mobile-panel mobile-me-actions">
       <h3 class="mobile-section-title">账户设置</h3>
       <t-cell
+          v-show="false"
         title="隐私模式"
         :note="privacyStore.isPrivacyMode ? '当前已开启' : '当前未开启'"
         bordered
@@ -77,8 +78,8 @@ const gridItems = [
   { key: 'subject', text: '科目', description: '管理科目', icon: '科' },
   { key: 'report', text: '报表', description: '查看规划', icon: '报' },
   { key: 'follow', text: '关注', description: '后续接入', icon: '关' },
-  { key: 'hide', text: '隐藏', description: '后续接入', icon: '隐' },
-  { key: 'privacy', text: '隐私', description: '查看状态', icon: '密' },
+  // { key: 'hide', text: '隐藏', description: '后续接入', icon: '隐' },
+  // { key: 'privacy', text: '隐私', description: '查看状态', icon: '密' },
   { key: 'version', text: '版本', description: '阶段说明', icon: '版' },
 ]
 

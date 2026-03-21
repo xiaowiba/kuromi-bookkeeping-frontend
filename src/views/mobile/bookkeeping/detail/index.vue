@@ -17,6 +17,14 @@
             全部
           </button>
           <button
+              type="button"
+              class="mobile-detail-hero__chip"
+              :class="{ 'is-active': String(query.userId) === String(userStore.userInfo.id) }"
+              @click="handleUserFilterChange(String(userStore.userInfo.id))"
+          >
+            {{ userStore.userInfo.nickname }}
+          </button>
+          <button
             v-for="item in followUserOptions"
             :key="item.value"
             type="button"
@@ -65,13 +73,6 @@
           下月
         </button>
 
-        <input
-          ref="monthInputRef"
-          v-model="query.month"
-          class="mobile-detail-hero__month-input"
-          type="month"
-          @change="loadData"
-        />
       </div>
 
       <div class="mobile-detail-hero__summary">
@@ -224,6 +225,7 @@
 
                 <div class="mobile-detail-row__content">
                   <h4 class="mobile-detail-row__title">{{ item.name }}</h4>
+                  <h6 class="mobile-detail-row__create__user">{{ item.createUserString }}</h6>
                   <span
                     v-if="privacyStore.isPrivacyMode && item.hidden === 1"
                     class="mobile-detail-row__privacy"
@@ -251,6 +253,19 @@
         </div>
       </t-loading>
     </section>
+
+    <t-popup v-model:visible="monthPickerVisible" placement="bottom" destroy-on-close>
+      <div class="mobile-month-picker-popup">
+        <t-date-time-picker
+          :default-value="monthPickerValue"
+          title="选择月份"
+          format="YYYY-MM"
+          mode="month"
+          @confirm="handleMonthPickerConfirm"
+          @cancel="handleMonthPickerCancel"
+        />
+      </div>
+    </t-popup>
 
     <t-popup v-model:visible="actionPopupVisible" placement="bottom" destroy-on-close>
       <div class="mobile-bottom-sheet">
@@ -378,6 +393,8 @@
  * @date 2026-03-21
  * @update 2026-03-21 @Wangsongsong
  * @desc 新增顶部关注人切换与收支分类切换，并收紧移动端头部区域间距
+ * @update 2026-03-21 @Wangsongsong
+ * @desc 将月份选择改为 TDesign Mobile 年月选择器，并在进入页面时默认回到当前月份
  */
 import { Message, Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
@@ -417,7 +434,8 @@ const { userOptions, loadUserOptions } = useDetailUserOptions()
 
 const loading = ref(false)
 const filterVisible = ref(false)
-const monthInputRef = ref<HTMLInputElement>()
+const monthPickerVisible = ref(false)
+const monthPickerValue = ref('')
 const details = ref<DetailResp[]>([])
 const statistics = ref({
   totalExpense: 0,
@@ -437,12 +455,21 @@ const setupForm = reactive({
 
 const getCurrentMonth = () => dayjs().format('YYYY-MM')
 
+const syncMonthPickerValue = (month: string) => {
+  monthPickerValue.value = month || getCurrentMonth()
+}
+
 const query = reactive({
   month: getCurrentMonth(),
   category: '',
   userId: '',
   name: '',
 })
+
+const resetMonthToCurrent = () => {
+  query.month = getCurrentMonth()
+  syncMonthPickerValue(query.month)
+}
 
 const appTitle = computed(() => appStore.getTitle() || '鲨鱼记账')
 const followUserOptions = computed(() =>
@@ -517,13 +544,32 @@ const loadData = async () => {
 }
 
 const openMonthPicker = () => {
-  monthInputRef.value?.showPicker?.()
-  monthInputRef.value?.click()
+  syncMonthPickerValue(query.month)
+  monthPickerVisible.value = true
+}
+
+const handleMonthPickerCancel = () => {
+  monthPickerVisible.value = false
+}
+
+const handleMonthPickerConfirm = (value: string | number) => {
+  const selectedMonth = dayjs(String(value)).format('YYYY-MM')
+
+  monthPickerVisible.value = false
+  if (!selectedMonth || selectedMonth === query.month) {
+    syncMonthPickerValue(query.month)
+    return
+  }
+
+  query.month = selectedMonth
+  syncMonthPickerValue(selectedMonth)
+  loadData()
 }
 
 const shiftMonth = (step: number) => {
   if (step > 0 && isCurrentMonth.value) return
   query.month = dayjs(`${query.month}-01`).add(step, 'month').format('YYYY-MM')
+  syncMonthPickerValue(query.month)
   loadData()
 }
 
@@ -532,7 +578,7 @@ const toggleFilterPanel = () => {
 }
 
 const resetFilters = () => {
-  query.month = getCurrentMonth()
+  resetMonthToCurrent()
   query.category = ''
   query.userId = ''
   query.name = ''
@@ -729,6 +775,7 @@ const subjectBadge = (item: DetailResp) => {
 }
 
 onMounted(async () => {
+  resetMonthToCurrent()
   await Promise.all([loadUserOptions(), loadData()])
   mittBus.on('mobile-detail-refresh', loadData)
 })
@@ -741,7 +788,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .mobile-detail-page {
   min-height: 100%;
-  padding-bottom: 24px;
+  //padding-bottom: 24px;
   overflow-x: hidden;
   background: linear-gradient(180deg, #f7f1e7 0%, #f3eee6 100%);
 }
@@ -808,8 +855,8 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 34px;
-  padding: 0 14px;
+  //height: 34px;
+  padding: 8px 8px;
   border: none;
   border-radius: 14px;
   background: rgba(255, 248, 223, 0.34);
@@ -820,6 +867,11 @@ onUnmounted(() => {
   backdrop-filter: blur(8px);
 }
 
+.mobile-detail-hero__month-nav {
+  padding: 16px 8px;
+  border-radius: 18px;
+}
+
 .mobile-detail-hero__chip.is-active {
   background: rgba(255, 255, 255, 0.8);
   color: #47300b;
@@ -827,8 +879,8 @@ onUnmounted(() => {
 }
 
 .mobile-detail-hero__chip--compact {
-  min-width: 34px;
-  padding: 0 12px;
+  //min-width: 34px;
+  padding: 8px 10px;
 }
 
 .mobile-detail-hero__month-strip {
@@ -875,13 +927,16 @@ onUnmounted(() => {
   opacity: 0.72;
 }
 
-.mobile-detail-hero__month-input {
-  position: absolute;
-  width: 0;
-  height: 0;
-  padding: 0;
-  opacity: 0;
-  pointer-events: none;
+.mobile-month-picker-popup {
+  overflow: hidden;
+  background: #fff;
+  border-radius: 0.32rem 0.32rem 0 0;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.24rem);
+  box-shadow: 0 -0.08rem 0.32rem rgba(15, 23, 42, 0.08);
+}
+
+.mobile-month-picker-popup :deep(.t-picker) {
+  background: transparent;
 }
 
 .mobile-detail-hero__summary {
@@ -894,7 +949,7 @@ onUnmounted(() => {
 
 .mobile-detail-hero__summary-item {
   min-width: 0;
-  padding: 12px 10px;
+  padding: 8px 10px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.24);
   color: #6b5426;
@@ -903,7 +958,7 @@ onUnmounted(() => {
 
 .mobile-detail-hero__summary-item span {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
   font-size: 12px;
   font-weight: 700;
 }
@@ -912,7 +967,7 @@ onUnmounted(() => {
   display: block;
   font-size: 16px;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -1206,6 +1261,19 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
+.mobile-detail-row__create__user {
+  margin: 0;
+  min-width: 0;
+  //flex: 1;
+  color: #403a35;
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .mobile-detail-row__privacy {
   display: inline-flex;
   align-items: center;
@@ -1257,7 +1325,7 @@ onUnmounted(() => {
 .mobile-detail-empty {
   padding: 48px 20px;
   background: rgba(255, 255, 255, 0.84);
-  border-radius: 26px;
+  //border-radius: 26px;
   text-align: center;
   box-shadow: 0 12px 20px rgba(65, 45, 11, 0.05);
 }

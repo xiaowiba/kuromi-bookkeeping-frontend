@@ -1,22 +1,43 @@
 <template>
   <div class="mobile-detail-page">
     <section class="mobile-detail-hero">
-      <div class="mobile-detail-hero__bar">
-        <button type="button" class="mobile-detail-hero__avatar" @click="router.push('/m/me')">
-          {{ avatarText }}
-        </button>
+      <div class="mobile-detail-hero__headline" v-show="false">
+        <h1 class="mobile-detail-hero__title">{{ appTitle }}</h1>
+        <p class="mobile-detail-hero__subtitle">本月明细 · 轻量记账</p>
+      </div>
 
-        <div class="mobile-detail-hero__title-block">
-          <h1 class="mobile-detail-hero__title">{{ appTitle }}</h1>
-          <p class="mobile-detail-hero__subtitle">本月明细 · 轻量记账</p>
+      <div class="mobile-detail-hero__bar">
+        <div class="mobile-detail-hero__chip-group mobile-detail-hero__chip-group--users">
+          <button
+            type="button"
+            class="mobile-detail-hero__chip"
+            :class="{ 'is-active': !query.userId }"
+            @click="handleUserFilterChange('')"
+          >
+            全部
+          </button>
+          <button
+            v-for="item in followUserOptions"
+            :key="item.value"
+            type="button"
+            class="mobile-detail-hero__chip"
+            :class="{ 'is-active': String(query.userId) === String(item.value) }"
+            @click="handleUserFilterChange(String(item.value))"
+          >
+            {{ item.label }}
+          </button>
         </div>
 
-        <div class="mobile-detail-hero__actions">
-          <button type="button" class="mobile-detail-hero__icon-btn" @click="openMonthPicker">
-            <icon-calendar />
-          </button>
-          <button type="button" class="mobile-detail-hero__icon-btn" @click="toggleFilterPanel">
-            <icon-filter />
+        <div class="mobile-detail-hero__chip-group mobile-detail-hero__chip-group--category">
+          <button
+            v-for="item in bkSubjectCategory"
+            :key="item.value"
+            type="button"
+            class="mobile-detail-hero__chip mobile-detail-hero__chip--compact"
+            :class="{ 'is-active': query.category === String(item.value) }"
+            @click="handleCategoryFilterChange(String(item.value))"
+          >
+            {{ item.label.slice(0, 1) }}
           </button>
         </div>
       </div>
@@ -71,7 +92,7 @@
       </div>
     </section>
 
-    <section class="mobile-detail-shortcuts">
+    <section v-show="false" class="mobile-detail-shortcuts">
       <button type="button" class="mobile-detail-shortcuts__item is-active" @click="loadData">
         <span class="mobile-detail-shortcuts__icon">
           <icon-unordered-list />
@@ -167,7 +188,7 @@
     <section class="mobile-detail-ledger">
       <header class="mobile-detail-ledger__header">
         <div>
-          <h2 class="mobile-detail-ledger__title">明细账本</h2>
+          <!-- h2 class="mobile-detail-ledger__title">明细账本</h2 -->
           <p class="mobile-detail-ledger__meta">{{ ledgerMetaText }}</p>
         </div>
         <button type="button" class="mobile-detail-ledger__refresh" @click="loadData">
@@ -356,11 +377,7 @@
  * @author Wangsongsong
  * @date 2026-03-21
  * @update 2026-03-21 @Wangsongsong
- * @desc 重做移动端账单首页视觉，并补充分组明细与筛选交互
- * @update 2026-03-21 @Wangsongsong
- * @desc 补充移动端明细编辑、删除与隐私模式完整流程
- * @update 2026-03-21 @Wangsongsong
- * @desc 浼樺寲绉诲姩绔槑缁嗗垪琛ㄥ睍绀猴紝鏀朵负鍗曡鏄庣粏鏍峰紡骞堕殣鍘诲娉ㄤ俊鎭?
+ * @desc 新增顶部关注人切换与收支分类切换，并收紧移动端头部区域间距
  */
 import { Message, Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
@@ -423,14 +440,14 @@ const getCurrentMonth = () => dayjs().format('YYYY-MM')
 const query = reactive({
   month: getCurrentMonth(),
   category: '',
-  userId: userStore.userInfo.id,
+  userId: '',
   name: '',
 })
 
 const appTitle = computed(() => appStore.getTitle() || '鲨鱼记账')
-const avatarText = computed(() => {
-  return (userStore.userInfo.nickname || userStore.userInfo.username || '我').slice(0, 1).toUpperCase()
-})
+const followUserOptions = computed(() =>
+  userOptions.value.filter(item => String(item.value) !== String(userStore.userInfo.id)),
+)
 const isCurrentMonth = computed(() => query.month === getCurrentMonth())
 const currentMonthText = computed(() => dayjs(`${query.month}-01`).format('YYYY年M月'))
 const monthMetaText = computed(() => `${details.value.length} 笔明细`)
@@ -517,8 +534,19 @@ const toggleFilterPanel = () => {
 const resetFilters = () => {
   query.month = getCurrentMonth()
   query.category = ''
-  query.userId = userStore.userInfo.id
+  query.userId = ''
   query.name = ''
+  loadData()
+}
+
+const handleUserFilterChange = (userId: string) => {
+  if (query.userId === userId) return
+  query.userId = userId
+  loadData()
+}
+
+const handleCategoryFilterChange = (category: string) => {
+  query.category = query.category === category ? '' : category
   loadData()
 }
 
@@ -719,43 +747,13 @@ onUnmounted(() => {
 }
 
 .mobile-detail-hero {
-  padding: 14px 16px 76px;
+  padding: 12px 16px 28px;
   background: linear-gradient(180deg, #f9d86d 0%, #f2c338 100%);
-  border-radius: 0 0 34px 34px;
+  border-radius: 0 0 30px 30px;
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.25);
 }
 
-.mobile-detail-hero__bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.mobile-detail-hero__avatar,
-.mobile-detail-hero__icon-btn,
-.mobile-detail-hero__month-nav {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: rgba(255, 255, 255, 0.22);
-  color: #50350d;
-}
-
-.mobile-detail-hero__avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 16px;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.mobile-detail-hero__title-block {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+.mobile-detail-hero__headline {
   text-align: center;
 }
 
@@ -774,17 +772,62 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-.mobile-detail-hero__actions {
+.mobile-detail-hero__bar {
   display: flex;
-  gap: 8px;
-  margin-left: auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
 }
 
-.mobile-detail-hero__icon-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 16px;
-  font-size: 18px;
+.mobile-detail-hero__chip-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-detail-hero__chip-group--users {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.mobile-detail-hero__chip-group--users::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-detail-hero__chip-group--category {
+  flex-shrink: 0;
+}
+
+.mobile-detail-hero__chip,
+.mobile-detail-hero__month-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(255, 248, 223, 0.34);
+  color: #6b4a0d;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+}
+
+.mobile-detail-hero__chip.is-active {
+  background: rgba(255, 255, 255, 0.8);
+  color: #47300b;
+  box-shadow: 0 8px 16px rgba(103, 73, 12, 0.08);
+}
+
+.mobile-detail-hero__chip--compact {
+  min-width: 34px;
+  padding: 0 12px;
 }
 
 .mobile-detail-hero__month-strip {
@@ -793,12 +836,10 @@ onUnmounted(() => {
   grid-template-columns: 72px 1fr 72px;
   gap: 10px;
   align-items: center;
-  margin-top: 22px;
+  margin-top: 12px;
 }
 
 .mobile-detail-hero__month-nav {
-  height: 40px;
-  border-radius: 16px;
   font-size: 13px;
   font-weight: 700;
 }
@@ -812,11 +853,11 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 54px;
-  padding: 10px 12px;
+  min-height: 50px;
+  padding: 8px 12px;
   border: none;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.28);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.3);
   color: #3a2607;
 }
 
@@ -846,14 +887,14 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 12px;
   overflow: hidden;
 }
 
 .mobile-detail-hero__summary-item {
   min-width: 0;
-  padding: 14px 10px;
-  border-radius: 20px;
+  padding: 12px 10px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.24);
   color: #6b5426;
   overflow: hidden;
@@ -975,7 +1016,7 @@ onUnmounted(() => {
 }
 
 .mobile-detail-ledger {
-  margin: 18px 16px 0;
+  margin: 12px 16px 0;
 
   :deep(.t-loading) {
     display: block;

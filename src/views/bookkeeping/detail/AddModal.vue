@@ -34,6 +34,8 @@
  * @desc 进一步优化移动端样式:字体18px,间距12px,内边距8px
  * @update 2026-03-21 @Wangsongsong
  * @desc 复用共享的明细用户选项加载逻辑，统一桌面端与移动端口径
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 修复编辑明细时名称被科目联动逻辑覆盖的问题，自动填充仅在新增态生效
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
@@ -186,10 +188,12 @@ watch(() => form.category, (val) => {
   } else {
     subjectOptions.value = []
   }
-  // 切换分类时清空科目和名称
+  // 切换分类时清空科目，名称仅在新增态由联动逻辑维护
   form.subjectId = undefined
-  form.name = ''
-  lastAutoFillName = ''
+  if (!isUpdate.value) {
+    form.name = ''
+    lastAutoFillName = ''
+  }
 })
 
 /**
@@ -199,7 +203,7 @@ watch(() => form.category, (val) => {
  * @date 2026-03-18
  */
 watch(() => form.subjectId, (val) => {
-  if (!val) return
+  if (isUpdate.value || !val) return
   const selected = subjectOptions.value.find((item) => item.value === val)
   if (selected) {
     const label = selected.label as string

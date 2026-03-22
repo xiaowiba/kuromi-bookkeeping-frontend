@@ -11,5 +11,7 @@
  * @desc 调整移动端根布局为页面自然滚动，并将版本号升级为 v1.1.4
  * @update 2026-03-22 @Wangsongsong
  * @desc 修复 web 端隐藏配置页滚动与全局背景串色问题，并将版本号升级为 v1.1.5
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 修复 web 端编辑明细时名称被分类联动覆盖的问题，并将版本号升级为 v1.1.6
  */
-export const MOBILE_DISPLAY_VERSION = 'v1.1.5'
+export const MOBILE_DISPLAY_VERSION = 'v1.1.6'

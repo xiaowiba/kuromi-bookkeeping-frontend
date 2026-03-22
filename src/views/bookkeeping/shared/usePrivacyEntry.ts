@@ -6,12 +6,14 @@
  *
  * @author Wangsongsong
  * @date 2026-03-22
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移动端隐私入口提示改为统一使用 TDesign Toast
  */
-import { Message } from '@arco-design/web-vue'
 import { computed, reactive, ref } from 'vue'
 import { getPrivacyConfig, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import { usePrivacyStore } from '@/stores'
 import has from '@/utils/has'
+import { mobileToast } from '@/utils/mobile-toast'
 
 export const DEFAULT_PRIVACY_EXPIRE_MINUTES = 10
 
@@ -63,7 +65,7 @@ export function usePrivacyEntry(options: UsePrivacyEntryOptions = {}) {
     privacyStore.enterPrivacyMode(currentExpireMinutes.value)
     closeVerifyPopup()
     closeSetupPopup()
-    Message.success(successMessage)
+    mobileToast.success(successMessage)
     await options.onSuccess?.()
   }
 
@@ -75,7 +77,7 @@ export function usePrivacyEntry(options: UsePrivacyEntryOptions = {}) {
     try {
       const config = await syncPrivacyConfig()
       if (privacyStore.isPrivacyMode) {
-        Message.info('当前已处于隐私模式')
+        mobileToast.info('当前已处于隐私模式')
         return true
       }
 
@@ -88,14 +90,14 @@ export function usePrivacyEntry(options: UsePrivacyEntryOptions = {}) {
       }
       return true
     } catch {
-      Message.error('读取隐私配置失败')
+      mobileToast.error('读取隐私配置失败')
       return false
     }
   }
 
   const handleVerifyPassword = async () => {
     if (!verifyPassword.value) {
-      Message.warning('请输入隐私密码')
+      mobileToast.warning('请输入隐私密码')
       return false
     }
 
@@ -103,14 +105,14 @@ export function usePrivacyEntry(options: UsePrivacyEntryOptions = {}) {
     try {
       const { data } = await verifyPrivacyPassword({ password: verifyPassword.value })
       if (!data.verified) {
-        Message.error('密码错误')
+        mobileToast.error('密码错误')
         return false
       }
 
       await handlePrivacySuccess('已进入隐私模式')
       return true
     } catch {
-      Message.error('验证失败')
+      mobileToast.error('验证失败')
       return false
     } finally {
       privacySubmitting.value = false
@@ -119,15 +121,15 @@ export function usePrivacyEntry(options: UsePrivacyEntryOptions = {}) {
 
   const handleSetupPassword = async () => {
     if (!setupForm.password) {
-      Message.warning('请输入密码')
+      mobileToast.warning('请输入密码')
       return false
     }
     if (setupForm.password.length < 4) {
-      Message.warning('密码长度不能少于 4 位')
+      mobileToast.warning('密码长度不能少于 4 位')
       return false
     }
     if (setupForm.password !== setupForm.confirmPassword) {
-      Message.warning('两次输入的密码不一致')
+      mobileToast.warning('两次输入的密码不一致')
       return false
     }
 
@@ -137,7 +139,7 @@ export function usePrivacyEntry(options: UsePrivacyEntryOptions = {}) {
       await handlePrivacySuccess('密码设置成功，已进入隐私模式')
       return true
     } catch {
-      Message.error('设置隐私密码失败')
+      mobileToast.error('设置隐私密码失败')
       return false
     } finally {
       privacySubmitting.value = false

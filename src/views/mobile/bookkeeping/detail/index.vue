@@ -200,61 +200,61 @@
         </div>
       </header>
 
-      <t-loading :loading="loading" text="加载中...">
-        <div v-if="groupedDetails.length" class="mobile-detail-group-list">
-          <article v-for="group in groupedDetails" :key="group.date" class="mobile-detail-group">
-            <header class="mobile-detail-group__header">
-              <div class="mobile-detail-group__date-line">
-                <h3 class="mobile-detail-group__title">{{ group.title }}</h3>
-                <p class="mobile-detail-group__week">{{ group.weekText }}</p>
-              </div>
-              <p class="mobile-detail-group__summary">{{ formatGroupSummary(group) }}</p>
-            </header>
+      <MobilePageSkeleton v-if="loading" variant="detail-list" />
 
-            <div class="mobile-detail-group__panel">
-              <article
-                v-for="item in group.items"
-                :key="item.id"
-                class="mobile-detail-row"
-                :class="{
-                  'is-hidden': privacyStore.isPrivacyMode && item.hidden === 1,
-                  'is-clickable': true,
-                }"
-                @click="handleRowClick(item)"
-              >
-                <span class="mobile-detail-row__badge" :class="subjectCategoryClass(item.subjectCategory)">
-                  {{ subjectBadge(item) }}
-                </span>
-
-                <div class="mobile-detail-row__content">
-                  <h4 class="mobile-detail-row__title">{{ item.name }}</h4>
-                  <span
-                      v-if="privacyStore.isPrivacyMode && item.hidden === 1"
-                      class="mobile-detail-row__privacy"
-                  >
-                    隐
-                  </span>
-                  <h6 class="mobile-detail-row__create__user">{{ item.userNickname }}</h6>
-                </div>
-
-                <div class="mobile-detail-row__aside">
-                  <strong
-                    class="mobile-detail-row__amount"
-                    :class="item.amount >= 0 ? 'is-income' : 'is-expense'"
-                  >
-                    {{ formatListAmount(item.amount) }}
-                  </strong>
-                </div>
-              </article>
+      <div v-else-if="groupedDetails.length" class="mobile-detail-group-list">
+        <article v-for="group in groupedDetails" :key="group.date" class="mobile-detail-group">
+          <header class="mobile-detail-group__header">
+            <div class="mobile-detail-group__date-line">
+              <h3 class="mobile-detail-group__title">{{ group.title }}</h3>
+              <p class="mobile-detail-group__week">{{ group.weekText }}</p>
             </div>
-          </article>
-        </div>
+            <p class="mobile-detail-group__summary">{{ formatGroupSummary(group) }}</p>
+          </header>
 
-        <div v-else class="mobile-detail-empty">
-          <p class="mobile-detail-empty__title">这个月份还没有明细</p>
-          <p class="mobile-detail-empty__desc">可以点击底部“记账”，或者切换月份查看历史记录。</p>
-        </div>
-      </t-loading>
+          <div class="mobile-detail-group__panel">
+            <article
+              v-for="item in group.items"
+              :key="item.id"
+              class="mobile-detail-row"
+              :class="{
+                'is-hidden': privacyStore.isPrivacyMode && item.hidden === 1,
+                'is-clickable': true,
+              }"
+              @click="handleRowClick(item)"
+            >
+              <span class="mobile-detail-row__badge" :class="subjectCategoryClass(item.subjectCategory)">
+                {{ subjectBadge(item) }}
+              </span>
+
+              <div class="mobile-detail-row__content">
+                <h4 class="mobile-detail-row__title">{{ item.name }}</h4>
+                <span
+                    v-if="privacyStore.isPrivacyMode && item.hidden === 1"
+                    class="mobile-detail-row__privacy"
+                >
+                  隐
+                </span>
+                <h6 class="mobile-detail-row__create__user">{{ item.userNickname }}</h6>
+              </div>
+
+              <div class="mobile-detail-row__aside">
+                <strong
+                  class="mobile-detail-row__amount"
+                  :class="item.amount >= 0 ? 'is-income' : 'is-expense'"
+                >
+                  {{ formatListAmount(item.amount) }}
+                </strong>
+              </div>
+            </article>
+          </div>
+        </article>
+      </div>
+
+      <div v-else class="mobile-detail-empty">
+        <p class="mobile-detail-empty__title">这个月份还没有明细</p>
+        <p class="mobile-detail-empty__desc">可以点击底部“记账”，或者切换月份查看历史记录。</p>
+      </div>
     </section>
 
     <t-popup v-model:visible="monthPickerVisible" placement="bottom" destroy-on-close>
@@ -345,16 +345,25 @@
  * @date 2026-03-21
  * @update 2026-03-22 @Wangsongsong
  * @desc 移除明细页隐私进入入口，仅保留退出隐私按钮并接入隐私过期校验
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 接入移动端骨架屏，列表加载态改为 TDesign Skeleton 渐变动效
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移动端页面提示统一改为使用 TDesign Toast
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 接入移动端布局层下拉刷新，页面注册明细数据刷新回调
  */
-import { Message, Modal } from '@arco-design/web-vue'
+import { Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMobilePageRefresh } from '@/hooks/app/useMobilePageRefresh'
+import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
 import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
 import { useDict } from '@/hooks/app'
 import { useAppStore, usePrivacyStore, useUserStore } from '@/stores'
 import has from '@/utils/has'
 import mittBus from '@/utils/mitt'
+import { mobileToast } from '@/utils/mobile-toast'
 import { useDetailUserOptions } from '@/views/bookkeeping/shared/useDetailUserOptions'
 
 defineOptions({ name: 'MobileBookkeepingDetail' })
@@ -590,7 +599,7 @@ const handleDeleteActiveDetail = () => {
       try {
         const res = await deleteDetail(current.id)
         if (res.success) {
-          Message.success('删除成功')
+          mobileToast.success('删除成功')
           await loadData()
         }
         return res.success
@@ -607,7 +616,7 @@ const handleExitPrivacy = () => {
   }
 
   privacyStore.exitPrivacyMode()
-  Message.success('已退出隐私模式')
+  mobileToast.success('已退出隐私模式')
 }
 
 const formatNumber = (value: number) => numberFormatter.format(Number(value || 0))
@@ -668,6 +677,10 @@ onMounted(async () => {
 
 onUnmounted(() => {
   mittBus.off('mobile-detail-refresh', loadData)
+})
+
+useMobilePageRefresh(async () => {
+  await loadData()
 })
 </script>
 
@@ -960,11 +973,6 @@ onUnmounted(() => {
 .mobile-detail-ledger {
   //margin: 12px 16px 0;
   margin: 6px 0 0;
-
-  :deep(.t-loading) {
-    display: block;
-    width: 100%;
-  }
 }
 
 .mobile-detail-ledger__header {

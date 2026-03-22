@@ -142,12 +142,19 @@
  * @date 2026-03-21
  * @update 2026-03-22 @Wangsongsong
  * @desc 底部版本号切换为 TDesign Footer，并改为三连击触发隐私模式入口
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移动端页面提示统一改为使用 TDesign Toast
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 接入移动端布局层下拉刷新，页面注册个人中心刷新回调
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 统一我的页面、九宫格和隐私弹层为黄色系风格
  */
-import { Message } from '@arco-design/web-vue'
 import { computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MOBILE_DISPLAY_VERSION } from '@/config/app-version'
+import { useMobilePageRefresh } from '@/hooks/app/useMobilePageRefresh'
 import { usePrivacyStore, useUserStore } from '@/stores'
+import { mobileToast } from '@/utils/mobile-toast'
 import { usePrivacyEntry } from '@/views/bookkeeping/shared/usePrivacyEntry'
 
 defineOptions({ name: 'MobileMe' })
@@ -165,6 +172,7 @@ const {
   setupForm,
   closeVerifyPopup,
   closeSetupPopup,
+  syncPrivacyConfig,
   openPrivacyEntry,
   handleVerifyPassword,
   handleSetupPassword,
@@ -203,7 +211,7 @@ const handleGridClick = (key: string) => {
     return
   }
 
-  Message.info('该移动端能力将在后续阶段补充')
+  mobileToast.info('该移动端能力将在后续阶段补充')
 }
 
 const resetVersionClickState = () => {
@@ -243,6 +251,13 @@ const handleLogout = async () => {
 onUnmounted(() => {
   resetVersionClickState()
 })
+
+useMobilePageRefresh(async () => {
+  if (!hasPrivacyPermission.value) {
+    return
+  }
+  await syncPrivacyConfig()
+})
 </script>
 
 <style scoped lang="scss">
@@ -266,8 +281,8 @@ onUnmounted(() => {
   width: 64px;
   height: 64px;
   border-radius: 24px;
-  background: linear-gradient(135deg, rgb(var(--arcoblue-5)) 0%, rgb(var(--arcoblue-7)) 100%);
-  box-shadow: 0 12px 24px rgba(var(--arcoblue-6), 0.28);
+  background: linear-gradient(135deg, #ffd764 0%, #e1ad24 100%);
+  box-shadow: 0 12px 24px rgba(197, 138, 18, 0.24);
   color: #fff;
   font-size: 28px;
   font-weight: 700;
@@ -275,7 +290,7 @@ onUnmounted(() => {
 
 .mobile-me-profile__eyebrow {
   margin: 0 0 6px;
-  color: rgb(var(--arcoblue-6));
+  color: var(--mobile-brand);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -301,6 +316,25 @@ onUnmounted(() => {
   padding: 18px 16px;
 }
 
+.mobile-me-grid :deep(.t-grid-item) {
+  background: rgba(255, 252, 244, 0.82);
+  border-color: rgba(143, 99, 17, 0.08);
+}
+
+.mobile-me-grid :deep(.t-grid-item__text) {
+  color: var(--color-text-1);
+  font-weight: 600;
+}
+
+.mobile-me-grid :deep(.t-grid-item__description) {
+  color: rgba(120, 94, 51, 0.62);
+}
+
+.mobile-me-actions :deep(.t-cell) {
+  background: rgba(255, 252, 244, 0.8);
+  border-color: rgba(143, 99, 17, 0.08);
+}
+
 .mobile-me-grid__icon {
   display: inline-flex;
   align-items: center;
@@ -308,8 +342,8 @@ onUnmounted(() => {
   width: 34px;
   height: 34px;
   border-radius: 12px;
-  background: rgba(var(--arcoblue-6), 0.1);
-  color: rgb(var(--arcoblue-6));
+  background: rgba(255, 214, 98, 0.22);
+  color: var(--mobile-brand-deep);
   font-size: 14px;
   font-weight: 700;
 }
@@ -328,7 +362,7 @@ onUnmounted(() => {
   }
 
   :deep(.t-footer__text) {
-    color: rgba(15, 23, 42, 0.42);
+    color: rgba(120, 94, 51, 0.48);
     font-size: 12px;
     letter-spacing: 0.04em;
   }
@@ -342,9 +376,9 @@ onUnmounted(() => {
   padding: 20px 16px 16px;
   border-radius: 26px 26px 0 0;
   background:
-    radial-gradient(circle at top right, rgba(89, 126, 247, 0.12) 0%, transparent 38%),
-    linear-gradient(180deg, #fff 0%, #f8fbff 100%);
-  box-shadow: 0 -12px 28px rgba(15, 23, 42, 0.1);
+    radial-gradient(circle at top right, rgba(255, 214, 98, 0.24) 0%, transparent 40%),
+    linear-gradient(180deg, #fffdf7 0%, #fbf2df 100%);
+  box-shadow: 0 -12px 28px rgba(130, 90, 22, 0.12);
 }
 
 .mobile-bottom-sheet__header {
@@ -353,7 +387,7 @@ onUnmounted(() => {
 
 .mobile-bottom-sheet__eyebrow {
   margin: 0 0 6px;
-  color: rgb(var(--arcoblue-6));
+  color: var(--mobile-brand);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;

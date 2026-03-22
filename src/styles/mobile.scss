@@ -3,28 +3,50 @@
  *
  * @author Wangsongsong
  * @date 2026-03-21
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 统一移动端全局黄色系品牌色板，同步覆盖 TDesign 移动端常用组件的默认蓝色状态
  */
 
 :root {
-  --mobile-brand: rgb(var(--arcoblue-6));
-  --mobile-brand-soft: rgba(var(--arcoblue-6), 0.12);
-  --mobile-surface: rgba(255, 255, 255, 0.88);
-  --mobile-border: rgba(15, 23, 42, 0.08);
-  --mobile-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  --mobile-brand: #c58a12;
+  --mobile-brand-deep: #8b5e00;
+  --mobile-brand-soft: rgba(255, 214, 98, 0.22);
+  --mobile-brand-tint: rgba(255, 239, 188, 0.7);
+  --mobile-surface: rgba(255, 250, 240, 0.92);
+  --mobile-border: rgba(143, 99, 17, 0.12);
+  --mobile-shadow: 0 12px 40px rgba(130, 90, 22, 0.1);
   --mobile-radius-lg: 24px;
   --mobile-radius-md: 18px;
 }
 
 body {
-  background-color: #eef3f8;
+  background-color: #f8f1e4;
+}
+
+.mobile-layout,
+.mobile-page,
+.mobile-bottom-sheet,
+.mobile-create-screen,
+.mobile-detail-popup__panel {
+  --td-brand-color: var(--mobile-brand);
+  --td-brand-color-hover: #b67b0b;
+  --td-brand-color-active: var(--mobile-brand-deep);
+  --td-brand-color-light: #fff2c5;
+  --td-brand-color-light-hover: #ffe7a4;
+  --td-brand-color-light-active: #ffdc82;
+  --td-brand-color-focus: rgba(197, 138, 18, 0.18);
+  --td-warning-color: #d29a19;
+  --td-warning-color-light: #fff3cf;
+  --td-loading-text-color: rgba(126, 92, 20, 0.68);
+  --td-pull-down-refresh-color: rgba(126, 92, 20, 0.68);
 }
 
 .mobile-page {
   min-height: 100%;
   padding: 16px 16px 28px;
   background:
-    radial-gradient(circle at top left, rgba(var(--arcoblue-2), 0.95) 0%, transparent 34%),
-    linear-gradient(180deg, #f7fafc 0%, #edf2f7 100%);
+    radial-gradient(circle at top left, rgba(255, 221, 115, 0.64) 0%, transparent 36%),
+    linear-gradient(180deg, #fffaf0 0%, #f7f0e3 100%);
 }
 
 .mobile-panel {
@@ -53,9 +75,9 @@ body {
   justify-content: center;
   min-height: 28px;
   padding: 0 12px;
-  border: 1px solid transparent;
+  border: 1px solid rgba(143, 99, 17, 0.08);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 252, 244, 0.82);
   color: var(--color-text-2);
   font-size: 13px;
   font-weight: 500;
@@ -63,9 +85,9 @@ body {
 }
 
 .mobile-chip.is-active {
-  border-color: rgba(var(--arcoblue-5), 0.35);
+  border-color: rgba(197, 138, 18, 0.24);
   background: var(--mobile-brand-soft);
-  color: var(--mobile-brand);
+  color: var(--mobile-brand-deep);
 }
 
 .mobile-empty {
@@ -105,8 +127,8 @@ body {
 .mobile-input:focus,
 .mobile-select:focus,
 .mobile-textarea:focus {
-  border-color: rgba(var(--arcoblue-5), 0.45);
-  box-shadow: 0 0 0 4px rgba(var(--arcoblue-6), 0.08);
+  border-color: rgba(197, 138, 18, 0.4);
+  box-shadow: 0 0 0 4px rgba(197, 138, 18, 0.1);
 }
 
 .mobile-select {
@@ -123,4 +145,69 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.mobile-layout .t-button--primary,
+.mobile-page .t-button--primary,
+.mobile-bottom-sheet .t-button--primary,
+.mobile-detail-popup__panel .t-button--primary {
+  border-color: var(--mobile-brand);
+  background: linear-gradient(135deg, #f0c444 0%, #d9a92a 100%);
+  color: #fffdf6;
+  box-shadow: 0 8px 20px rgba(197, 138, 18, 0.18);
+}
+
+.mobile-layout .t-button--outline,
+.mobile-page .t-button--outline,
+.mobile-bottom-sheet .t-button--outline,
+.mobile-detail-popup__panel .t-button--outline {
+  border-color: rgba(197, 138, 18, 0.22);
+  background: rgba(255, 250, 235, 0.84);
+  color: var(--mobile-brand-deep);
+}
+
+.mobile-layout .t-tabs__item--active,
+.mobile-page .t-tabs__item--active,
+.mobile-bottom-sheet .t-tabs__item--active {
+  color: var(--mobile-brand-deep);
+}
+
+.mobile-layout .t-tabs__track,
+.mobile-page .t-tabs__track,
+.mobile-bottom-sheet .t-tabs__track {
+  background: linear-gradient(90deg, #e8b62f 0%, #c58a12 100%);
+}
+
+.mobile-layout .t-switch--checked,
+.mobile-page .t-switch--checked,
+.mobile-bottom-sheet .t-switch--checked,
+.mobile-detail-popup__panel .t-switch--checked {
+  background: linear-gradient(135deg, #f0c444 0%, #d9a92a 100%);
+}
+
+.mobile-layout .t-cell__note,
+.mobile-page .t-cell__note,
+.mobile-bottom-sheet .t-cell__note {
+  color: var(--mobile-brand-deep);
+}
+
+.mobile-layout .t-loading,
+.mobile-page .t-loading,
+.mobile-bottom-sheet .t-loading,
+.mobile-detail-popup__panel .t-loading {
+  color: var(--mobile-brand);
+}
+
+.mobile-layout .t-loading__spinner--line::before,
+.mobile-page .t-loading__spinner--line::before,
+.mobile-bottom-sheet .t-loading__spinner--line::before,
+.mobile-detail-popup__panel .t-loading__spinner--line::before {
+  background: currentColor;
+}
+
+.mobile-layout .t-loading__gradient-conic,
+.mobile-page .t-loading__gradient-conic,
+.mobile-bottom-sheet .t-loading__gradient-conic,
+.mobile-detail-popup__panel .t-loading__gradient-conic {
+  background: conic-gradient(from 90deg at 50% 50%, #fff3d4 0deg, currentColor 360deg);
 }

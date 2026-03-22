@@ -4,7 +4,7 @@
       <p class="mobile-report-hero__eyebrow">Phase 1 占位</p>
       <h2 class="mobile-report-hero__title">报表入口已预留</h2>
       <p class="mobile-report-hero__desc">
-        下一阶段会在这里接入月度收支、分类分布和趋势图，当前先完成移动端独立框架与导航切换。
+        下一阶段会在这里接入月度收支、分类分布和趋势图表，当前先完成移动端独立框架与导航切换。
       </p>
     </section>
 
@@ -34,8 +34,16 @@
  *
  * @author Wangsongsong
  * @date 2026-03-21
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 接入移动端布局层下拉刷新，报表占位页支持刷新手势完成回调
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 报表占位页的眉标、卡片和边框统一收为黄色系视觉
  */
+import { useMobilePageRefresh } from '@/hooks/app/useMobilePageRefresh'
+
 defineOptions({ name: 'MobileReport' })
+
+useMobilePageRefresh(() => {})
 </script>
 
 <style scoped lang="scss">
@@ -45,7 +53,7 @@ defineOptions({ name: 'MobileReport' })
 
 .mobile-report-hero__eyebrow {
   margin: 0 0 8px;
-  color: rgb(var(--arcoblue-6));
+  color: var(--mobile-brand);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -78,9 +86,10 @@ defineOptions({ name: 'MobileReport' })
 
 .mobile-report-grid__item {
   padding: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(143, 99, 17, 0.1);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.72);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 248, 231, 0.82) 100%);
+  box-shadow: 0 8px 20px rgba(130, 90, 22, 0.04);
 }
 
 .mobile-report-grid__item strong {
@@ -93,7 +102,7 @@ defineOptions({ name: 'MobileReport' })
 .mobile-report-grid__label {
   display: block;
   margin-bottom: 6px;
-  color: var(--color-text-3);
+  color: rgba(120, 94, 51, 0.64);
   font-size: 12px;
 }
 </style>

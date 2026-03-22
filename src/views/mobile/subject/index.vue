@@ -3,7 +3,9 @@
     <section class="mobile-panel mobile-subject-hero">
       <p class="mobile-subject-hero__eyebrow">独立移动页</p>
       <h2 class="mobile-subject-hero__title">科目管理</h2>
-      <p class="mobile-subject-hero__desc">这里是独立于 PC 页面的移动端科目列表，用于承接“我的”页九宫格入口。</p>
+      <p class="mobile-subject-hero__desc">
+        这里是独立于 PC 页面的移动端科目列表，用于承接“我的”页九宫格入口。
+      </p>
     </section>
 
     <section class="mobile-panel mobile-subject-filter">
@@ -30,28 +32,27 @@
     </section>
 
     <section class="mobile-subject-list">
-      <t-loading :loading="loading" text="加载中...">
-        <template v-if="filteredSubjects.length">
-          <article
-            v-for="item in filteredSubjects"
-            :key="item.id"
-            class="mobile-subject-card mobile-panel"
-          >
-            <div class="mobile-subject-card__top">
-              <div>
-                <p class="mobile-subject-card__meta">{{ subjectCategoryLabel(item.category) }}</p>
-                <h3 class="mobile-subject-card__title">{{ item.name }}</h3>
-              </div>
-              <span class="mobile-chip" :class="{ 'is-active': item.isDefault }">
-                {{ item.isDefault ? '默认' : '普通' }}
-              </span>
+      <MobilePageSkeleton v-if="loading" variant="subject-list" />
+      <template v-else-if="filteredSubjects.length">
+        <article
+          v-for="item in filteredSubjects"
+          :key="item.id"
+          class="mobile-subject-card mobile-panel"
+        >
+          <div class="mobile-subject-card__top">
+            <div>
+              <p class="mobile-subject-card__meta">{{ subjectCategoryLabel(item.category) }}</p>
+              <h3 class="mobile-subject-card__title">{{ item.name }}</h3>
             </div>
-          </article>
-        </template>
-        <div v-else class="mobile-empty mobile-panel">
-          当前分类下暂无科目。
-        </div>
-      </t-loading>
+            <span class="mobile-chip" :class="{ 'is-active': item.isDefault }">
+              {{ item.isDefault ? '默认' : '普通' }}
+            </span>
+          </div>
+        </article>
+      </template>
+      <div v-else class="mobile-empty mobile-panel">
+        当前分类下暂无科目。
+      </div>
     </section>
   </div>
 </template>
@@ -62,8 +63,16 @@
  *
  * @author Wangsongsong
  * @date 2026-03-21
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 接入移动端骨架屏，列表加载态改为 TDesign Skeleton 渐变动效
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 接入移动端布局层下拉刷新，页面注册科目列表刷新回调
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 统一科目页面的眉标与占位元素配色，使其与移动端黄色系主题保持一致
  */
 import { computed, onMounted, ref } from 'vue'
+import { useMobilePageRefresh } from '@/hooks/app/useMobilePageRefresh'
+import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
 import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
 import { useDict } from '@/hooks/app'
 
@@ -101,6 +110,10 @@ const subjectCategoryLabel = (value: string) => {
 onMounted(() => {
   loadSubjects()
 })
+
+useMobilePageRefresh(async () => {
+  await loadSubjects()
+})
 </script>
 
 <style scoped lang="scss">
@@ -111,7 +124,7 @@ onMounted(() => {
 
 .mobile-subject-hero__eyebrow {
   margin: 0 0 8px;
-  color: rgb(var(--arcoblue-6));
+  color: var(--mobile-brand);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -155,7 +168,7 @@ onMounted(() => {
 
 .mobile-subject-card__meta {
   margin: 0 0 6px;
-  color: var(--color-text-3);
+  color: rgba(120, 94, 51, 0.64);
   font-size: 12px;
 }
 

@@ -123,12 +123,14 @@
  * @date 2026-03-21
  * @update 2026-03-21 @Wangsongsong
  * @desc 复用新增表单层承接移动端明细编辑，并补充编辑态回填与保存逻辑
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移动端表单提示统一改为使用 TDesign Toast
  */
-import { Message } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, reactive, ref, watch } from 'vue'
 import { addDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { usePrivacyStore, useUserStore } from '@/stores'
+import { mobileToast } from '@/utils/mobile-toast'
 import has from '@/utils/has'
 import MobileAmountKeyboard from './MobileAmountKeyboard.vue'
 
@@ -222,39 +224,39 @@ const validateForm = () => {
   const amount = Number(form.amount)
 
   if (!form.category) {
-    Message.warning('请先选择分类')
+    mobileToast.warning('请先选择分类')
     return false
   }
   if (!form.subjectId) {
-    Message.warning('请先选择科目')
+    mobileToast.warning('请先选择科目')
     return false
   }
   if (!name) {
-    Message.warning('请输入明细名称')
+    mobileToast.warning('请输入明细名称')
     return false
   }
   if (name.length > 20) {
-    Message.warning('明细名称最多 20 个字')
+    mobileToast.warning('明细名称最多 20 个字')
     return false
   }
   if (!form.amount) {
-    Message.warning('请输入金额')
+    mobileToast.warning('请输入金额')
     return false
   }
   if (Number.isNaN(amount) || amount <= 0) {
-    Message.warning('请输入正确的金额')
+    mobileToast.warning('请输入正确的金额')
     return false
   }
   if (amount > MAX_AMOUNT) {
-    Message.warning(`金额不能超过 ${MAX_AMOUNT}`)
+    mobileToast.warning(`金额不能超过 ${MAX_AMOUNT}`)
     return false
   }
   if (!form.detailDate) {
-    Message.warning('请选择明细日期')
+    mobileToast.warning('请选择明细日期')
     return false
   }
   if (remark.length > 20) {
-    Message.warning('备注最多 20 个字')
+    mobileToast.warning('备注最多 20 个字')
     return false
   }
   return true
@@ -275,10 +277,10 @@ const handleSubmit = async () => {
   try {
     if (isUpdate.value && props.detailId) {
       await updateDetail(payload, props.detailId)
-      Message.success('修改成功')
+      mobileToast.success('修改成功')
     } else {
       await addDetail(payload)
-      Message.success('新增成功')
+      mobileToast.success('新增成功')
     }
 
     sheetVisible.value = false

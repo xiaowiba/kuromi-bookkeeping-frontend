@@ -119,13 +119,17 @@
  * @date 2026-03-21
  * @update 2026-03-21 @Wangsongsong
  * @desc 补充编辑态回填，并复用共享的用户选项加载逻辑
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移动端表单提示统一改为使用 TDesign Toast
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 统一旧版移动弹层的背景与眉标配色，避免与当前黄色系新框架冲突
  */
-import { Message } from '@arco-design/web-vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
 import { useDict } from '@/hooks/app'
 import { usePrivacyStore, useUserStore } from '@/stores'
+import { mobileToast } from '@/utils/mobile-toast'
 import has from '@/utils/has'
 import { useDetailUserOptions } from '@/views/bookkeeping/shared/useDetailUserOptions'
 
@@ -231,27 +235,27 @@ const handleCategoryChange = (category: string) => {
 
 const validateForm = () => {
   if (isAdmin.value && !form.userId) {
-    Message.warning('请选择记账用户')
+    mobileToast.warning('请选择记账用户')
     return false
   }
   if (!form.category) {
-    Message.warning('请选择分类')
+    mobileToast.warning('请选择分类')
     return false
   }
   if (!form.subjectId) {
-    Message.warning('请选择科目')
+    mobileToast.warning('请选择科目')
     return false
   }
   if (!form.name) {
-    Message.warning('请输入明细名称')
+    mobileToast.warning('请输入明细名称')
     return false
   }
   if (!form.amount || Number(form.amount) <= 0) {
-    Message.warning('请输入正确的金额')
+    mobileToast.warning('请输入正确的金额')
     return false
   }
   if (!form.detailDate) {
-    Message.warning('请选择明细日期')
+    mobileToast.warning('请选择明细日期')
     return false
   }
   return true
@@ -270,10 +274,10 @@ const handleSubmit = async () => {
 
     if (isUpdate.value) {
       await updateDetail(payload, currentDetailId.value)
-      Message.success('修改成功')
+      mobileToast.success('修改成功')
     } else {
       await addDetail(payload)
-      Message.success('新增成功')
+      mobileToast.success('新增成功')
     }
 
     popupVisible.value = false
@@ -319,8 +323,9 @@ watch(() => form.subjectId, (value) => {
   padding: 18px 16px calc(24px + env(safe-area-inset-bottom));
   border-radius: 24px 24px 0 0;
   background:
-    radial-gradient(circle at top right, rgba(var(--arcoblue-2), 0.9) 0%, transparent 36%),
-    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    radial-gradient(circle at top right, rgba(255, 214, 98, 0.22) 0%, transparent 38%),
+    linear-gradient(180deg, #fffdf7 0%, #fbf2df 100%);
+  box-shadow: 0 -12px 28px rgba(130, 90, 22, 0.12);
 }
 
 .mobile-detail-popup__header {
@@ -333,7 +338,7 @@ watch(() => form.subjectId, (value) => {
 
 .mobile-detail-popup__eyebrow {
   margin: 0 0 6px;
-  color: rgb(var(--arcoblue-6));
+  color: var(--mobile-brand);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -373,9 +378,9 @@ watch(() => form.subjectId, (value) => {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(143, 99, 17, 0.1);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 252, 244, 0.84);
   color: var(--color-text-2);
   font-size: 14px;
 }

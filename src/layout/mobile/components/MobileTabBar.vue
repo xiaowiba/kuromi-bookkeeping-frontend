@@ -1,5 +1,6 @@
 <template>
   <t-tab-bar
+    class="mobile-tabbar"
     :value="activeTab"
     fixed
     placeholder
@@ -45,6 +46,8 @@
  * @date 2026-03-21
  * @update 2026-03-21 @Wangsongsong
  * @desc 调整为 TDesign 默认图标加文字标签栏，保留记账标签点击后打开移动端新增弹层
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 统一底部标签栏选中态与背景配色，使其与移动端黄色系主题保持一致
  */
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -98,3 +101,32 @@ const handleTabChange = (value: string | number) => {
   }
 }
 </script>
+
+<style scoped lang="scss">
+.mobile-tabbar {
+  :deep(.t-tab-bar) {
+    border-top: 1px solid rgba(143, 99, 17, 0.08);
+    //background: rgba(255, 250, 240, 0.96);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 -8px 24px rgba(130, 90, 22, 0.08);
+  }
+
+  :deep(.t-tab-bar-item__content) {
+    color: rgba(120, 94, 51, 0.58);
+    transition: color 0.2s ease;
+  }
+
+  :deep(.t-tab-bar-item__text) {
+    font-weight: 500;
+  }
+
+  :deep(.t-tab-bar-item__content--checked) {
+    color: var(--mobile-brand);
+  }
+
+  :deep(.t-tab-bar-item__content--checked .t-tab-bar-item__text) {
+    color: var(--mobile-brand-deep);
+    font-weight: 700;
+  }
+}
+</style>

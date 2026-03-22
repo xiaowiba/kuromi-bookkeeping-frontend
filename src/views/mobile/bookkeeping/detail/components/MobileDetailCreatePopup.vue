@@ -91,6 +91,8 @@
  * @date 2026-03-21
  * @update 2026-03-21 @Wangsongsong
  * @desc 支持接收明细ID并回填编辑数据，使移动端编辑复用新记账表单流程
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 调整移动端分类页的兜底图标映射，移除突兀的填充蓝色图标，并保留接口 icon 字段的统一解析入口
  */
 import { computed, ref, watch } from 'vue'
 import { type DetailResp, getDetail } from '@/apis/bookkeeping/detail'
@@ -153,7 +155,7 @@ const subjectIconPool = [
   'message',
   'mobile',
   'tool',
-  'protect',
+  'heart',
   'book',
   'project',
 ]
@@ -180,7 +182,7 @@ const subjectKeywordIconMap: Array<[string, string]> = [
   ['烟', 'fire'],
   ['数', 'mobile'],
   ['汽', 'tool'],
-  ['医', 'protect'],
+  ['医', 'heart'],
   ['书', 'book'],
   ['学', 'book'],
   ['宠', 'user'],

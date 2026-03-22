@@ -15,5 +15,7 @@
  * @desc 修复 web 端编辑明细时名称被分类联动覆盖的问题，并将版本号升级为 v1.1.6
  * @update 2026-03-22 @Wangsongsong
  * @desc 调整移动端分类页的兜底图标映射，移除突兀的蓝色填充图标，并将版本号升级为 v1.1.7
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移除移动端下拉刷新功能与相关文档说明，并将版本号升级为 v1.1.8
  */
-export const MOBILE_DISPLAY_VERSION = 'v1.1.7'
+export const MOBILE_DISPLAY_VERSION = 'v1.1.8'

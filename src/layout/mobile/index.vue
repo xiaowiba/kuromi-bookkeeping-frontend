@@ -10,26 +10,15 @@
       @left-click="handleBack"
     />
 
-    <main class="mobile-layout__body" :class="{ 'has-navbar': showNavbar }">
-      <t-pull-down-refresh
-        v-model="pullRefreshLoading"
-        class="mobile-layout__refresh"
-        :disabled="pullRefreshDisabled"
-        :loading-props="pullRefreshLoadingProps"
-        :loading-texts="pullRefreshTexts"
-        :loading-bar-height="'1.12rem'"
-        :max-bar-height="'1.52rem'"
-        @refresh="handlePullRefresh"
-      >
-        <router-view v-slot="{ Component }">
-          <Suspense>
-            <component :is="Component" />
-            <template #fallback>
-              <MobilePageSkeleton :variant="routeSkeletonVariant" />
-            </template>
-          </Suspense>
-        </router-view>
-      </t-pull-down-refresh>
+    <main class="mobile-layout__body">
+      <router-view v-slot="{ Component }">
+        <Suspense>
+          <component :is="Component" />
+          <template #fallback>
+            <MobilePageSkeleton :variant="routeSkeletonVariant" />
+          </template>
+        </Suspense>
+      </router-view>
     </main>
 
     <MobileTabBar />
@@ -68,13 +57,14 @@
  * @desc 修复下拉刷新容器固定高度导致移动端页面内容被裁剪、无法向下滚动的问题
  * @update 2026-03-22 @Wangsongsong
  * @desc 取消移动端布局内层滚动容器，改为页面自然滚动，修复明细页数据无法滚动到底的问题
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移除移动端全局下拉刷新容器及事件派发，避免布局层刷新能力引入额外交互与滚动问题
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileTabBar from './components/MobileTabBar.vue'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
 import MobileDetailCreatePopup from '@/views/mobile/bookkeeping/detail/components/MobileDetailCreatePopup.vue'
-import { emitMobilePageRefresh } from '@/hooks/app/useMobilePageRefresh'
 import mittBus from '@/utils/mitt'
 import { bindMobileRemResize } from '@/utils/mobile-rem'
 
@@ -85,23 +75,13 @@ const router = useRouter()
 
 const createPopupVisible = ref(false)
 const editingDetailId = ref('')
-const pullRefreshLoading = ref(false)
 const rootPaths = ['/m/bookkeeping/detail', '/m/report', '/m/me']
 const MOBILE_SCROLL_UNLOCK_CLASS = 'mobile-scroll-unlocked'
 let cleanupMobileRemResize: (() => void) | null = null
-const PULL_REFRESH_MIN_DURATION = 600
 
 const pageTitle = computed(() => (route.meta.title as string) || '移动端')
 const showNavbar = computed(() => route.path !== '/m/bookkeeping/detail')
 const showBack = computed(() => !rootPaths.includes(route.path))
-const pullRefreshDisabled = computed(() => createPopupVisible.value)
-const pullRefreshTexts = ['下拉即可刷新...', '松手立即刷新...', '正在刷新...', '刷新完成', '下拉即可刷新...']
-const pullRefreshLoadingProps = {
-  theme: 'spinner' as const,
-  layout: 'vertical' as const,
-  size: '0.32rem',
-  inheritColor: true,
-}
 const routeSkeletonVariant = computed(() => {
   if (route.path.startsWith('/m/report')) {
     return 'report'
@@ -141,25 +121,6 @@ const handleBack = () => {
   }
 
   router.push('/m/bookkeeping/detail')
-}
-
-const wait = (duration: number) =>
-  new Promise<void>((resolve) => {
-    window.setTimeout(resolve, duration)
-  })
-
-const handlePullRefresh = async () => {
-  const refreshStartAt = Date.now()
-
-  try {
-    await emitMobilePageRefresh()
-  } finally {
-    const elapsed = Date.now() - refreshStartAt
-    if (elapsed < PULL_REFRESH_MIN_DURATION) {
-      await wait(PULL_REFRESH_MIN_DURATION - elapsed)
-    }
-    pullRefreshLoading.value = false
-  }
 }
 
 watch(createPopupVisible, (value) => {
@@ -221,44 +182,6 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   overflow: visible;
-}
-
-.mobile-layout__body.has-navbar {
-  min-height: 0;
-}
-
-.mobile-layout__refresh {
-  height: auto;
-  min-height: 100%;
-  --td-pull-down-refresh-color: rgba(126, 92, 20, 0.68);
-  --td-loading-text-color: rgba(126, 92, 20, 0.68);
-
-  :deep(.t-pull-down-refresh) {
-    height: auto;
-    min-height: 100%;
-  }
-
-  :deep(.t-pull-down-refresh__track) {
-    height: auto;
-    min-height: 100%;
-    background: transparent;
-  }
-
-  :deep(.t-pull-down-refresh__tips) {
-    color: rgba(126, 92, 20, 0.68);
-    background: linear-gradient(180deg, rgba(255, 244, 206, 0.92) 0%, rgba(255, 249, 236, 0) 100%);
-  }
-
-  :deep(.t-loading) {
-    color: var(--mobile-brand);
-  }
-
-  :deep(.t-loading__text) {
-    margin-top: 0.08rem;
-    color: rgba(126, 92, 20, 0.68);
-    font-size: 0.24rem;
-    line-height: 1.4;
-  }
 }
 
 </style>

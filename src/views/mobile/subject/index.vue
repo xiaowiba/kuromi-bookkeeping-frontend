@@ -69,9 +69,10 @@
  * @desc 接入移动端布局层下拉刷新，页面注册科目列表刷新回调
  * @update 2026-03-22 @Wangsongsong
  * @desc 统一科目页面的眉标与占位元素配色，使其与移动端黄色系主题保持一致
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移除科目页下拉刷新注册逻辑，避免无意义手势刷新造成页面状态干扰
  */
 import { computed, onMounted, ref } from 'vue'
-import { useMobilePageRefresh } from '@/hooks/app/useMobilePageRefresh'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
 import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
 import { useDict } from '@/hooks/app'
@@ -109,10 +110,6 @@ const subjectCategoryLabel = (value: string) => {
 
 onMounted(() => {
   loadSubjects()
-})
-
-useMobilePageRefresh(async () => {
-  await loadSubjects()
 })
 </script>
 

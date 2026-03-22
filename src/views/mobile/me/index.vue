@@ -148,11 +148,12 @@
  * @desc 接入移动端布局层下拉刷新，页面注册个人中心刷新回调
  * @update 2026-03-22 @Wangsongsong
  * @desc 统一我的页面、九宫格和隐私弹层为黄色系风格
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移除我的页面下拉刷新回调，避免隐私入口页再依赖全局手势刷新链路
  */
 import { computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MOBILE_DISPLAY_VERSION } from '@/config/app-version'
-import { useMobilePageRefresh } from '@/hooks/app/useMobilePageRefresh'
 import { usePrivacyStore, useUserStore } from '@/stores'
 import { mobileToast } from '@/utils/mobile-toast'
 import { usePrivacyEntry } from '@/views/bookkeeping/shared/usePrivacyEntry'
@@ -172,7 +173,6 @@ const {
   setupForm,
   closeVerifyPopup,
   closeSetupPopup,
-  syncPrivacyConfig,
   openPrivacyEntry,
   handleVerifyPassword,
   handleSetupPassword,
@@ -250,13 +250,6 @@ const handleLogout = async () => {
 
 onUnmounted(() => {
   resetVersionClickState()
-})
-
-useMobilePageRefresh(async () => {
-  if (!hasPrivacyPermission.value) {
-    return
-  }
-  await syncPrivacyConfig()
 })
 </script>
 

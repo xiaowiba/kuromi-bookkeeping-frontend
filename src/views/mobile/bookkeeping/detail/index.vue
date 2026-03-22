@@ -353,12 +353,13 @@
  * @desc 接入移动端布局层下拉刷新，页面注册明细数据刷新回调
  * @update 2026-03-22 @Wangsongsong
  * @desc 明细页补充底部安全留白，避免最后一组数据贴近底部导航区域
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移除明细页对全局下拉刷新的注册逻辑，保留显式刷新按钮作为唯一刷新入口
  */
 import { Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useMobilePageRefresh } from '@/hooks/app/useMobilePageRefresh'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
 import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
 import { useDict } from '@/hooks/app'
@@ -679,10 +680,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   mittBus.off('mobile-detail-refresh', loadData)
-})
-
-useMobilePageRefresh(async () => {
-  await loadData()
 })
 </script>
 

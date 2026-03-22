@@ -38,12 +38,10 @@
  * @desc 接入移动端布局层下拉刷新，报表占位页支持刷新手势完成回调
  * @update 2026-03-22 @Wangsongsong
  * @desc 报表占位页的眉标、卡片和边框统一收为黄色系视觉
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移除报表占位页的下拉刷新空回调，避免保留无实际价值的手势交互
  */
-import { useMobilePageRefresh } from '@/hooks/app/useMobilePageRefresh'
-
 defineOptions({ name: 'MobileReport' })
-
-useMobilePageRefresh(() => {})
 </script>
 
 <style scoped lang="scss">

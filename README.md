@@ -48,7 +48,6 @@
 - `/m` 路由独立入口与终端映射
 - rem 适配
 - 黄色主题统一
-- 下拉刷新
 - 骨架屏
 - 移动端 Toast 提示
 - 移动端月份选择器
@@ -77,7 +76,6 @@
 
 - `Toast`
 - `Loading`
-- `PullDownRefresh`
 - `Skeleton`
 - `Footer`
 - `Tabs`
@@ -233,7 +231,6 @@ pnpm mobile:version:minor
 - 顶部月份查询
 - 用户筛选
 - 收支统计
-- 下拉刷新
 - 骨架屏
 - 删除与编辑交互
 - 隐私模式退出按钮

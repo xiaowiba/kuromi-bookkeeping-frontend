@@ -5,6 +5,8 @@
  * @date 2026-03-21
  * @update 2026-03-22 @Wangsongsong
  * @desc 统一移动端全局黄色系品牌色板，同步覆盖 TDesign 移动端常用组件的默认蓝色状态
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移除已下线的 PullDownRefresh 主题变量，避免保留无效样式配置
  */
 
 :root {
@@ -48,7 +50,6 @@ body.mobile-scroll-unlocked {
   --td-warning-color: #d29a19;
   --td-warning-color-light: #fff3cf;
   --td-loading-text-color: rgba(126, 92, 20, 0.68);
-  --td-pull-down-refresh-color: rgba(126, 92, 20, 0.68);
 }
 
 .mobile-page {

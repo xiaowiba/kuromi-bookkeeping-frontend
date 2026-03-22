@@ -1,5 +1,5 @@
 <template>
-  <GiPageLayout>
+  <GiPageLayout :body-style="{ overflowY: 'auto', overflowX: 'hidden' }">
     <!-- 未进入隐私模式时的提示 -->
     <template v-if="!privacyStore.isPrivacyMode">
       <a-result status="warning" title="请先进入隐私模式" subtitle="请在明细管理页面通过隐蔽入口进入隐私模式后再访问此页面" />
@@ -110,6 +110,8 @@
  * @desc 用户选项改为调用 bookkeeping 专用接口，统一绕过数据权限
  * @update 2026-03-22 @Wangsongsong
  * @desc 增加隐私模式有效时长配置，支持在 web 端隐藏配置页面直接修改
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 隐藏配置页开启内容区纵向滚动，修复页面超出后无法继续下滑查看的问题
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, reactive, ref } from 'vue'

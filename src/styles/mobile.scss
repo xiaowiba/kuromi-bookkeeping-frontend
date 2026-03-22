@@ -19,11 +19,8 @@
   --mobile-radius-md: 18px;
 }
 
-body {
-  background-color: #f8f1e4;
-}
-
 body.mobile-scroll-unlocked {
+  background-color: #f8f1e4;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;

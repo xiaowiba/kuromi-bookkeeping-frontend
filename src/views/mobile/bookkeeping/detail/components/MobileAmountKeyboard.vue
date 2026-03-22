@@ -48,6 +48,12 @@
  *
  * @author Wangsongsong
  * @date 2026-03-21
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 放大金额键盘弹层、数字按键和右上角操作按钮，提升移动端输入触控面积
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 进一步放大金额键盘可视区域与键位尺寸，尽量扩展到金额输入框下方可用空间
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 修复金额键盘放大后最后一行被遮挡的问题，通过抬升键盘高度并重新平衡间距，确保四行按键完整可见
  */
 import { computed } from 'vue'
 
@@ -143,16 +149,18 @@ const handleKeyPress = (key: KeyboardKey) => {
 .mobile-amount-keyboard {
   border-radius: 0.48rem 0.48rem 0 0;
   background: linear-gradient(180deg, #fff9ef 0%, #fff4db 100%);
-  padding: 0.4rem 0.32rem calc(env(safe-area-inset-bottom) + 0.32rem);
+  height: min(7.32rem, calc(100dvh - 4.72rem));
+  padding: 0.46rem 0.32rem calc(env(safe-area-inset-bottom) + 0.26rem);
   box-shadow: 0 -0.16rem 0.48rem rgba(146, 97, 0, 0.12);
+  overflow: hidden;
 }
 
 .mobile-amount-keyboard__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.24rem;
-  margin-bottom: 0.28rem;
+  gap: 0.28rem;
+  margin-bottom: 0.34rem;
 }
 
 .mobile-amount-keyboard__eyebrow {
@@ -165,7 +173,7 @@ const handleKeyPress = (key: KeyboardKey) => {
 .mobile-amount-keyboard__value {
   display: block;
   color: #4c3200;
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 700;
   line-height: 1.1;
 }
@@ -173,7 +181,7 @@ const handleKeyPress = (key: KeyboardKey) => {
 .mobile-amount-keyboard__actions {
   display: flex;
   align-items: center;
-  gap: 0.16rem;
+  gap: 0.18rem;
 }
 
 .mobile-amount-keyboard__action {
@@ -181,9 +189,11 @@ const handleKeyPress = (key: KeyboardKey) => {
   border-radius: 999rem;
   background: rgba(255, 255, 255, 0.88);
   color: #7d5a00;
-  padding: 0.14rem 0.28rem;
-  font-size: 0.28rem;
-  font-weight: 600;
+  min-height: 0.78rem;
+  padding: 0.16rem 0.36rem;
+  font-size: 0.32rem;
+  font-weight: 700;
+  box-shadow: 0 0.08rem 0.18rem rgba(146, 97, 0, 0.08);
 }
 
 .mobile-amount-keyboard__action--primary {
@@ -198,17 +208,17 @@ const handleKeyPress = (key: KeyboardKey) => {
 }
 
 .mobile-amount-keyboard__key {
-  min-height: 0.96rem;
+  min-height: 1.1rem;
   border: none;
-  border-radius: 0.24rem;
+  border-radius: 0.28rem;
   background: rgba(255, 255, 255, 0.92);
   color: #4c3200;
-  font-size: 0.4rem;
+  font-size: 0.46rem;
   font-weight: 700;
   box-shadow: inset 0 -0.02rem 0 rgba(146, 97, 0, 0.08);
 }
 
 .mobile-amount-keyboard__key.is-action {
-  font-size: 0.32rem;
+  font-size: 0.34rem;
 }
 </style>

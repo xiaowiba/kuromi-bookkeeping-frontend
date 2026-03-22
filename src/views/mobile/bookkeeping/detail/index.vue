@@ -257,6 +257,13 @@
       </div>
     </section>
 
+    <t-back-top
+      class="mobile-detail-back-top"
+      theme="half-round"
+      text="顶部"
+      :visibility-height="360"
+    />
+
     <t-popup v-model:visible="monthPickerVisible" placement="bottom" destroy-on-close>
       <div class="mobile-month-picker-popup">
         <t-date-time-picker
@@ -355,6 +362,8 @@
  * @desc 明细页补充底部安全留白，避免最后一组数据贴近底部导航区域
  * @update 2026-03-22 @Wangsongsong
  * @desc 移除明细页对全局下拉刷新的注册逻辑，保留显式刷新按钮作为唯一刷新入口
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 为移动端明细页增加 BackTop 回到顶部能力，使用 TDesign half-round 半圆样式
  */
 import { Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
@@ -1246,6 +1255,36 @@ onUnmounted(() => {
   color: #8a7a68;
   font-size: 14px;
   line-height: 1.6;
+}
+
+.mobile-detail-back-top {
+  :deep(.t-back-top--fixed) {
+    right: 0;
+    bottom: calc(2.12rem + env(safe-area-inset-bottom));
+    z-index: 24;
+  }
+
+  :deep(.t-back-top--half-round) {
+    color: #8b5e00;
+    background: linear-gradient(135deg, rgba(255, 252, 244, 0.98) 0%, rgba(248, 218, 123, 0.96) 100%);
+    box-shadow: 0 0.18rem 0.38rem rgba(130, 90, 22, 0.16);
+  }
+
+  :deep(.t-back-top--half-round::after) {
+    border-color: rgba(197, 138, 18, 0.18);
+  }
+
+  :deep(.t-back-top__icon) {
+    font-size: 0.44rem;
+  }
+
+  :deep(.t-back-top__text--half-round) {
+    width: auto;
+    min-width: 2em;
+    font-size: 0.24rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
 }
 
 .mobile-bottom-sheet {

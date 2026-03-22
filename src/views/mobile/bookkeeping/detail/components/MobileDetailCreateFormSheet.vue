@@ -125,6 +125,8 @@
  * @desc 复用新增表单层承接移动端明细编辑，并补充编辑态回填与保存逻辑
  * @update 2026-03-22 @Wangsongsong
  * @desc 移动端表单提示统一改为使用 TDesign Toast
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 调整填写明细弹层顶部返回按钮和底部主按钮顺序、尺寸与黄色主题样式
  */
 import dayjs from 'dayjs'
 import { computed, reactive, ref, watch } from 'vue'
@@ -316,17 +318,25 @@ watch(
 
 .mobile-create-sheet__ghost-btn,
 .mobile-create-sheet__ghost-placeholder {
-  min-width: 0.92rem;
+  min-width: 1.18rem;
 }
 
 .mobile-create-sheet__ghost-btn {
+  grid-column: 3;
   border: none;
   border-radius: 999rem;
   background: rgba(255, 255, 255, 0.88);
   color: #7d5a00;
-  padding: 0.14rem 0.2rem;
-  font-size: 0.28rem;
-  font-weight: 600;
+  justify-self: end;
+  padding: 0.18rem 0.3rem;
+  font-size: 0.32rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0.08rem 0.2rem rgba(146, 97, 0, 0.08);
+}
+
+.mobile-create-sheet__ghost-placeholder {
+  grid-column: 1;
 }
 
 .mobile-create-sheet__heading {
@@ -438,6 +448,34 @@ watch(
   grid-template-columns: 1fr 1fr;
   gap: 0.2rem;
   margin-top: 0.32rem;
+}
+
+.mobile-create-sheet__footer :deep(.t-button) {
+  min-height: 0.96rem;
+  border-radius: 0.26rem;
+  font-size: 0.3rem;
+  font-weight: 700;
+}
+
+.mobile-create-sheet__footer :deep(.t-button--primary) {
+  order: 1;
+  border: none;
+  background: linear-gradient(135deg, #f7cf4b 0%, #efbc2e 100%);
+  color: #5c3d00;
+  box-shadow: 0 0.12rem 0.26rem rgba(239, 188, 46, 0.24);
+}
+
+.mobile-create-sheet__footer :deep(.t-button--primary.t-button--disabled),
+.mobile-create-sheet__footer :deep(.t-button--primary:disabled) {
+  color: rgba(92, 61, 0, 0.6);
+  background: linear-gradient(135deg, rgba(247, 207, 75, 0.78) 0%, rgba(239, 188, 46, 0.72) 100%);
+}
+
+.mobile-create-sheet__footer :deep(.t-button--outline) {
+  order: 2;
+  border-color: rgba(146, 97, 0, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: #7d5a00;
 }
 
 .mobile-create-sheet__picker-popup {

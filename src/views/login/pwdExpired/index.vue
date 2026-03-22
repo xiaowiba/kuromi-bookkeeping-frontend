@@ -27,7 +27,7 @@
       </a-col>
     </a-row>
 
-    <div v-if="isDesktop" class="footer">
+    <div class="footer">
       <div class="beian">
         <div class="below text">
           {{ appStore.getCopyright() }}{{ appStore.getForRecord() ? ` ·
@@ -66,18 +66,23 @@
 import Background from '../components/background/index.vue'
 import ModifyPassword from '../components/modifyPassword/index.vue'
 import { useAppStore } from '@/stores'
-import { useDevice } from '@/hooks'
 
 defineOptions({ name: 'PwdExpired' })
 
-const { isDesktop } = useDevice()
+/**
+ * 密码过期页
+ * @author Wangsongsong
+ * @date 2026-03-23
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 修复密码过期页中文乱码，并保留生产环境构建后的桌面端与移动端样式隔离方案
+ */
 const appStore = useAppStore()
 const title = computed(() => appStore.getTitle())
 const logo = computed(() => appStore.getLogo())
 </script>
 
 <style scoped lang="scss">
-@media screen and (max-width: 570px) {
+@media screen and (max-width: 570PX) {
     .pc {
         display: none !important;
         background-color: white !important;
@@ -94,12 +99,12 @@ const logo = computed(() => appStore.getLogo())
 
         &-logo {
             width: 100%;
-            height: 104px;
+            height: 104PX;
             font-weight: 700;
-            font-size: 20px;
-            line-height: 32px;
+            font-size: 20PX;
+            line-height: 32PX;
             display: flex;
-            padding: 0 20px;
+            padding: 0 20PX;
             align-items: center;
             justify-content: start;
             background-image: url('/src/assets/images/login_h5.jpg');
@@ -107,9 +112,9 @@ const logo = computed(() => appStore.getLogo())
             box-sizing: border-box;
 
             img {
-                width: 34px;
-                height: 34px;
-                margin-right: 8px;
+                width: 34PX;
+                height: 34PX;
+                margin-right: 8PX;
             }
         }
 
@@ -125,15 +130,15 @@ const logo = computed(() => appStore.getLogo())
         height: 100%;
         display: flex;
         flex-direction: column;
-        padding: 30px 30px 0;
+        padding: 30PX 30PX 0;
         box-sizing: border-box;
 
         &__title {
             color: var(--color-text-1);
             font-weight: 500;
-            font-size: 20px;
-            line-height: 32px;
-            margin-bottom: 20px;
+            font-size: 20PX;
+            line-height: 32PX;
+            margin-bottom: 20PX;
         }
 
         &__form {
@@ -145,17 +150,17 @@ const logo = computed(() => appStore.getLogo())
 
             :deep(.arco-tabs-tab) {
                 color: var(--color-text-2);
-                margin: 0 20px 0 0;
+                margin: 0 20PX 0 0;
             }
 
             :deep(.arco-tabs-tab-title) {
-                font-size: 16px;
+                font-size: 16PX;
                 font-weight: 500;
-                line-height: 22px;
+                line-height: 22PX;
             }
 
             :deep(.arco-tabs-content) {
-                margin-top: 10px;
+                margin-top: 10PX;
             }
 
             :deep(.arco-tabs-tab-active),
@@ -176,8 +181,8 @@ const logo = computed(() => appStore.getLogo())
 
     .theme-btn {
         position: fixed;
-        top: 20px;
-        right: 30px;
+        top: 20PX;
+        right: 30PX;
         z-index: 999;
     }
 
@@ -190,15 +195,15 @@ const logo = computed(() => appStore.getLogo())
         align-items: center;
         box-sizing: border-box;
         position: absolute;
-        bottom: 10px;
+        bottom: 10PX;
         z-index: 999;
 
         .beian {
             .text {
-                font-size: 12px;
+                font-size: 12PX;
                 font-weight: 400;
-                letter-spacing: 0.2px;
-                line-height: 20px;
+                letter-spacing: 0.2PX;
+                line-height: 20PX;
                 text-align: center;
             }
 
@@ -210,7 +215,7 @@ const logo = computed(() => appStore.getLogo())
     }
 }
 
-@media screen and (min-width: 571px) {
+@media screen and (min-width: 571PX) {
     .h5 {
         display: none !important;
     }
@@ -225,31 +230,31 @@ const logo = computed(() => appStore.getLogo())
 
         &-logo {
             position: fixed;
-            top: 20px;
-            left: 30px;
+            top: 20PX;
+            left: 30PX;
             z-index: 9999;
             color: var(--color-text-1);
             font-weight: 500;
-            font-size: 20px;
-            line-height: 32px;
-            margin-bottom: 20px;
+            font-size: 20PX;
+            line-height: 32PX;
+            margin-bottom: 20PX;
             display: flex;
             justify-content: center;
             align-items: center;
 
             img {
-                width: 34px;
-                height: 34px;
-                margin-right: 8px;
+                width: 34PX;
+                height: 34PX;
+                margin-right: 8PX;
             }
         }
 
         &-box {
             width: 86%;
-            max-width: 850px;
+            max-width: 850PX;
             display: flex;
             z-index: 999;
-            box-shadow: 0 2px 4px 2px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2PX 4PX 2PX rgba(0, 0, 0, 0.08);
         }
     }
 
@@ -282,15 +287,15 @@ const logo = computed(() => appStore.getLogo())
         background: var(--color-bg-1);
         display: flex;
         flex-direction: column;
-        padding: 30px 30px 0;
+        padding: 30PX 30PX 0;
         box-sizing: border-box;
 
         &__title {
             color: var(--color-text-1);
             font-weight: 500;
-            font-size: 20px;
-            line-height: 32px;
-            margin-bottom: 20px;
+            font-size: 20PX;
+            line-height: 32PX;
+            margin-bottom: 20PX;
         }
 
         &__form {
@@ -305,13 +310,13 @@ const logo = computed(() => appStore.getLogo())
             }
 
             :deep(.arco-tabs-tab-title) {
-                font-size: 16px;
+                font-size: 16PX;
                 font-weight: 500;
-                line-height: 22px;
+                line-height: 22PX;
             }
 
             :deep(.arco-tabs-content) {
-                margin-top: 10px;
+                margin-top: 10PX;
             }
 
             :deep(.arco-tabs-tab-active),
@@ -330,13 +335,13 @@ const logo = computed(() => appStore.getLogo())
 
         &__oauth {
             margin-top: auto;
-            margin-bottom: 20px;
+            margin-bottom: 20PX;
 
             :deep(.arco-divider-text) {
                 color: var(--color-text-4);
-                font-size: 12px;
+                font-size: 12PX;
                 font-weight: 400;
-                line-height: 20px;
+                line-height: 20PX;
             }
 
             .list {
@@ -346,39 +351,39 @@ const logo = computed(() => appStore.getLogo())
                 width: 100%;
 
                 .item {
-                    margin-right: 15px;
+                    margin-right: 15PX;
                 }
 
                 .mode {
                     color: var(--color-text-2);
-                    font-size: 12px;
+                    font-size: 12PX;
                     font-weight: 400;
-                    line-height: 20px;
-                    padding: 6px 10px;
+                    line-height: 20PX;
+                    padding: 6PX 10PX;
                     align-items: center;
-                    border: 1px solid var(--color-border-3);
-                    border-radius: 32px;
+                    border: 1PX solid var(--color-border-3);
+                    border-radius: 32PX;
                     box-sizing: border-box;
                     display: flex;
-                    height: 32px;
+                    height: 32PX;
                     justify-content: center;
                     cursor: pointer;
 
                     .icon {
-                        width: 21px;
-                        height: 20px;
+                        width: 21PX;
+                        height: 20PX;
                     }
                 }
 
                 .mode svg {
-                    font-size: 16px;
-                    margin-right: 10px;
+                    font-size: 16PX;
+                    margin-right: 10PX;
                 }
 
                 .mode:hover,
                 .mode svg:hover {
                     background: rgba(var(--primary-6), 0.05);
-                    border: 1px solid rgb(var(--primary-3));
+                    border: 1PX solid rgb(var(--primary-3));
                     color: rgb(var(--arcoblue-6));
                 }
             }
@@ -387,8 +392,8 @@ const logo = computed(() => appStore.getLogo())
 
     .theme-btn {
         position: fixed;
-        top: 20px;
-        right: 30px;
+        top: 20PX;
+        right: 30PX;
         z-index: 999;
     }
 
@@ -401,15 +406,15 @@ const logo = computed(() => appStore.getLogo())
         align-items: center;
         box-sizing: border-box;
         position: absolute;
-        bottom: 10px;
+        bottom: 10PX;
         z-index: 999;
 
         .beian {
             .text {
-                font-size: 12px;
+                font-size: 12PX;
                 font-weight: 400;
-                letter-spacing: 0.2px;
-                line-height: 20px;
+                letter-spacing: 0.2PX;
+                line-height: 20PX;
                 text-align: center;
             }
 

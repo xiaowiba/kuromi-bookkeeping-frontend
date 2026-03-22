@@ -50,6 +50,7 @@
 - 黄色主题统一
 - 骨架屏
 - 移动端 Toast 提示
+- 回到顶部
 - 移动端月份选择器
 - 独立的移动端新增 / 编辑记账表单
 - 全屏分类选择页
@@ -77,6 +78,7 @@
 - `Toast`
 - `Loading`
 - `Skeleton`
+- `BackTop`
 - `Footer`
 - `Tabs`
 - `DateTimePicker`
@@ -232,6 +234,7 @@ pnpm mobile:version:minor
 - 用户筛选
 - 收支统计
 - 骨架屏
+- 回到顶部
 - 删除与编辑交互
 - 隐私模式退出按钮
 

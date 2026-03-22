@@ -93,6 +93,8 @@
  * @desc 支持接收明细ID并回填编辑数据，使移动端编辑复用新记账表单流程
  * @update 2026-03-22 @Wangsongsong
  * @desc 调整移动端分类页的兜底图标映射，移除突兀的填充蓝色图标，并保留接口 icon 字段的统一解析入口
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 调整分类选择页顶部取消按钮字号与点击热区，贴近移动端效果图
  */
 import { computed, ref, watch } from 'vue'
 import { type DetailResp, getDetail } from '@/apis/bookkeeping/detail'
@@ -352,14 +354,14 @@ watch(
 .mobile-create-screen__cancel-btn {
   position: absolute;
   right: 0.24rem;
-  bottom: 0.24rem;
+  bottom: 0.18rem;
   border: none;
   background: transparent;
   color: #222;
-  font-size: 0.3rem;
-  font-weight: 400;
+  font-size: 0.36rem;
+  font-weight: 500;
   line-height: 1;
-  padding: 0;
+  padding: 0.12rem 0.08rem;
 }
 
 .mobile-create-screen__category-tabs {

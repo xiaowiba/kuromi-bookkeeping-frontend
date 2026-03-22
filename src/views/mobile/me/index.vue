@@ -31,7 +31,7 @@
     <section class="mobile-panel mobile-me-actions">
       <h3 class="mobile-section-title">账户设置</h3>
       <t-cell
-        v-if="hasPrivacyPermission"
+        v-if="hasPrivacyPermission && privacyStore.isPrivacyMode"
         title="隐私模式"
         :note="privacyStatusText"
         bordered

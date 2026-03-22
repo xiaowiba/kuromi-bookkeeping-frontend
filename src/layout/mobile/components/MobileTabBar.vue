@@ -14,18 +14,18 @@
       明细
     </t-tab-bar-item>
 
-    <t-tab-bar-item value="report">
-      <template #icon>
-        <icon-bar-chart />
-      </template>
-      报表
-    </t-tab-bar-item>
-
     <t-tab-bar-item value="add">
       <template #icon>
         <icon-plus />
       </template>
       记账
+    </t-tab-bar-item>
+
+    <t-tab-bar-item value="report">
+      <template #icon>
+        <icon-bar-chart />
+      </template>
+      报表
     </t-tab-bar-item>
 
     <t-tab-bar-item value="me">

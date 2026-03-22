@@ -19,8 +19,8 @@
           <button
               type="button"
               class="mobile-detail-hero__chip"
-              :class="{ 'is-active': String(query.userId) === String(userStore.userInfo.id) }"
-              @click="handleUserFilterChange(String(userStore.userInfo.id))"
+              :class="{ 'is-active': query.userId === currentUserId }"
+              @click="handleUserFilterChange(currentUserId)"
           >
             {{ userStore.userInfo.nickname }}
           </button>
@@ -215,7 +215,7 @@
                 class="mobile-detail-row"
                 :class="{
                   'is-hidden': privacyStore.isPrivacyMode && item.hidden === 1,
-                  'is-clickable': canOperateItem,
+                  'is-clickable': true,
                 }"
                 @click="handleRowClick(item)"
               >
@@ -225,7 +225,7 @@
 
                 <div class="mobile-detail-row__content">
                   <h4 class="mobile-detail-row__title">{{ item.name }}</h4>
-                  <h6 class="mobile-detail-row__create__user">{{ item.createUserString }}</h6>
+                  <h6 class="mobile-detail-row__create__user">{{ item.userNickname }}</h6>
                   <span
                     v-if="privacyStore.isPrivacyMode && item.hidden === 1"
                     class="mobile-detail-row__privacy"
@@ -271,16 +271,41 @@
       <div class="mobile-bottom-sheet">
         <div class="mobile-bottom-sheet__panel">
           <div class="mobile-bottom-sheet__header">
-            <p class="mobile-bottom-sheet__eyebrow">明细操作</p>
+            <p class="mobile-bottom-sheet__eyebrow">{{ actionSheetEyebrow }}</p>
             <h3 class="mobile-bottom-sheet__title">{{ activeDetail?.name || '当前明细' }}</h3>
             <p v-if="activeDetail" class="mobile-bottom-sheet__meta">
               {{ activeDetail.subjectName }} · {{ activeDetail.userNickname }} · {{ activeDetail.detailDate }}
             </p>
           </div>
 
+          <div v-if="activeDetail" class="mobile-bottom-sheet__detail-card">
+            <div class="mobile-bottom-sheet__detail-row">
+              <span>金额</span>
+              <strong :class="activeDetail.amount >= 0 ? 'is-income' : 'is-expense'">
+                {{ formatListAmount(activeDetail.amount) }}
+              </strong>
+            </div>
+            <div class="mobile-bottom-sheet__detail-row">
+              <span>分类</span>
+              <strong>{{ subjectCategoryLabel(activeDetail.subjectCategory) }}</strong>
+            </div>
+            <div class="mobile-bottom-sheet__detail-row">
+              <span>记账人</span>
+              <strong>{{ activeDetail.userNickname }}</strong>
+            </div>
+            <div class="mobile-bottom-sheet__detail-row">
+              <span>备注</span>
+              <strong>{{ activeDetail.remark || '无' }}</strong>
+            </div>
+          </div>
+
+          <p v-if="activeDetail && !canOperateActiveDetail" class="mobile-bottom-sheet__readonly-tip">
+            {{ readonlyTipText }}
+          </p>
+
           <div class="mobile-bottom-sheet__stack">
             <button
-              v-if="canUpdateDetail && activeDetail"
+              v-if="canEditActiveDetail"
               type="button"
               class="mobile-bottom-sheet__action"
               @click="handleEditActiveDetail"
@@ -289,7 +314,7 @@
               <small>进入移动端独立编辑表单</small>
             </button>
             <button
-              v-if="canDeleteDetail && activeDetail"
+              v-if="canDeleteActiveDetail"
               type="button"
               class="mobile-bottom-sheet__action is-danger"
               @click="handleDeleteActiveDetail"
@@ -391,10 +416,6 @@
  *
  * @author Wangsongsong
  * @date 2026-03-21
- * @update 2026-03-21 @Wangsongsong
- * @desc 新增顶部关注人切换与收支分类切换，并收紧移动端头部区域间距
- * @update 2026-03-21 @Wangsongsong
- * @desc 将月份选择改为 TDesign Mobile 年月选择器，并在进入页面时默认回到当前月份
  */
 import { Message, Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
@@ -453,6 +474,7 @@ const setupForm = reactive({
   confirmPassword: '',
 })
 
+const currentUserId = computed(() => String(userStore.userInfo.id || ''))
 const getCurrentMonth = () => dayjs().format('YYYY-MM')
 
 const syncMonthPickerValue = (month: string) => {
@@ -462,7 +484,7 @@ const syncMonthPickerValue = (month: string) => {
 const query = reactive({
   month: getCurrentMonth(),
   category: '',
-  userId: '',
+  userId: currentUserId.value,
   name: '',
 })
 
@@ -485,7 +507,23 @@ const ledgerMetaText = computed(() => {
 const hasPrivacyPermission = computed(() => has.hasPermOr(['bk:hide-target:manage']))
 const canUpdateDetail = computed(() => has.hasPermOr(['bookkeeping:detail:update']))
 const canDeleteDetail = computed(() => has.hasPermOr(['bookkeeping:detail:delete']))
-const canOperateItem = computed(() => canUpdateDetail.value || canDeleteDetail.value)
+const canEditActiveDetail = computed(() => {
+  if (!activeDetail.value) return false
+  return canUpdateDetail.value && String(activeDetail.value.userId) === currentUserId.value
+})
+const canDeleteActiveDetail = computed(() => {
+  if (!activeDetail.value) return false
+  return canDeleteDetail.value && String(activeDetail.value.userId) === currentUserId.value
+})
+const canOperateActiveDetail = computed(() => canEditActiveDetail.value || canDeleteActiveDetail.value)
+const actionSheetEyebrow = computed(() => (canOperateActiveDetail.value ? '明细操作' : '明细详情'))
+const readonlyTipText = computed(() => {
+  if (!activeDetail.value) return ''
+  if (String(activeDetail.value.userId) !== currentUserId.value) {
+    return '当前明细不属于当前登录用户，仅支持查看。'
+  }
+  return '当前账号没有该明细的编辑或删除权限，仅支持查看。'
+})
 
 const groupedDetails = computed<DetailGroup[]>(() => {
   const groupMap = new Map<string, DetailGroup>()
@@ -580,7 +618,7 @@ const toggleFilterPanel = () => {
 const resetFilters = () => {
   resetMonthToCurrent()
   query.category = ''
-  query.userId = ''
+  query.userId = currentUserId.value
   query.name = ''
   loadData()
 }
@@ -602,7 +640,6 @@ const openItemActions = (item: DetailResp) => {
 }
 
 const handleRowClick = (item: DetailResp) => {
-  if (!canOperateItem.value) return
   openItemActions(item)
 }
 
@@ -613,14 +650,14 @@ const closeActionPopup = () => {
 
 const handleEditActiveDetail = () => {
   const current = activeDetail.value
-  if (!current || !canUpdateDetail.value) return
+  if (!current || !canEditActiveDetail.value) return
   closeActionPopup()
   mittBus.emit('mobile-detail-edit-open', current.id)
 }
 
 const handleDeleteActiveDetail = () => {
   const current = activeDetail.value
-  if (!current || !canDeleteDetail.value) return
+  if (!current || !canDeleteActiveDetail.value) return
 
   closeActionPopup()
   Modal.warning({
@@ -775,6 +812,7 @@ const subjectBadge = (item: DetailResp) => {
 }
 
 onMounted(async () => {
+  query.userId = currentUserId.value
   resetMonthToCurrent()
   await Promise.all([loadUserOptions(), loadData()])
   mittBus.on('mobile-detail-refresh', loadData)
@@ -1387,6 +1425,54 @@ onUnmounted(() => {
 .mobile-bottom-sheet__stack {
   display: grid;
   gap: 10px;
+}
+
+.mobile-bottom-sheet__detail-card {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(83, 56, 15, 0.08);
+}
+
+.mobile-bottom-sheet__detail-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0;
+}
+
+.mobile-bottom-sheet__detail-row span {
+  flex-shrink: 0;
+  color: #8a7a68;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.mobile-bottom-sheet__detail-row strong {
+  min-width: 0;
+  color: #3b2a16;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: right;
+  word-break: break-all;
+}
+
+.mobile-bottom-sheet__detail-row .is-income {
+  color: rgb(0, 180, 42);
+}
+
+.mobile-bottom-sheet__detail-row .is-expense {
+  color: rgb(245, 63, 63);
+}
+
+.mobile-bottom-sheet__readonly-tip {
+  margin: 0 0 12px;
+  color: #8a7a68;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .mobile-bottom-sheet__action {

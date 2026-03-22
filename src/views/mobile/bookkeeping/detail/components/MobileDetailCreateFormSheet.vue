@@ -70,7 +70,12 @@
             <p class="mobile-create-sheet__switch-title">隐藏此笔</p>
             <small class="mobile-create-sheet__switch-desc">当前已进入隐私模式，可选择隐藏本次明细</small>
           </div>
-          <t-switch v-model="form.hidden" size="large" :custom-value="[1, 0]" />
+          <t-switch
+            v-model="form.hidden"
+            class="mobile-create-sheet__switch"
+            size="large"
+            :custom-value="[1, 0]"
+          />
         </div>
       </div>
 
@@ -400,11 +405,12 @@ watch(
 }
 
 .mobile-create-sheet__switch-card {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.24rem;
-  padding: 0.24rem 0.28rem;
+  padding: 0.24rem 0.36rem 0.24rem 0.28rem;
 }
 
 .mobile-create-sheet__switch-title {
@@ -418,6 +424,11 @@ watch(
   color: #a07f32;
   font-size: 0.24rem;
   line-height: 1.4;
+}
+
+.mobile-create-sheet__switch {
+  flex-shrink: 0;
+  margin-right: 0.04rem;
 }
 
 .mobile-create-sheet__footer {

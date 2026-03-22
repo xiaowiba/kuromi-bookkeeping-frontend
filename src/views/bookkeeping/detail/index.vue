@@ -50,6 +50,10 @@
             <span class="label">总收入：</span>
             <span class="value">{{ statistics.totalIncome.toFixed(2) }}</span>
           </div>
+          <div class="statistics-item" :class="statistics.netIncome >= 0 ? 'income' : 'expense'">
+            <span class="label">结余：</span>
+            <span class="value">{{ statistics.netIncome.toFixed(2) }}</span>
+          </div>
         </div>
       </template>
       <!-- 移动端紧凑布局 -->
@@ -176,6 +180,8 @@
  *       不区分PC端和移动端，统一显示
  * @update 2026-03-21 @Wangsongsong
  * @desc 复用共享的明细用户选项加载逻辑，统一桌面端与移动端口径
+ * @update 2026-03-22 @Wangsongsong
+ * @desc Web 端统计区补充结余展示，保持与移动端统计口径一致
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'

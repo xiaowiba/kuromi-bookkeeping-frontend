@@ -1,5 +1,5 @@
 <template>
-  <div class="mobile-page">
+  <div class="mobile-page mobile-me-page">
     <section class="mobile-me-profile mobile-panel">
       <div class="mobile-me-profile__avatar">
         {{ avatarText }}
@@ -31,14 +31,9 @@
     <section class="mobile-panel mobile-me-actions">
       <h3 class="mobile-section-title">账户设置</h3>
       <t-cell
-          v-show="false"
+        v-if="hasPrivacyPermission"
         title="隐私模式"
-        :note="privacyStore.isPrivacyMode ? '当前已开启' : '当前未开启'"
-        bordered
-      />
-      <t-cell
-        title="版本说明"
-        note="移动端独立框架 Phase 1"
+        :note="privacyStatusText"
         bordered
       />
       <t-cell
@@ -49,6 +44,93 @@
         @click="handleLogout"
       />
     </section>
+
+    <div
+      class="mobile-me-footer"
+      role="button"
+      tabindex="0"
+      @click="handleVersionFooterClick"
+      @keydown.enter.prevent="handleVersionFooterClick"
+    >
+      <t-footer class="mobile-me-footer__content" :text="footerText" />
+    </div>
+
+    <t-popup v-model:visible="verifyPopupVisible" placement="bottom" destroy-on-close>
+      <div class="mobile-bottom-sheet">
+        <div class="mobile-bottom-sheet__panel">
+          <div class="mobile-bottom-sheet__header">
+            <p class="mobile-bottom-sheet__eyebrow">隐私模式</p>
+            <h3 class="mobile-bottom-sheet__title">输入隐私密码</h3>
+            <p class="mobile-bottom-sheet__meta">验证通过后，将切换到隐私明细视图。</p>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">隐私密码</label>
+            <input
+              v-model.trim="verifyPassword"
+              class="mobile-input"
+              type="password"
+              maxlength="32"
+              placeholder="请输入隐私密码"
+              @keydown.enter="handleVerifyPassword"
+            />
+          </div>
+
+          <div class="mobile-form-actions mobile-bottom-sheet__actions">
+            <t-button block variant="outline" size="large" @click="closeVerifyPopup">
+              取消
+            </t-button>
+            <t-button block theme="primary" size="large" :loading="privacySubmitting" @click="handleVerifyPassword">
+              进入隐私模式
+            </t-button>
+          </div>
+        </div>
+      </div>
+    </t-popup>
+
+    <t-popup v-model:visible="setupPopupVisible" placement="bottom" destroy-on-close>
+      <div class="mobile-bottom-sheet">
+        <div class="mobile-bottom-sheet__panel">
+          <div class="mobile-bottom-sheet__header">
+            <p class="mobile-bottom-sheet__eyebrow">隐私模式</p>
+            <h3 class="mobile-bottom-sheet__title">首次设置隐私密码</h3>
+            <p class="mobile-bottom-sheet__meta">密码至少 4 位，后续进入隐私模式时需要验证。</p>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">新密码</label>
+            <input
+              v-model.trim="setupForm.password"
+              class="mobile-input"
+              type="password"
+              maxlength="32"
+              placeholder="请输入新密码"
+            />
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">确认密码</label>
+            <input
+              v-model.trim="setupForm.confirmPassword"
+              class="mobile-input"
+              type="password"
+              maxlength="32"
+              placeholder="请再次输入密码"
+              @keydown.enter="handleSetupPassword"
+            />
+          </div>
+
+          <div class="mobile-form-actions mobile-bottom-sheet__actions">
+            <t-button block variant="outline" size="large" @click="closeSetupPopup">
+              取消
+            </t-button>
+            <t-button block theme="primary" size="large" :loading="privacySubmitting" @click="handleSetupPassword">
+              保存并进入
+            </t-button>
+          </div>
+        </div>
+      </div>
+    </t-popup>
   </div>
 </template>
 
@@ -58,29 +140,56 @@
  *
  * @author Wangsongsong
  * @date 2026-03-21
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 底部版本号切换为 TDesign Footer，并改为三连击触发隐私模式入口
  */
 import { Message } from '@arco-design/web-vue'
-import { computed } from 'vue'
+import { computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { MOBILE_DISPLAY_VERSION } from '@/config/app-version'
 import { usePrivacyStore, useUserStore } from '@/stores'
+import { usePrivacyEntry } from '@/views/bookkeeping/shared/usePrivacyEntry'
 
 defineOptions({ name: 'MobileMe' })
 
 const router = useRouter()
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
+const {
+  hasPrivacyPermission,
+  currentExpireMinutes,
+  verifyPopupVisible,
+  setupPopupVisible,
+  verifyPassword,
+  privacySubmitting,
+  setupForm,
+  closeVerifyPopup,
+  closeSetupPopup,
+  openPrivacyEntry,
+  handleVerifyPassword,
+  handleSetupPassword,
+} = usePrivacyEntry()
+
+let versionClickCount = 0
+let versionClickTimer: ReturnType<typeof window.setTimeout> | null = null
 
 const avatarText = computed(() => {
   return (userStore.userInfo.nickname || userStore.userInfo.username || '我').slice(0, 1).toUpperCase()
 })
 
+const privacyStatusText = computed(() => {
+  if (privacyStore.isPrivacyMode) {
+    return `已开启（${currentExpireMinutes.value} 分钟内有效）`
+  }
+  return '未开启'
+})
+
+const footerText = computed(() => `版本 ${MOBILE_DISPLAY_VERSION}`)
+
 const gridItems = [
   { key: 'subject', text: '科目', description: '管理科目', icon: '科' },
   { key: 'report', text: '报表', description: '查看规划', icon: '报' },
   { key: 'follow', text: '关注', description: '后续接入', icon: '关' },
-  // { key: 'hide', text: '隐藏', description: '后续接入', icon: '隐' },
-  // { key: 'privacy', text: '隐私', description: '查看状态', icon: '密' },
-  { key: 'version', text: '版本', description: '阶段说明', icon: '版' },
 ]
 
 const handleGridClick = (key: string) => {
@@ -94,17 +203,34 @@ const handleGridClick = (key: string) => {
     return
   }
 
-  if (key === 'privacy') {
-    Message.info(privacyStore.isPrivacyMode ? '当前处于隐私模式' : '当前未开启隐私模式')
-    return
-  }
-
-  if (key === 'version') {
-    Message.info('移动端独立框架正在按阶段推进')
-    return
-  }
-
   Message.info('该移动端能力将在后续阶段补充')
+}
+
+const resetVersionClickState = () => {
+  versionClickCount = 0
+  if (versionClickTimer) {
+    window.clearTimeout(versionClickTimer)
+    versionClickTimer = null
+  }
+}
+
+const handleVersionFooterClick = async () => {
+  versionClickCount += 1
+
+  if (versionClickTimer) {
+    window.clearTimeout(versionClickTimer)
+  }
+  versionClickTimer = window.setTimeout(() => {
+    versionClickCount = 0
+    versionClickTimer = null
+  }, 2000)
+
+  if (versionClickCount < 3) {
+    return
+  }
+
+  resetVersionClickState()
+  await openPrivacyEntry()
 }
 
 const handleLogout = async () => {
@@ -113,9 +239,19 @@ const handleLogout = async () => {
     router.replace('/login')
   }
 }
+
+onUnmounted(() => {
+  resetVersionClickState()
+})
 </script>
 
 <style scoped lang="scss">
+.mobile-me-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
 .mobile-me-profile {
   display: flex;
   align-items: center;
@@ -176,5 +312,69 @@ const handleLogout = async () => {
   color: rgb(var(--arcoblue-6));
   font-size: 14px;
   font-weight: 700;
+}
+
+.mobile-me-footer {
+  margin-top: auto;
+  padding: 18px 0 calc(env(safe-area-inset-bottom) + 16px);
+  outline: none;
+}
+
+.mobile-me-footer__content {
+  cursor: pointer;
+
+  :deep(.t-footer) {
+    padding: 0;
+  }
+
+  :deep(.t-footer__text) {
+    color: rgba(15, 23, 42, 0.42);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+}
+
+.mobile-bottom-sheet {
+  padding: 0 0 calc(8px + env(safe-area-inset-bottom));
+}
+
+.mobile-bottom-sheet__panel {
+  padding: 20px 16px 16px;
+  border-radius: 26px 26px 0 0;
+  background:
+    radial-gradient(circle at top right, rgba(89, 126, 247, 0.12) 0%, transparent 38%),
+    linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 -12px 28px rgba(15, 23, 42, 0.1);
+}
+
+.mobile-bottom-sheet__header {
+  margin-bottom: 14px;
+}
+
+.mobile-bottom-sheet__eyebrow {
+  margin: 0 0 6px;
+  color: rgb(var(--arcoblue-6));
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mobile-bottom-sheet__title {
+  margin: 0;
+  color: #1f2937;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.mobile-bottom-sheet__meta {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.mobile-bottom-sheet__actions {
+  margin-top: 18px;
 }
 </style>

@@ -5,6 +5,8 @@
  * @date 2026-03-18
  * @update 2026-03-19 @Wangsongsong
  * @desc 增加明细统计响应类型 DetailStatisticsResp
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 增加隐私配置响应类型 PrivacyConfigResp
  */
 
 /** 科目响应类型 */
@@ -142,4 +144,10 @@ export interface PrivacyPasswordReq {
 /** 是否已设置隐私密码响应 */
 export interface PrivacyHasPasswordResp {
   hasPassword: boolean
+}
+
+/** 隐私配置响应 */
+export interface PrivacyConfigResp {
+  hasPassword: boolean
+  expireMinutes: number
 }

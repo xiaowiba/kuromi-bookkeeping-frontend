@@ -3,6 +3,8 @@
  *
  * @author Wangsongsong
  * @date 2026-03-19
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 增加隐私配置查询接口，供移动端读取有效时长配置
  */
 import type * as T from './type'
 import http from '@/utils/http'
@@ -24,4 +26,9 @@ export function setPrivacyPassword(data: T.PrivacyPasswordReq) {
 /** @desc 检查是否已设置隐私密码 */
 export function hasPrivacyPassword() {
   return http.get<T.PrivacyHasPasswordResp>(`${BASE_URL}/has-password`)
+}
+
+/** @desc 查询隐私配置 */
+export function getPrivacyConfig() {
+  return http.get<T.PrivacyConfigResp>(`${BASE_URL}/config`)
 }

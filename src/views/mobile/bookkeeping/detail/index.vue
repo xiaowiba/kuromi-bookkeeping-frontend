@@ -112,13 +112,6 @@
         </span>
         <span>科目</span>
       </button>
-      <button type="button" class="mobile-detail-shortcuts__item" @click="handlePrivacyAction">
-        <span class="mobile-detail-shortcuts__icon">
-          <icon-eye-invisible v-if="privacyStore.isPrivacyMode" />
-          <icon-eye v-else />
-        </span>
-        <span>{{ privacyStore.isPrivacyMode ? '隐私中' : '隐私' }}</span>
-      </button>
       <button type="button" class="mobile-detail-shortcuts__item" @click="toggleFilterPanel">
         <span class="mobile-detail-shortcuts__icon">
           <icon-search />
@@ -192,9 +185,19 @@
           <!-- h2 class="mobile-detail-ledger__title">明细账本</h2 -->
           <p class="mobile-detail-ledger__meta">{{ ledgerMetaText }}</p>
         </div>
-        <button type="button" class="mobile-detail-ledger__refresh" @click="loadData">
-          刷新
-        </button>
+        <div class="mobile-detail-ledger__actions">
+          <button
+            v-if="privacyStore.isPrivacyMode"
+            type="button"
+            class="mobile-detail-ledger__action is-warning"
+            @click="handleExitPrivacy"
+          >
+            退出隐私
+          </button>
+          <button type="button" class="mobile-detail-ledger__action" @click="loadData">
+            刷新
+          </button>
+        </div>
       </header>
 
       <t-loading :loading="loading" text="加载中...">
@@ -225,13 +228,13 @@
 
                 <div class="mobile-detail-row__content">
                   <h4 class="mobile-detail-row__title">{{ item.name }}</h4>
-                  <h6 class="mobile-detail-row__create__user">{{ item.userNickname }}</h6>
                   <span
-                    v-if="privacyStore.isPrivacyMode && item.hidden === 1"
-                    class="mobile-detail-row__privacy"
+                      v-if="privacyStore.isPrivacyMode && item.hidden === 1"
+                      class="mobile-detail-row__privacy"
                   >
-                    已隐藏
+                    隐
                   </span>
+                  <h6 class="mobile-detail-row__create__user">{{ item.userNickname }}</h6>
                 </div>
 
                 <div class="mobile-detail-row__aside">
@@ -331,82 +334,6 @@
       </div>
     </t-popup>
 
-    <t-popup v-model:visible="verifyPopupVisible" placement="bottom" destroy-on-close>
-      <div class="mobile-bottom-sheet">
-        <div class="mobile-bottom-sheet__panel">
-          <div class="mobile-bottom-sheet__header">
-            <p class="mobile-bottom-sheet__eyebrow">隐私模式</p>
-            <h3 class="mobile-bottom-sheet__title">输入隐私密码</h3>
-            <p class="mobile-bottom-sheet__meta">验证通过后，将切换到隐私明细视图。</p>
-          </div>
-
-          <div class="mobile-field">
-            <label class="mobile-field__label">隐私密码</label>
-            <input
-              v-model.trim="verifyPassword"
-              class="mobile-input"
-              type="password"
-              maxlength="32"
-              placeholder="请输入隐私密码"
-              @keydown.enter="handleVerifyPassword"
-            />
-          </div>
-
-          <div class="mobile-form-actions mobile-bottom-sheet__actions">
-            <t-button block variant="outline" size="large" @click="closeVerifyPopup">
-              取消
-            </t-button>
-            <t-button block theme="primary" size="large" :loading="privacySubmitting" @click="handleVerifyPassword">
-              进入隐私模式
-            </t-button>
-          </div>
-        </div>
-      </div>
-    </t-popup>
-
-    <t-popup v-model:visible="setupPopupVisible" placement="bottom" destroy-on-close>
-      <div class="mobile-bottom-sheet">
-        <div class="mobile-bottom-sheet__panel">
-          <div class="mobile-bottom-sheet__header">
-            <p class="mobile-bottom-sheet__eyebrow">隐私模式</p>
-            <h3 class="mobile-bottom-sheet__title">首次设置隐私密码</h3>
-            <p class="mobile-bottom-sheet__meta">密码至少 4 位，后续进入隐私模式时需要验证。</p>
-          </div>
-
-          <div class="mobile-field">
-            <label class="mobile-field__label">新密码</label>
-            <input
-              v-model.trim="setupForm.password"
-              class="mobile-input"
-              type="password"
-              maxlength="32"
-              placeholder="请输入新密码"
-            />
-          </div>
-
-          <div class="mobile-field">
-            <label class="mobile-field__label">确认密码</label>
-            <input
-              v-model.trim="setupForm.confirmPassword"
-              class="mobile-input"
-              type="password"
-              maxlength="32"
-              placeholder="请再次输入密码"
-              @keydown.enter="handleSetupPassword"
-            />
-          </div>
-
-          <div class="mobile-form-actions mobile-bottom-sheet__actions">
-            <t-button block variant="outline" size="large" @click="closeSetupPopup">
-              取消
-            </t-button>
-            <t-button block theme="primary" size="large" :loading="privacySubmitting" @click="handleSetupPassword">
-              保存并进入
-            </t-button>
-          </div>
-        </div>
-      </div>
-    </t-popup>
   </div>
 </template>
 
@@ -416,13 +343,14 @@
  *
  * @author Wangsongsong
  * @date 2026-03-21
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 移除明细页隐私进入入口，仅保留退出隐私按钮并接入隐私过期校验
  */
 import { Message, Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
-import { hasPrivacyPassword, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import { useDict } from '@/hooks/app'
 import { useAppStore, usePrivacyStore, useUserStore } from '@/stores'
 import has from '@/utils/has'
@@ -465,14 +393,6 @@ const statistics = ref({
 })
 const actionPopupVisible = ref(false)
 const activeDetail = ref<DetailResp | null>(null)
-const verifyPopupVisible = ref(false)
-const setupPopupVisible = ref(false)
-const verifyPassword = ref('')
-const privacySubmitting = ref(false)
-const setupForm = reactive({
-  password: '',
-  confirmPassword: '',
-})
 
 const currentUserId = computed(() => String(userStore.userInfo.id || ''))
 const getCurrentMonth = () => dayjs().format('YYYY-MM')
@@ -504,7 +424,6 @@ const ledgerMetaText = computed(() => {
   const categoryLabel = subjectCategoryLabel(query.category)
   return `${currentMonthText.value} · ${categoryLabel} · ${details.value.length} 笔`
 })
-const hasPrivacyPermission = computed(() => has.hasPermOr(['bk:hide-target:manage']))
 const canUpdateDetail = computed(() => has.hasPermOr(['bookkeeping:detail:update']))
 const canDeleteDetail = computed(() => has.hasPermOr(['bookkeeping:detail:delete']))
 const canEditActiveDetail = computed(() => {
@@ -559,6 +478,7 @@ const groupedDetails = computed<DetailGroup[]>(() => {
 const loadData = async () => {
   loading.value = true
   try {
+    privacyStore.ensureValid()
     const [detailRes, statisticsRes] = await Promise.all([
       listDetail({
         ...query,
@@ -681,95 +601,13 @@ const handleDeleteActiveDetail = () => {
   })
 }
 
-const closeVerifyPopup = () => {
-  verifyPassword.value = ''
-  verifyPopupVisible.value = false
-}
-
-const closeSetupPopup = () => {
-  setupForm.password = ''
-  setupForm.confirmPassword = ''
-  setupPopupVisible.value = false
-}
-
-const handlePrivacyAction = async () => {
-  if (privacyStore.isPrivacyMode) {
-    privacyStore.exitPrivacyMode()
-    Message.success('已退出隐私模式')
-    await loadData()
+const handleExitPrivacy = () => {
+  if (!privacyStore.isPrivacyMode) {
     return
   }
 
-  if (!hasPrivacyPermission.value) {
-    Message.info('当前账号暂无隐私模式入口权限')
-    return
-  }
-
-  try {
-    const { data } = await hasPrivacyPassword()
-    if (data.hasPassword) {
-      closeVerifyPopup()
-      verifyPopupVisible.value = true
-    } else {
-      closeSetupPopup()
-      setupPopupVisible.value = true
-    }
-  } catch {
-    Message.error('检查隐私密码状态失败')
-  }
-}
-
-const handleVerifyPassword = async () => {
-  if (!verifyPassword.value) {
-    Message.warning('请输入隐私密码')
-    return
-  }
-
-  privacySubmitting.value = true
-  try {
-    const { data } = await verifyPrivacyPassword({ password: verifyPassword.value })
-    if (!data.verified) {
-      Message.error('密码错误')
-      return
-    }
-
-    privacyStore.enterPrivacyMode()
-    closeVerifyPopup()
-    Message.success('已进入隐私模式')
-    await loadData()
-  } catch {
-    Message.error('验证失败')
-  } finally {
-    privacySubmitting.value = false
-  }
-}
-
-const handleSetupPassword = async () => {
-  if (!setupForm.password) {
-    Message.warning('请输入密码')
-    return
-  }
-  if (setupForm.password.length < 4) {
-    Message.warning('密码长度不能少于 4 位')
-    return
-  }
-  if (setupForm.password !== setupForm.confirmPassword) {
-    Message.warning('两次输入的密码不一致')
-    return
-  }
-
-  privacySubmitting.value = true
-  try {
-    await setPrivacyPassword({ password: setupForm.password })
-    privacyStore.enterPrivacyMode()
-    closeSetupPopup()
-    Message.success('密码设置成功，已进入隐私模式')
-    await loadData()
-  } catch {
-    Message.error('设置隐私密码失败')
-  } finally {
-    privacySubmitting.value = false
-  }
+  privacyStore.exitPrivacyMode()
+  Message.success('已退出隐私模式')
 }
 
 const formatNumber = (value: number) => numberFormatter.format(Number(value || 0))
@@ -810,6 +648,16 @@ const subjectBadge = (item: DetailResp) => {
   }
   return '账'
 }
+
+watch(
+  () => privacyStore.isPrivacyMode,
+  (value, oldValue) => {
+    if (value === oldValue || loading.value) {
+      return
+    }
+    loadData()
+  },
+)
 
 onMounted(async () => {
   query.userId = currentUserId.value
@@ -1128,6 +976,12 @@ onUnmounted(() => {
   padding: 0 8px 6px;
 }
 
+.mobile-detail-ledger__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .mobile-detail-ledger__title {
   margin: 0;
   color: #312111;
@@ -1142,7 +996,7 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-.mobile-detail-ledger__refresh {
+.mobile-detail-ledger__action {
   //height: 36px;
   padding: 8px 12px;
   border: none;
@@ -1152,6 +1006,11 @@ onUnmounted(() => {
   font-size: 13px;
   font-weight: 700;
   box-shadow: 0 10px 18px rgba(65, 45, 11, 0.05);
+}
+
+.mobile-detail-ledger__action.is-warning {
+  background: rgba(255, 242, 205, 0.95);
+  color: #9a5f00;
 }
 
 .mobile-detail-group-list {

@@ -23,6 +23,19 @@ body {
   background-color: #f8f1e4;
 }
 
+body.mobile-scroll-unlocked {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+#app.mobile-scroll-unlocked {
+  width: 100%;
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+
 .mobile-layout,
 .mobile-page,
 .mobile-bottom-sheet,

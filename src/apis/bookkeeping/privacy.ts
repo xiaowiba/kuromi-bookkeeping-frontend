@@ -5,6 +5,8 @@
  * @date 2026-03-19
  * @update 2026-03-22 @Wangsongsong
  * @desc 增加隐私配置查询接口，供移动端读取有效时长配置
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 增加隐私配置修改接口，供 web 端隐藏配置页维护有效时长
  */
 import type * as T from './type'
 import http from '@/utils/http'
@@ -31,4 +33,9 @@ export function hasPrivacyPassword() {
 /** @desc 查询隐私配置 */
 export function getPrivacyConfig() {
   return http.get<T.PrivacyConfigResp>(`${BASE_URL}/config`)
+}
+
+/** @desc 更新隐私配置 */
+export function updatePrivacyConfig(data: T.PrivacyConfigUpdateReq) {
+  return http.put(`${BASE_URL}/config`, data)
 }

@@ -182,6 +182,8 @@
  * @desc 复用共享的明细用户选项加载逻辑，统一桌面端与移动端口径
  * @update 2026-03-22 @Wangsongsong
  * @desc Web 端统计区补充结余展示，保持与移动端统计口径一致
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 进入 web 端隐私模式前同步数据库中的有效时长配置，确保过期时间与隐藏配置页保持一致
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
@@ -189,7 +191,7 @@ import { computed, h, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AddModal from './AddModal.vue'
 import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
-import { hasPrivacyPassword, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
+import { getPrivacyConfig, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive, useTable } from '@/hooks'
 import { useDict } from '@/hooks/app'
@@ -443,7 +445,8 @@ const setupForm = reactive({ password: '', confirmPassword: '' })
  */
 const checkAndShowPasswordModal = async () => {
   try {
-    const { data } = await hasPrivacyPassword()
+    const { data } = await getPrivacyConfig()
+    privacyStore.syncExpireMinutes(data.expireMinutes)
     if (data.hasPassword) {
       verifyPassword.value = ''
       verifyModalVisible.value = true
@@ -471,7 +474,9 @@ const onVerifyPassword = async () => {
   try {
     const { data } = await verifyPrivacyPassword({ password: verifyPassword.value })
     if (data.verified) {
-      privacyStore.enterPrivacyMode()
+      const { data: config } = await getPrivacyConfig()
+      privacyStore.syncExpireMinutes(config.expireMinutes)
+      privacyStore.enterPrivacyMode(config.expireMinutes)
       Message.success('已进入隐私模式')
       verifyPassword.value = ''
       searchMethod()
@@ -507,7 +512,9 @@ const onSetupPassword = async () => {
   }
   try {
     await setPrivacyPassword({ password: setupForm.password })
-    privacyStore.enterPrivacyMode()
+    const { data } = await getPrivacyConfig()
+    privacyStore.syncExpireMinutes(data.expireMinutes)
+    privacyStore.enterPrivacyMode(data.expireMinutes)
     Message.success('密码设置成功，已进入隐私模式')
     searchMethod()
     return true

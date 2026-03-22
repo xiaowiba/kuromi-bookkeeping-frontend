@@ -351,6 +351,8 @@
  * @desc 移动端页面提示统一改为使用 TDesign Toast
  * @update 2026-03-22 @Wangsongsong
  * @desc 接入移动端布局层下拉刷新，页面注册明细数据刷新回调
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 明细页补充底部安全留白，避免最后一组数据贴近底部导航区域
  */
 import { Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
@@ -687,7 +689,7 @@ useMobilePageRefresh(async () => {
 <style scoped lang="scss">
 .mobile-detail-page {
   min-height: 100%;
-  //padding-bottom: 24px;
+  padding-bottom: calc(0.32rem + env(safe-area-inset-bottom));
   overflow-x: hidden;
   background: linear-gradient(180deg, #f7f1e7 0%, #f3eee6 100%);
 }

@@ -44,6 +44,33 @@
         </div>
       </a-card>
 
+      <a-card title="隐私模式设置" style="margin-top: 16px">
+        <a-form :model="configForm" layout="vertical" style="max-width: 400px">
+          <a-form-item label="有效时长" required>
+            <a-input-number
+              v-model="configForm.expireMinutes"
+              placeholder="请输入隐私模式有效时长"
+              :min="1"
+              :max="1440"
+              :precision="0"
+              style="width: 100%"
+            >
+              <template #append>
+                分钟
+              </template>
+            </a-input-number>
+          </a-form-item>
+          <a-form-item>
+            <a-space>
+              <a-button type="primary" :loading="configSaving" @click="onSavePrivacyConfig">
+                保存时长
+              </a-button>
+              <span class="hide-target-config__tip">默认 10 分钟，最大支持 1440 分钟。</span>
+            </a-space>
+          </a-form-item>
+        </a-form>
+      </a-card>
+
       <!-- 修改隐私密码 -->
       <a-card title="修改隐私密码" style="margin-top: 16px">
         <a-form :model="pwdForm" layout="vertical" style="max-width: 400px">
@@ -81,12 +108,14 @@
  * @desc 增加隐私模式守卫和修改隐私密码功能
  * @update 2026-03-19 @Wangsongsong
  * @desc 用户选项改为调用 bookkeeping 专用接口，统一绕过数据权限
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 增加隐私模式有效时长配置，支持在 web 端隐藏配置页面直接修改
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { listHideTargetByUserId, listMyHideTarget, saveHideTarget } from '@/apis/bookkeeping/hide-target'
 import { listFollowUserOptions } from '@/apis/bookkeeping/follow'
-import { setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
+import { getPrivacyConfig, setPrivacyPassword, updatePrivacyConfig, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import type { HideTargetResp } from '@/apis/bookkeeping/type'
 import type { LabelValueState } from '@/types/global'
 import { usePrivacyStore, useUserStore } from '@/stores'
@@ -122,6 +151,11 @@ const checkedTargetIds = ref<Array<string | number>>([])
 
 const loading = ref(false)
 const saving = ref(false)
+const configSaving = ref(false)
+
+const configForm = reactive({
+  expireMinutes: 10,
+})
 
 // ==================== 修改密码相关 ====================
 
@@ -205,6 +239,43 @@ const onSave = async () => {
 }
 
 /**
+ * 加载隐私配置
+ *
+ * @author Wangsongsong
+ * @date 2026-03-22
+ */
+const loadPrivacyConfig = async () => {
+  const { data } = await getPrivacyConfig()
+  configForm.expireMinutes = Number(data.expireMinutes) || 10
+  privacyStore.syncExpireMinutes(configForm.expireMinutes)
+}
+
+/**
+ * 保存隐私配置
+ *
+ * @author Wangsongsong
+ * @date 2026-03-22
+ */
+const onSavePrivacyConfig = async () => {
+  const expireMinutes = Number(configForm.expireMinutes)
+  if (!Number.isInteger(expireMinutes) || expireMinutes < 1 || expireMinutes > 1440) {
+    Message.warning('请输入 1 到 1440 之间的整数分钟数')
+    return
+  }
+
+  configSaving.value = true
+  try {
+    await updatePrivacyConfig({ expireMinutes })
+    privacyStore.syncExpireMinutes(expireMinutes)
+    Message.success('隐私模式有效时长保存成功')
+  } catch {
+    Message.error('隐私模式有效时长保存失败')
+  } finally {
+    configSaving.value = false
+  }
+}
+
+/**
  * 修改隐私密码
  *
  * 先验证原密码，再设置新密码
@@ -252,10 +323,14 @@ const onChangePassword = async () => {
 
 onMounted(async () => {
   if (privacyStore.isPrivacyMode) {
-    await loadUserOptions()
-    await loadHideTargets()
+    await Promise.all([loadUserOptions(), loadHideTargets(), loadPrivacyConfig()])
   }
 })
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.hide-target-config__tip {
+  color: var(--color-text-3);
+  font-size: 12px;
+}
+</style>

@@ -64,6 +64,10 @@
  * @desc 下拉刷新加载态显示切换为移动端 Loading 风格
  * @update 2026-03-22 @Wangsongsong
  * @desc 统一移动端布局和下拉刷新区域为黄色系风格
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 修复下拉刷新容器固定高度导致移动端页面内容被裁剪、无法向下滚动的问题
+ * @update 2026-03-22 @Wangsongsong
+ * @desc 取消移动端布局内层滚动容器，改为页面自然滚动，修复明细页数据无法滚动到底的问题
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -83,6 +87,7 @@ const createPopupVisible = ref(false)
 const editingDetailId = ref('')
 const pullRefreshLoading = ref(false)
 const rootPaths = ['/m/bookkeeping/detail', '/m/report', '/m/me']
+const MOBILE_SCROLL_UNLOCK_CLASS = 'mobile-scroll-unlocked'
 let cleanupMobileRemResize: (() => void) | null = null
 const PULL_REFRESH_MIN_DURATION = 600
 
@@ -165,6 +170,8 @@ watch(createPopupVisible, (value) => {
 
 onMounted(() => {
   cleanupMobileRemResize = bindMobileRemResize()
+  document.body.classList.add(MOBILE_SCROLL_UNLOCK_CLASS)
+  document.getElementById('app')?.classList.add(MOBILE_SCROLL_UNLOCK_CLASS)
   mittBus.on('mobile-detail-add-open', openAddPopup)
   mittBus.on('mobile-detail-edit-open', openEditPopup)
 })
@@ -172,6 +179,8 @@ onMounted(() => {
 onUnmounted(() => {
   cleanupMobileRemResize?.()
   cleanupMobileRemResize = null
+  document.body.classList.remove(MOBILE_SCROLL_UNLOCK_CLASS)
+  document.getElementById('app')?.classList.remove(MOBILE_SCROLL_UNLOCK_CLASS)
   mittBus.off('mobile-detail-add-open', openAddPopup)
   mittBus.off('mobile-detail-edit-open', openEditPopup)
 })
@@ -181,9 +190,8 @@ onUnmounted(() => {
 .mobile-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
   min-height: 100vh;
-  overflow: hidden;
+  overflow: visible;
   background:
     radial-gradient(circle at top left, rgba(255, 221, 115, 0.72) 0%, transparent 30%),
     linear-gradient(180deg, #fffaf0 0%, #f5eee2 100%);
@@ -212,9 +220,7 @@ onUnmounted(() => {
 .mobile-layout__body {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
 }
 
 .mobile-layout__body.has-navbar {
@@ -222,15 +228,18 @@ onUnmounted(() => {
 }
 
 .mobile-layout__refresh {
+  height: auto;
   min-height: 100%;
   --td-pull-down-refresh-color: rgba(126, 92, 20, 0.68);
   --td-loading-text-color: rgba(126, 92, 20, 0.68);
 
   :deep(.t-pull-down-refresh) {
+    height: auto;
     min-height: 100%;
   }
 
   :deep(.t-pull-down-refresh__track) {
+    height: auto;
     min-height: 100%;
     background: transparent;
   }
@@ -252,7 +261,4 @@ onUnmounted(() => {
   }
 }
 
-.mobile-layout__body::-webkit-scrollbar {
-  display: none;
-}
 </style>

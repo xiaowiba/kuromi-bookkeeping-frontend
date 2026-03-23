@@ -38,7 +38,7 @@
       />
       <t-cell
         title="退出登录"
-        note="返回登录页"
+        note=""
         arrow
         bordered
         @click="handleLogout"

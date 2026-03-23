@@ -114,6 +114,8 @@ defineOptions({ name: 'Login' })
  * @date 2026-03-23
  * @update 2026-03-23 @Wangsongsong
  * @desc 修复登录页中文乱码，并保留生产环境构建后的桌面端与移动端样式隔离方案
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 统一登录页黄色调视觉，收敛标签页、容器与交互状态中的蓝色样式
  */
 const appStore = useAppStore()
 const tenantStore = useTenantStore()
@@ -152,6 +154,17 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.login {
+  --login-accent: #d8a117;
+  --login-accent-hover: #c58a12;
+  --login-accent-deep: #8b5e00;
+  --login-accent-soft: rgba(216, 161, 23, 0.14);
+  --login-accent-border: rgba(197, 138, 18, 0.2);
+  --login-surface: rgba(255, 252, 244, 0.96);
+  --login-surface-soft: #fff8e6;
+  --login-shadow: 0 16px 42px rgba(130, 90, 22, 0.12);
+}
+
 @media screen and (max-width: 570PX) {
   .pc {
     display: none !important;
@@ -164,7 +177,9 @@ onMounted(() => {
     flex-direction: column;
     justify-content: start;
     align-items: center;
-    background-color: var(--color-bg-5);
+    background:
+      radial-gradient(circle at top left, rgba(255, 223, 120, 0.34) 0%, transparent 38%),
+      linear-gradient(180deg, #fffaf0 0%, #f8f1e4 100%);
     color: #121314;
 
     &-logo {
@@ -177,9 +192,13 @@ onMounted(() => {
       padding: 0 20PX;
       align-items: center;
       justify-content: start;
-      background-image: url('/src/assets/images/login_h5.jpg');
+      background-image:
+        linear-gradient(120deg, rgba(255, 248, 225, 0.94) 0%, rgba(255, 220, 124, 0.44) 100%),
+        url('/src/assets/images/login_h5.jpg');
       background-size: 100% 100%;
+      background-position: center;
       box-sizing: border-box;
+      box-shadow: inset 0 -1PX 0 rgba(197, 138, 18, 0.12);
 
       img {
         width: 34PX;
@@ -204,14 +223,18 @@ onMounted(() => {
     box-sizing: border-box;
 
     &__title {
-      color: var(--color-text-1);
-      font-weight: 500;
+      color: var(--login-accent-deep);
+      font-weight: 700;
       font-size: 20PX;
       line-height: 32PX;
       margin-bottom: 20PX;
     }
 
     &__form {
+      :deep(.arco-tabs-nav) {
+        margin-bottom: 4PX;
+      }
+
       :deep(.arco-tabs-nav-tab) {
         display: flex;
         justify-content: start;
@@ -221,6 +244,7 @@ onMounted(() => {
       :deep(.arco-tabs-tab) {
         color: var(--color-text-2);
         margin: 0 20PX 0 0;
+        transition: color 0.2s ease;
       }
 
       :deep(.arco-tabs-tab-title) {
@@ -229,13 +253,23 @@ onMounted(() => {
         line-height: 22PX;
       }
 
+      :deep(.arco-tabs-nav-ink) {
+        height: 3PX;
+        border-radius: 999PX;
+        background: linear-gradient(90deg, #e7b62f 0%, #c58a12 100%);
+      }
+
       :deep(.arco-tabs-content) {
         margin-top: 10PX;
       }
 
       :deep(.arco-tabs-tab-active),
       :deep(.arco-tabs-tab-title:hover) {
-        color: rgb(var(--arcoblue-6));
+        color: var(--login-accent-deep);
+      }
+
+      :deep(.arco-tabs-tab-active .arco-tabs-tab-title) {
+        font-weight: 700;
       }
 
       :deep(.arco-tabs-nav::before) {
@@ -301,9 +335,9 @@ onMounted(() => {
 
         .mode:hover,
         .mode svg:hover {
-          background: rgba(var(--primary-6), 0.05);
-          border: 1PX solid rgb(var(--primary-3));
-          color: rgb(var(--arcoblue-6));
+          background: var(--login-accent-soft);
+          border: 1PX solid rgba(197, 138, 18, 0.28);
+          color: var(--login-accent-deep);
         }
       }
     }
@@ -356,15 +390,17 @@ onMounted(() => {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    background-color: var(--color-bg-5);
+    background:
+      radial-gradient(circle at top left, rgba(255, 224, 130, 0.24) 0%, transparent 34%),
+      linear-gradient(180deg, #fffaf0 0%, #f7f0e3 100%);
 
     &-logo {
       position: fixed;
       top: 20PX;
       left: 30PX;
       z-index: 9999;
-      color: var(--color-text-1);
-      font-weight: 500;
+      color: var(--login-accent-deep);
+      font-weight: 700;
       font-size: 20PX;
       line-height: 32PX;
       margin-bottom: 20PX;
@@ -384,7 +420,10 @@ onMounted(() => {
       max-width: 850PX;
       display: flex;
       z-index: 999;
-      box-shadow: 0 2PX 4PX 2PX rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      border: 1PX solid var(--login-accent-border);
+      border-radius: 24PX;
+      box-shadow: var(--login-shadow);
     }
   }
 
@@ -396,7 +435,18 @@ onMounted(() => {
     align-items: center;
     position: relative;
     overflow: hidden;
-    background: linear-gradient(60deg, rgb(var(--primary-6)), rgb(var(--primary-3)));
+    background:
+      radial-gradient(circle at top left, rgba(255, 243, 197, 0.9) 0%, transparent 38%),
+      linear-gradient(145deg, #fff1bf 0%, #ffd25d 100%);
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(255, 248, 227, 0.28) 0%, rgba(139, 94, 0, 0.08) 100%);
+      pointer-events: none;
+    }
 
     &__img {
       width: 100%;
@@ -408,27 +458,33 @@ onMounted(() => {
       transform: translateX(-50%) translateY(-50%);
       transition: all 0.3s;
       object-fit: cover;
+      opacity: 0.88;
+      filter: saturate(0.82) hue-rotate(330deg);
     }
   }
 
   .login-right {
     width: 100%;
     height: 100%;
-    background: var(--color-bg-1);
+    background: var(--login-surface);
     display: flex;
     flex-direction: column;
     padding: 30PX 30PX 0;
     box-sizing: border-box;
 
     &__title {
-      color: var(--color-text-1);
-      font-weight: 500;
+      color: var(--login-accent-deep);
+      font-weight: 700;
       font-size: 20PX;
       line-height: 32PX;
       margin-bottom: 20PX;
     }
 
     &__form {
+      :deep(.arco-tabs-nav) {
+        margin-bottom: 4PX;
+      }
+
       :deep(.arco-tabs-nav-tab) {
         display: flex;
         justify-content: center;
@@ -437,6 +493,7 @@ onMounted(() => {
 
       :deep(.arco-tabs-tab) {
         color: var(--color-text-2);
+        transition: color 0.2s ease;
       }
 
       :deep(.arco-tabs-tab-title) {
@@ -445,13 +502,23 @@ onMounted(() => {
         line-height: 22PX;
       }
 
+      :deep(.arco-tabs-nav-ink) {
+        height: 3PX;
+        border-radius: 999PX;
+        background: linear-gradient(90deg, #e7b62f 0%, #c58a12 100%);
+      }
+
       :deep(.arco-tabs-content) {
         margin-top: 10PX;
       }
 
       :deep(.arco-tabs-tab-active),
       :deep(.arco-tabs-tab-title:hover) {
-        color: rgb(var(--arcoblue-6));
+        color: var(--login-accent-deep);
+      }
+
+      :deep(.arco-tabs-tab-active .arco-tabs-tab-title) {
+        font-weight: 700;
       }
 
       :deep(.arco-tabs-nav::before) {
@@ -511,9 +578,9 @@ onMounted(() => {
         }
 
         .mode:hover {
-          background: rgba(var(--primary-6), 0.05);
-          border: 1PX solid rgb(var(--primary-3));
-          color: rgb(var(--arcoblue-6));
+          background: var(--login-accent-soft);
+          border: 1PX solid rgba(197, 138, 18, 0.28);
+          color: var(--login-accent-deep);
         }
       }
     }

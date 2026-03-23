@@ -3,6 +3,8 @@
  *
  * @author Wangsongsong
  * @date 2026-03-18
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 明细响应补充 subjectIcon 字段，供移动端列表渲染科目图标
  * @update 2026-03-19 @Wangsongsong
  * @desc 增加明细统计响应类型 DetailStatisticsResp
  * @update 2026-03-22 @Wangsongsong
@@ -47,6 +49,7 @@ export interface DetailResp {
   subjectId: string
   subjectName: string
   subjectCategory: string
+  subjectIcon?: string
   name: string
   amount: number
   detailDate: string

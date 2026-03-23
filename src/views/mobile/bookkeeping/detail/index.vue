@@ -224,7 +224,11 @@
               @click="handleRowClick(item)"
             >
               <span class="mobile-detail-row__badge" :class="subjectCategoryClass(item.subjectCategory)">
-                {{ subjectBadge(item) }}
+                <BookkeepingSubjectIcon
+                  :icon="item.subjectIcon"
+                  mode="mobile"
+                  :size="18"
+                />
               </span>
 
               <div class="mobile-detail-row__content">
@@ -373,6 +377,10 @@
  *
  * @author Wangsongsong
  * @date 2026-03-21
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 调整隐藏明细行的视觉样式，弱化整块底色，改为左侧提示条加轻量渐变遮罩
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 移动端明细列表的分类圆形徽标改为展示科目图标，保留原有收入/支出配色与圆形样式
  * @update 2026-03-22 @Wangsongsong
  * @desc 移除明细页隐私进入入口，仅保留退出隐私按钮并接入隐私过期校验
  * @update 2026-03-22 @Wangsongsong
@@ -402,6 +410,7 @@ import { Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
 import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
 import { useDict } from '@/hooks/app'
@@ -1183,7 +1192,32 @@ onUnmounted(() => {
 }
 
 .mobile-detail-row.is-hidden {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 245, 225, 0.98) 100%);
+  position: relative;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.mobile-detail-row.is-hidden::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(242, 194, 73, 0.88) 0%, rgba(226, 161, 55, 0.56) 100%);
+}
+
+.mobile-detail-row.is-hidden::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(247, 211, 107, 0.1) 0%, rgba(255, 255, 255, 0) 34%);
+  pointer-events: none;
+}
+
+.mobile-detail-row.is-hidden > * {
+  position: relative;
+  z-index: 1;
 }
 
 .mobile-detail-row__badge {
@@ -1196,6 +1230,16 @@ onUnmounted(() => {
   border-radius: 50%;
   font-size: 16px;
   font-weight: 700;
+}
+
+.mobile-detail-row__badge :deep(.bookkeeping-subject-icon) {
+  width: 18px;
+  height: 18px;
+}
+
+.mobile-detail-row__badge :deep(.t-icon),
+.mobile-detail-row__badge :deep(.svg-icon) {
+  font-size: 18px;
 }
 
 .mobile-detail-row__badge.is-expense {

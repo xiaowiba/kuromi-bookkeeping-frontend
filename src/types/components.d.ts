@@ -8,6 +8,8 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     Avatar: typeof import('./../components/Avatar/index.vue')['default']
+    BookkeepingSubjectIcon: typeof import('./../components/BookkeepingSubjectIcon/index.vue')['default']
+    BookkeepingSubjectIconSelector: typeof import('./../components/BookkeepingSubjectIconSelector/index.vue')['default']
     Breadcrumb: typeof import('./../components/Breadcrumb/index.vue')['default']
     CellCopy: typeof import('./../components/CellCopy/index.vue')['default']
     Chart: typeof import('./../components/Chart/index.vue')['default']

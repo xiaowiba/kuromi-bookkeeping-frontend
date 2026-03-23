@@ -265,12 +265,15 @@
       </div>
     </section>
 
-    <t-back-top
+    <button
+      v-show="showBackTop"
+      type="button"
       class="mobile-detail-back-top"
-      theme="half-round"
-      text="顶部"
-      :visibility-height="360"
-    />
+      @click="handleBackToTop"
+    >
+      <span class="mobile-detail-back-top__icon">↑</span>
+      <span class="mobile-detail-back-top__text">顶部</span>
+    </button>
 
     <t-popup v-model:visible="monthPickerVisible" placement="bottom" destroy-on-close>
       <div class="mobile-month-picker-popup">
@@ -386,6 +389,14 @@
  * @desc 为移动端明细页增加 BackTop 回到顶部能力，使用 TDesign half-round 半圆样式
  * @update 2026-03-23 @Wangsongsong
  * @desc 列表与明细操作面板补充支付方式标签展示，不增加移动端支付方式筛选
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 修复移动端明细页 BackTop 自动识别滚动容器失效的问题，显式绑定页面滚动根节点
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 改为页面级自管返回顶部按钮，兼容移动端自然滚动场景，稳定控制显隐与回顶行为
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 下调返回顶部按钮的底部固定位置，避免遮挡明细列表最后一行金额
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 继续下调返回顶部按钮位置，进一步避开明细列表末尾金额展示区域
  */
 import { Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
@@ -434,8 +445,28 @@ const statistics = ref({
   totalIncome: 0,
   netIncome: 0,
 })
+const showBackTop = ref(false)
 const actionPopupVisible = ref(false)
 const activeDetail = ref<DetailResp | null>(null)
+const BACK_TOP_VISIBILITY_HEIGHT = 360
+
+const getPageScrollTop = () => {
+  return window.pageYOffset
+    || document.documentElement.scrollTop
+    || document.body.scrollTop
+    || 0
+}
+
+const syncBackTopVisible = () => {
+  showBackTop.value = getPageScrollTop() >= BACK_TOP_VISIBILITY_HEIGHT
+}
+
+const handleBackToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth',
+  })
+}
 
 const currentUserId = computed(() => String(userStore.userInfo.id || ''))
 const getCurrentMonth = () => dayjs().format('YYYY-MM')
@@ -719,10 +750,13 @@ onMounted(async () => {
   query.userId = currentUserId.value
   resetMonthToCurrent()
   await Promise.all([loadUserOptions(), loadData()])
+  syncBackTopVisible()
+  window.addEventListener('scroll', syncBackTopVisible, { passive: true })
   mittBus.on('mobile-detail-refresh', loadData)
 })
 
 onUnmounted(() => {
+  window.removeEventListener('scroll', syncBackTopVisible)
   mittBus.off('mobile-detail-refresh', loadData)
 })
 </script>
@@ -1297,33 +1331,46 @@ onUnmounted(() => {
 }
 
 .mobile-detail-back-top {
-  :deep(.t-back-top--fixed) {
-    right: 0;
-    bottom: calc(2.12rem + env(safe-area-inset-bottom));
-    z-index: 24;
-  }
+  position: fixed;
+  right: 0;
+  bottom: calc(1.42rem + env(safe-area-inset-bottom));
+  z-index: 24;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.08rem;
+  border: none;
+  border-radius: 999rem 0 0 999rem;
+  padding: 0.2rem 0.24rem 0.2rem 0.18rem;
+  color: #8b5e00;
+  background: linear-gradient(135deg, rgba(255, 252, 244, 0.98) 0%, rgba(248, 218, 123, 0.96) 100%);
+  box-shadow: 0 0.18rem 0.38rem rgba(130, 90, 22, 0.16);
+}
 
-  :deep(.t-back-top--half-round) {
-    color: #8b5e00;
-    background: linear-gradient(135deg, rgba(255, 252, 244, 0.98) 0%, rgba(248, 218, 123, 0.96) 100%);
-    box-shadow: 0 0.18rem 0.38rem rgba(130, 90, 22, 0.16);
-  }
+.mobile-detail-back-top::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(197, 138, 18, 0.18);
+  border-right: none;
+  border-radius: inherit;
+  pointer-events: none;
+}
 
-  :deep(.t-back-top--half-round::after) {
-    border-color: rgba(197, 138, 18, 0.18);
-  }
+.mobile-detail-back-top__icon {
+  position: relative;
+  z-index: 1;
+  font-size: 0.44rem;
+  line-height: 1;
+}
 
-  :deep(.t-back-top__icon) {
-    font-size: 0.44rem;
-  }
-
-  :deep(.t-back-top__text--half-round) {
-    width: auto;
-    min-width: 2em;
-    font-size: 0.24rem;
-    font-weight: 700;
-    line-height: 1.2;
-  }
+.mobile-detail-back-top__text {
+  position: relative;
+  z-index: 1;
+  width: auto;
+  min-width: 2em;
+  font-size: 0.24rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .mobile-bottom-sheet {

@@ -36,6 +36,11 @@
       <template #category="{ record }">
         <GiCellTag :value="record.category" :dict="bk_subject_category" />
       </template>
+      <template #icon="{ record }">
+        <span class="subject-table__icon">
+          <BookkeepingSubjectIcon :icon="record.icon" mode="web" :size="18" />
+        </span>
+      </template>
       <template #isDefault="{ record }">
         <a-tag v-if="record.isDefault" color="arcoblue" size="small">是</a-tag>
         <a-tag v-else color="gray" size="small">否</a-tag>
@@ -73,12 +78,15 @@
  * @desc 统一列表页面风格，搜索表单改用 GiForm 组件，补全表格列，预留左侧树位置
  * @update 2026-03-19 @Wangsongsong
  * @desc 移动端优化：默认全屏模式、默认收起搜索条件、分页页码最大化
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 科目列表新增图标列，统一展示科目图标编码对应的 Web 端图标
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
 import { h, onMounted, reactive, ref } from 'vue'
 import AddModal from './AddModal.vue'
 import { type SubjectQuery, type SubjectResp, deleteSubject, listSubject } from '@/apis/bookkeeping/subject'
+import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
 import type { ColumnItem } from '@/components/GiForm'
 import { DisEnableStatusList } from '@/constant/common'
 import { useResetReactive, useTable } from '@/hooks'
@@ -151,6 +159,7 @@ const columns: TableInstance['columns'] = [
     render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + (pagination.current - 1) * pagination.pageSize),
     show: false,
   },
+  { title: '图标', dataIndex: 'icon', slotName: 'icon', width: 70, align: 'center' },
   { title: '类型名称', dataIndex: 'name', ellipsis: true, tooltip: true, width: 30, align: 'center' },
   { title: '所属分类', dataIndex: 'category', slotName: 'category', width: 30, align: 'center' },
   { title: '是否默认', dataIndex: 'isDefault', slotName: 'isDefault', width: 100, align: 'center', show: false },
@@ -223,4 +232,15 @@ onMounted(() => {
 })
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.subject-table__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-fill-2);
+  color: rgb(var(--primary-6));
+}
+</style>

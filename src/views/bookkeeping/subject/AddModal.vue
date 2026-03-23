@@ -10,7 +10,26 @@
     @before-ok="save"
     @close="reset"
   >
-    <GiForm ref="formRef" v-model="form" :columns="columns" :layout="formLayout" :size="formSize" />
+    <GiForm ref="formRef" v-model="form" :columns="columns" :layout="formLayout" :size="formSize">
+      <template #icon="{ disabled }">
+        <div class="subject-icon-field">
+          <BookkeepingSubjectIconSelector
+            v-model="form.icon"
+            :disabled="disabled"
+          />
+          <div v-if="form.icon" class="subject-icon-field__preview">
+            <div class="subject-icon-field__preview-item">
+              <span class="subject-icon-field__preview-label">Web</span>
+              <BookkeepingSubjectIcon :icon="form.icon" mode="web" :size="18" />
+            </div>
+            <div class="subject-icon-field__preview-item">
+              <span class="subject-icon-field__preview-label">移动端</span>
+              <BookkeepingSubjectIcon :icon="form.icon" mode="mobile" :size="18" />
+            </div>
+          </div>
+        </div>
+      </template>
+    </GiForm>
   </a-modal>
 </template>
 
@@ -24,11 +43,15 @@
  * @desc 所属分类字段从下拉选择改为单选按钮
  * @update 2026-03-19 @Wangsongsong
  * @desc 使用框架 isMobile 方法判断移动端,移动端垂直布局,PC端水平布局,优化移动端表单样式
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 图标字段改为使用跨端统一图标选择器，并补充 Web 与移动端双端预览
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
 import { computed, reactive, ref } from 'vue'
 import { addSubject, getSubject, updateSubject } from '@/apis/bookkeeping/subject'
+import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
+import BookkeepingSubjectIconSelector from '@/components/BookkeepingSubjectIconSelector/index.vue'
 import { type ColumnItem, GiForm } from '@/components/GiForm'
 import { useResetReactive } from '@/hooks'
 import { useDict } from '@/hooks/app'
@@ -57,6 +80,7 @@ const formRef = ref<InstanceType<typeof GiForm>>()
 const isDefaultSubject = ref(false)
 
 const [form, resetForm] = useResetReactive({
+  icon: '',
   sort: 999,
   status: 1,
 })
@@ -90,9 +114,10 @@ const columns: ColumnItem[] = reactive([
     field: 'icon',
     type: 'input',
     span: 24,
+    required: true,
     props: {
       maxLength: 50,
-      placeholder: '请输入图标标识',
+      placeholder: '请选择图标',
     },
   },
   {
@@ -223,5 +248,32 @@ defineExpose({ onAdd, onUpdate })
       }
     }
   }
+}
+
+.subject-icon-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.subject-icon-field__preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-radius: 10px;
+  background: var(--color-fill-1);
+  padding: 10px 12px;
+}
+
+.subject-icon-field__preview-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-2);
+  font-size: 12px;
+}
+
+.subject-icon-field__preview-label {
+  color: var(--color-text-3);
 }
 </style>

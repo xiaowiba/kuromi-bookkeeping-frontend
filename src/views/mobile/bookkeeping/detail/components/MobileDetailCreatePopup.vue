@@ -43,14 +43,9 @@
               @click="handleSubjectSelect(item)"
             >
               <span class="mobile-create-screen__subject-icon">
-                <img
-                  v-if="resolveSubjectIconUrl(item)"
-                  :src="resolveSubjectIconUrl(item)"
-                  :alt="item.name"
-                >
-                <GiSvgIcon
-                  v-else
-                  :name="resolveSubjectSvgIcon(item)"
+                <BookkeepingSubjectIcon
+                  :icon="item.icon"
+                  mode="mobile"
                   size="0.8rem"
                 />
               </span>
@@ -98,11 +93,13 @@
  * @desc 调整分类选择页顶部取消按钮字号与点击热区，贴近移动端效果图
  * @update 2026-03-23 @Wangsongsong
  * @desc 编辑态透传支付方式初始值，复用移动端新记账表单的支付方式录入逻辑
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 接入统一科目图标组件，移除移动端本地兜底图标映射逻辑，改为按图标编码跨端渲染
  */
 import { computed, ref, watch } from 'vue'
 import { type DetailResp, getDetail } from '@/apis/bookkeeping/detail'
 import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
-import GiSvgIcon from '@/components/GiSvgIcon/index.vue'
+import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
 import { useDict } from '@/hooks/app'
 import MobileDetailCreateFormSheet from './MobileDetailCreateFormSheet.vue'
 
@@ -121,14 +118,6 @@ defineOptions({ name: 'MobileDetailCreatePopup' })
 
 const { bk_subject_category: bkSubjectCategory } = useDict('bk_subject_category')
 
-const localSubjectIconModules = import.meta.glob('@/assets/icons/*.svg')
-const localSubjectIconSet = new Set(
-  Object.keys(localSubjectIconModules).map((path) => {
-    const matched = path.match(/\/([^/]+)\.svg$/)
-    return matched?.[1] || ''
-  }).filter(Boolean),
-)
-
 const popupVisible = computed({
   get: () => props.visible,
   set: (value: boolean) => emit('update:visible', value),
@@ -142,59 +131,6 @@ const selectedCategory = ref('')
 const selectedSubjectId = ref('')
 const editingDetail = ref<DetailResp | null>(null)
 
-const subjectIconPool = [
-  'customer-service',
-  'gift',
-  'calendar',
-  'location',
-  'storage',
-  'fire',
-  'music',
-  'compass',
-  'phone',
-  'palette',
-  'bulb',
-  'home',
-  'user',
-  'user-group',
-  'message',
-  'mobile',
-  'tool',
-  'heart',
-  'book',
-  'project',
-]
-
-const subjectKeywordIconMap: Array<[string, string]> = [
-  ['餐', 'customer-service'],
-  ['购', 'gift'],
-  ['日', 'calendar'],
-  ['交', 'location'],
-  ['菜', 'storage'],
-  ['果', 'fire'],
-  ['零', 'gift'],
-  ['运', 'compass'],
-  ['娱', 'music'],
-  ['通', 'phone'],
-  ['服', 'palette'],
-  ['美', 'bulb'],
-  ['住', 'home'],
-  ['居', 'home'],
-  ['孩', 'user'],
-  ['长', 'user-group'],
-  ['社', 'message'],
-  ['旅', 'compass'],
-  ['烟', 'fire'],
-  ['数', 'mobile'],
-  ['汽', 'tool'],
-  ['医', 'heart'],
-  ['书', 'book'],
-  ['学', 'book'],
-  ['宠', 'user'],
-  ['礼', 'gift'],
-  ['办', 'project'],
-]
-
 const resolveDefaultCategory = () => {
   const expenseItem = bkSubjectCategory.value.find((item) => {
     const value = String(item.value)
@@ -206,15 +142,6 @@ const resolveDefaultCategory = () => {
   }
 
   return String(bkSubjectCategory.value[0]?.value || '')
-}
-
-const hashSubjectKey = (value: string) => {
-  let hash = 0
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i)
-    hash |= 0
-  }
-  return Math.abs(hash)
 }
 
 const categoryTabList = computed(() =>
@@ -274,25 +201,6 @@ const handleCategoryChange = (category: string | number) => {
 const handleSubjectSelect = (subject: SubjectResp) => {
   selectedSubjectId.value = subject.id
   formSheetVisible.value = true
-}
-
-const resolveSubjectIconUrl = (subject: SubjectResp) => {
-  const icon = String(subject.icon || '').trim()
-  if (!icon) return ''
-  if (/^(https?:\/\/|\/|data:image)/.test(icon)) return icon
-  return ''
-}
-
-const resolveSubjectSvgIcon = (subject: SubjectResp) => {
-  const icon = String(subject.icon || '').trim()
-  if (icon && localSubjectIconSet.has(icon)) return icon
-
-  const keywordIcon = subjectKeywordIconMap.find(([keyword]) => subject.name.includes(keyword))?.[1]
-  if (keywordIcon) return keywordIcon
-
-  const seed = `${subject.id}-${subject.name}-${subject.icon || ''}`
-  const index = hashSubjectKey(seed) % subjectIconPool.length
-  return subjectIconPool[index]
 }
 
 const handleSubmitSuccess = () => {
@@ -474,9 +382,7 @@ watch(
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  //width: 1.18rem;
   width: 1.5rem;
-  //height: 1.18rem;
   height: 1.5rem;
   border-radius: 50%;
   background: #f5f5f5;
@@ -487,12 +393,6 @@ watch(
 .mobile-create-screen__subject-icon :deep(.svg-icon) {
   width: 0.66rem;
   height: 0.66rem;
-}
-
-.mobile-create-screen__subject-icon img {
-  width: 0.66rem;
-  height: 0.66rem;
-  object-fit: contain;
 }
 
 .mobile-create-screen__subject-name {

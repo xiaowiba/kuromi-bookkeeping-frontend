@@ -192,7 +192,7 @@
             class="mobile-detail-ledger__action is-warning"
             @click="handleExitPrivacy"
           >
-            退出隐私
+            退出
           </button>
           <button type="button" class="mobile-detail-ledger__action" @click="loadData">
             刷新
@@ -229,6 +229,14 @@
 
               <div class="mobile-detail-row__content">
                 <h4 class="mobile-detail-row__title">{{ item.name }}</h4>
+                <t-tag
+                  class="mobile-detail-row__payment-tag"
+                  size="small"
+                  variant="light"
+                  :theme="paymentMethodTheme(item.paymentMethod)"
+                >
+                  {{ paymentMethodLabel(item.paymentMethod) }}
+                </t-tag>
                 <span
                     v-if="privacyStore.isPrivacyMode && item.hidden === 1"
                     class="mobile-detail-row__privacy"
@@ -304,6 +312,18 @@
               <strong>{{ activeDetail.userNickname }}</strong>
             </div>
             <div class="mobile-bottom-sheet__detail-row">
+              <span>支付方式</span>
+              <strong class="mobile-bottom-sheet__detail-tag-wrap">
+                <t-tag
+                  size="small"
+                  variant="light"
+                  :theme="paymentMethodTheme(activeDetail.paymentMethod)"
+                >
+                  {{ paymentMethodLabel(activeDetail.paymentMethod) }}
+                </t-tag>
+              </strong>
+            </div>
+            <div class="mobile-bottom-sheet__detail-row">
               <span>备注</span>
               <strong>{{ activeDetail.remark || '无' }}</strong>
             </div>
@@ -364,6 +384,8 @@
  * @desc 移除明细页对全局下拉刷新的注册逻辑，保留显式刷新按钮作为唯一刷新入口
  * @update 2026-03-22 @Wangsongsong
  * @desc 为移动端明细页增加 BackTop 回到顶部能力，使用 TDesign half-round 半圆样式
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 列表与明细操作面板补充支付方式标签展示，不增加移动端支付方式筛选
  */
 import { Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
@@ -399,7 +421,7 @@ const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
-const { bk_subject_category: bkSubjectCategory } = useDict('bk_subject_category')
+const { bk_subject_category: bkSubjectCategory, bk_payment_method: bkPaymentMethod } = useDict('bk_subject_category', 'bk_payment_method')
 const { userOptions, loadUserOptions } = useDetailUserOptions()
 
 const loading = ref(false)
@@ -652,6 +674,19 @@ const subjectCategoryLabel = (value: string) => {
   if (!value) return '全部分类'
   const current = bkSubjectCategory.value.find(item => String(item.value) === value)
   return current?.label || value
+}
+
+const findPaymentMethodItem = (value: string) =>
+  bkPaymentMethod.value.find(item => String(item.value) === String(value))
+
+const paymentMethodLabel = (value: string) => {
+  if (!value) return '默认'
+  return findPaymentMethodItem(value)?.label || value
+}
+
+const paymentMethodTheme = (value: string) => {
+  const extra = findPaymentMethodItem(value)?.extra || 'default'
+  return extra === 'error' ? 'danger' : extra
 }
 
 const subjectCategoryClass = (value: string) => {
@@ -1174,6 +1209,10 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
+.mobile-detail-row__payment-tag {
+  flex-shrink: 0;
+}
+
 .mobile-detail-row__create__user {
   margin: 0;
   min-width: 0;
@@ -1363,6 +1402,11 @@ onUnmounted(() => {
   line-height: 1.5;
   text-align: right;
   word-break: break-all;
+}
+
+.mobile-bottom-sheet__detail-tag-wrap {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .mobile-bottom-sheet__detail-row .is-income {

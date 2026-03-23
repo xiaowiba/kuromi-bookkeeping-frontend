@@ -65,6 +65,7 @@
             <span class="date-text">{{ record.detailDate }}</span>
             <span class="subject-name">{{ record.subjectName }}</span>
             <GiCellTag :value="record.subjectCategory" :dict="bk_subject_category" />
+            <GiCellTag :value="record.paymentMethod || 'default'" :dict="bk_payment_method" />
             <span class="detail-name">{{ record.name }}</span>
             <span class="amount" :style="{ color: record.amount < 0 ? '#f53f3f' : '#00b42a' }">
               {{ record.amount < 0 ? record.amount.toFixed(2) : `+${record.amount.toFixed(2)}` }}
@@ -104,6 +105,9 @@
       </template>
       <template #subjectCategory="{ record }">
         <GiCellTag :value="record.subjectCategory" :dict="bk_subject_category" />
+      </template>
+      <template #paymentMethod="{ record }">
+        <GiCellTag :value="record.paymentMethod" :dict="bk_payment_method" />
       </template>
       <template #amount="{ record }">
         <span :style="{ color: record.amount < 0 ? '#f53f3f' : '#00b42a', fontWeight: 'bold' }">
@@ -184,6 +188,8 @@
  * @desc Web 端统计区补充结余展示，保持与移动端统计口径一致
  * @update 2026-03-22 @Wangsongsong
  * @desc 进入 web 端隐私模式前同步数据库中的有效时长配置，确保过期时间与隐藏配置页保持一致
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 新增支付方式标签展示与 Web 端筛选，移动态不增加支付方式查询条件
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
@@ -206,7 +212,7 @@ defineOptions({ name: 'BookkeepingDetail' })
 const router = useRouter()
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
-const { bk_subject_category } = useDict('bk_subject_category')
+const { bk_subject_category, bk_payment_method } = useDict('bk_subject_category', 'bk_payment_method')
 const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
 
 /** 是否拥有隐藏权限 */
@@ -271,6 +277,18 @@ const queryFormColumns: ColumnItem[] = reactive([
     span: { xs: 24, sm: 8, xxl: 6 },
     props: {
       placeholder: '请选择月份',
+      allowClear: true,
+    },
+  },
+  {
+    type: 'select',
+    label: '支付方式',
+    field: 'paymentMethod',
+    span: { xs: 24, sm: 8, xxl: 6 },
+    show: () => !isMobile(),
+    props: {
+      options: bk_payment_method,
+      placeholder: '请选择支付方式',
       allowClear: true,
     },
   },
@@ -365,7 +383,8 @@ const columns: TableInstance['columns'] = [
   { title: '所属用户', dataIndex: 'userNickname', slotName: 'userNickname', width: 90, ellipsis: true, tooltip: true, show: !isMobile() },
   { title: '科目', dataIndex: 'subjectName', width: 80, align: 'center', show: !isMobile() },
   { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center', show: !isMobile() },
-  { title: '金1额', dataIndex: 'amount', slotName: 'amount', width: 160, align: 'right', show: !isMobile() },
+  { title: '支付方式', dataIndex: 'paymentMethod', slotName: 'paymentMethod', width: 90, align: 'center', show: !isMobile() },
+  { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 160, align: 'right', show: !isMobile() },
   { title: '明细日期', dataIndex: 'detailDate', width: 120, align: 'center', show: !isMobile() },
   { title: '备注', dataIndex: 'remark', width: 120, ellipsis: true, tooltip: true, show: !isMobile() },
   { title: '隐藏', dataIndex: 'hidden', slotName: 'hidden', width: 60, align: 'center', show: ((has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value) && !isMobile() },

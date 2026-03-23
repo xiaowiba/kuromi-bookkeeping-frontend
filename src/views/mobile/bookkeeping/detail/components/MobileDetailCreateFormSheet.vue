@@ -54,6 +54,37 @@
         </div>
 
         <div class="mobile-field">
+          <label class="mobile-field__label">支付方式</label>
+          <div class="mobile-create-sheet__payment-methods">
+            <div
+              class="mobile-create-sheet__payment-method-group"
+              role="radiogroup"
+              aria-label="支付方式"
+            >
+              <button
+                v-for="item in paymentMethodOptions"
+                :key="item.value"
+                type="button"
+                :class="[
+                  'mobile-create-sheet__payment-method-option',
+                  { 'is-active': form.paymentMethod === item.value },
+                ]"
+                role="radio"
+                :aria-checked="form.paymentMethod === item.value"
+                @click="form.paymentMethod = item.value"
+              >
+                <span class="mobile-create-sheet__payment-method-circle">
+                  {{ resolvePaymentMethodMarker(item.label) }}
+                </span>
+                <span class="mobile-create-sheet__payment-method-label">
+                  {{ item.label }}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mobile-field">
           <label class="mobile-field__label">备注</label>
           <t-textarea
             v-model="form.remark"
@@ -127,10 +158,23 @@
  * @desc 移动端表单提示统一改为使用 TDesign Toast
  * @update 2026-03-22 @Wangsongsong
  * @desc 调整填写明细弹层顶部返回按钮和底部主按钮顺序、尺寸与黄色主题样式
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 移动端新增支付方式单选组，默认值为“默认”，并统一编辑态回填逻辑
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 移动端支付方式改为横向 Radio 单选布局，统一按 TDesign Mobile Radio 组件渲染
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 移动端支付方式样式改为三列卡片单选框，统一行列间距与选中态视觉反馈
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 移动端支付方式进一步对齐 TDesign 横向卡片单选框示例，使用外层卡片容器与角标选中态
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 移动端支付方式去除尖角角标，改为与分类选择一致的圆润胶囊式选中效果
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 移动端支付方式改为原型稿风格的圆形入口选择器，使用圆形高亮和底部标签布局
  */
 import dayjs from 'dayjs'
 import { computed, reactive, ref, watch } from 'vue'
 import { addDetail, updateDetail } from '@/apis/bookkeeping/detail'
+import { useDict } from '@/hooks/app'
 import { usePrivacyStore, useUserStore } from '@/stores'
 import { mobileToast } from '@/utils/mobile-toast'
 import has from '@/utils/has'
@@ -147,6 +191,7 @@ interface Props {
   initialName?: string
   initialAmount?: string | number
   initialDetailDate?: string
+  initialPaymentMethod?: string
   initialRemark?: string
   initialHidden?: number
 }
@@ -161,6 +206,7 @@ defineOptions({ name: 'MobileDetailCreateFormSheet' })
 
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
+const { bk_payment_method: bkPaymentMethod } = useDict('bk_payment_method')
 
 const MAX_AMOUNT = 999999
 const getToday = () => dayjs().format('YYYY-MM-DD')
@@ -178,6 +224,13 @@ const datePickerVisible = ref(false)
 const amountKeyboardVisible = ref(false)
 const datePickerValue = ref(getToday())
 const submitting = ref(false)
+const paymentMethodOptions = computed(() =>
+  bkPaymentMethod.value.map(item => ({
+    label: item.label,
+    value: item.value,
+  })),
+)
+const resolvePaymentMethodMarker = (label: string) => String(label || '').trim().slice(0, 1) || '?'
 
 const resolveInitialAmount = () => {
   const amount = props.initialAmount
@@ -192,6 +245,7 @@ const createDefaultForm = () => ({
   name: props.initialName || props.subjectName || '',
   amount: resolveInitialAmount(),
   detailDate: props.initialDetailDate || getToday(),
+  paymentMethod: props.initialPaymentMethod || 'default',
   remark: props.initialRemark || '',
   hidden: props.initialHidden ?? 0,
 })
@@ -255,6 +309,10 @@ const validateForm = () => {
   }
   if (!form.detailDate) {
     mobileToast.warning('请选择明细日期')
+    return false
+  }
+  if (!form.paymentMethod) {
+    mobileToast.warning('请选择支付方式')
     return false
   }
   if (remark.length > 20) {
@@ -414,6 +472,70 @@ watch(
   color: #4c3200;
   font-size: 0.34rem;
   font-weight: 700;
+}
+
+.mobile-create-sheet__payment-methods {
+  padding-top: 0.04rem;
+}
+
+.mobile-create-sheet__payment-method-group {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.2rem 0.08rem;
+  align-items: start;
+}
+
+.mobile-create-sheet__payment-method-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.mobile-create-sheet__payment-method-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.96rem;
+  height: 0.96rem;
+  border-radius: 50%;
+  background: #f2f2f2;
+  color: #666;
+  font-size: 0.32rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.mobile-create-sheet__payment-method-option.is-active .mobile-create-sheet__payment-method-circle {
+  background: linear-gradient(180deg, #ffe986 0%, #ffd84d 100%);
+  color: #5f4a00;
+  box-shadow: 0 0.08rem 0.18rem rgba(255, 209, 61, 0.28);
+  transform: translateY(-0.01rem);
+}
+
+.mobile-create-sheet__payment-method-label {
+  min-width: 0;
+  min-height: 0.56rem;
+  color: #303133;
+  font-size: 0.24rem;
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mobile-create-sheet__payment-method-option.is-active .mobile-create-sheet__payment-method-label {
+  color: #1f1f1f;
+  font-weight: 500;
 }
 
 .mobile-create-sheet__switch-card {

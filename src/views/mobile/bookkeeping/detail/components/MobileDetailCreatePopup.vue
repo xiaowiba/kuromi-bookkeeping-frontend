@@ -77,6 +77,7 @@
     :initial-name="editingDetail?.name || ''"
     :initial-amount="editingDetailAmount"
     :initial-detail-date="editingDetail?.detailDate || ''"
+    :initial-payment-method="editingDetail?.paymentMethod || 'default'"
     :initial-remark="editingDetail?.remark || ''"
     :initial-hidden="editingDetail?.hidden ?? 0"
     @submit-success="handleSubmitSuccess"
@@ -95,6 +96,8 @@
  * @desc 调整移动端分类页的兜底图标映射，移除突兀的填充蓝色图标，并保留接口 icon 字段的统一解析入口
  * @update 2026-03-22 @Wangsongsong
  * @desc 调整分类选择页顶部取消按钮字号与点击热区，贴近移动端效果图
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 编辑态透传支付方式初始值，复用移动端新记账表单的支付方式录入逻辑
  */
 import { computed, ref, watch } from 'vue'
 import { type DetailResp, getDetail } from '@/apis/bookkeeping/detail'

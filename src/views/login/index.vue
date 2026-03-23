@@ -20,11 +20,11 @@
             <a-tab-pane key="1" title="账号登录">
               <component :is="AccountLogin" v-if="activeTab === '1'" />
             </a-tab-pane>
-            <a-tab-pane key="2" title="手机号登录">
+            <!-- a-tab-pane key="2" title="手机号登录">
               <component :is="PhoneLogin" v-if="activeTab === '2'" />
-            </a-tab-pane>
+            </a-tab-pane -->
           </a-tabs>
-          <div class="login-right__oauth">
+          <div v-if="false" class="login-right__oauth">
             <a-divider orientation="center">其他登录方式</a-divider>
             <div class="list">
               <div v-if="isEmailLogin" class="mode item" @click="toggleLoginMode"><icon-user /> 账号/手机号登录</div>

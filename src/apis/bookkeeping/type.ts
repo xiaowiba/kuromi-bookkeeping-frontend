@@ -9,6 +9,8 @@
  * @desc 增加隐私配置响应类型 PrivacyConfigResp
  * @update 2026-03-22 @Wangsongsong
  * @desc 增加隐私配置修改请求类型 PrivacyConfigUpdateReq
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 明细模型补充支付方式字段及查询条件，统一桌面端与移动端类型定义
  */
 
 /** 科目响应类型 */
@@ -48,6 +50,7 @@ export interface DetailResp {
   name: string
   amount: number
   detailDate: string
+  paymentMethod: string
   remark: string
   hidden: number
   createUserString: string
@@ -62,9 +65,12 @@ export interface DetailQuery {
   name?: string
   category?: string
   subjectId?: string
+  paymentMethod?: string
   month?: string
   minAmount?: number
   maxAmount?: number
+  hidden?: number | string
+  privacyMode?: boolean
   sort: Array<string>
 }
 

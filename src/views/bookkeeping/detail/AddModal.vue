@@ -36,6 +36,8 @@
  * @desc 复用共享的明细用户选项加载逻辑，统一桌面端与移动端口径
  * @update 2026-03-22 @Wangsongsong
  * @desc 修复编辑明细时名称被科目联动逻辑覆盖的问题，自动填充仅在新增态生效
+ * @update 2026-03-23 @Wangsongsong
+ * @desc 新增支付方式单选字段，必填且默认值为“默认”
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
@@ -58,7 +60,7 @@ const emit = defineEmits<{
 const { width } = useWindowSize()
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
-const { bk_subject_category } = useDict('bk_subject_category')
+const { bk_subject_category, bk_payment_method } = useDict('bk_subject_category', 'bk_payment_method')
 const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
 
 /** 表单布局：移动端垂直排列，PC端水平排列 */
@@ -83,6 +85,7 @@ let lastAutoFillName = ''
 const [form, resetForm] = useResetReactive({
   detailDate: new Date().toISOString().slice(0, 10),
   category: '',
+  paymentMethod: 'default',
   hidden: 0,
 })
 
@@ -141,6 +144,16 @@ const columns: ColumnItem[] = reactive([
       min: 0.01,
       precision: 2,
       placeholder: '请输入金额（绝对值）',
+    },
+  },
+  {
+    label: '支付方式',
+    field: 'paymentMethod',
+    type: 'radio-group',
+    span: 24,
+    required: true,
+    props: {
+      options: bk_payment_method,
     },
   },
   {
@@ -289,6 +302,7 @@ const onUpdate = async (id: string) => {
   if (data.amount != null) {
     data.amount = Math.abs(data.amount) as any
   }
+  data.paymentMethod = data.paymentMethod || 'default'
   // 回填分类（从详情的 subjectCategory 获取）
   form.category = data.subjectCategory || ''
   // 等分类 watch 触发后再赋值科目和名称

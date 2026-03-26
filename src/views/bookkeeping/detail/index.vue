@@ -21,7 +21,43 @@
           size="medium"
           @search="searchMethod"
           @reset="reset"
-        />
+        >
+          <template #subjectId>
+            <a-select
+              v-if="isMobile()"
+              v-model="queryForm.subjectId"
+              :options="subjectOptions"
+              placeholder="请选择科目"
+              allow-clear
+              allow-search
+              @change="handleSubjectQueryChange"
+            />
+            <div v-else class="subject-query-radio-scroll">
+              <a-radio-group
+                v-model="queryForm.subjectId"
+                :options="subjectOptions"
+                @change="handleSubjectQueryChange"
+              />
+            </div>
+          </template>
+          <template #paymentMethod>
+            <a-select
+              v-if="isMobile()"
+              v-model="queryForm.paymentMethod"
+              :options="paymentMethodQueryOptions"
+              placeholder="请选择支付方式"
+              allow-clear
+              @change="handlePaymentMethodQueryChange"
+            />
+            <div v-else class="subject-query-radio-scroll">
+              <a-radio-group
+                v-model="queryForm.paymentMethod"
+                :options="paymentMethodQueryOptions"
+                @change="handlePaymentMethodQueryChange"
+              />
+            </div>
+          </template>
+        </GiForm>
       </template>
       <template #toolbar-left>
         <a-button v-permission="['bookkeeping:detail:create']" type="primary" @click="onAdd">
@@ -300,7 +336,7 @@ const queryFormColumns: ColumnItem[] = reactive([
     type: 'select',
     label: '所属用户',
     field: 'userId',
-    span: { xs: 24, sm: 8, xxl: 6 },
+    span: { xs: 24, sm: 12, xxl: 9 },
     ...(!isMobile() ? { type: 'radio-group' as const } : {}),
     props: {
       options: userQueryOptions,
@@ -316,7 +352,7 @@ const queryFormColumns: ColumnItem[] = reactive([
     type: 'month-picker',
     label: '月份',
     field: 'month',
-    span: { xs: 24, sm: 8, xxl: 6 },
+    span: { xs: 24, sm: 4, xxl: 3 },
     props: {
       placeholder: '请选择月份',
       allowClear: true,
@@ -339,7 +375,7 @@ const queryFormColumns: ColumnItem[] = reactive([
     type: 'select',
     label: '科目',
     field: 'subjectId',
-    span: { xs: 24, sm: 8, xxl: 6 },
+    span: { xs: 24, sm: 24, xxl: 24 },
     ...(!isMobile() ? { type: 'radio-group' as const } : {}),
     props: {
       options: subjectOptions,
@@ -353,7 +389,7 @@ const queryFormColumns: ColumnItem[] = reactive([
     type: 'select',
     label: '支付方式',
     field: 'paymentMethod',
-    span: { xs: 24, sm: 8, xxl: 6 },
+    span: { xs: 24, sm: 24, xxl: 24 },
     ...(!isMobile() ? { type: 'radio-group' as const } : {}),
     props: {
       options: paymentMethodQueryOptions,
@@ -723,6 +759,28 @@ onUnmounted(() => {
     &.income .value {
       color: #00b42a;
     }
+  }
+}
+
+.subject-query-radio-scroll {
+  width: 100%;
+  overflow: visible;
+
+  :deep(.arco-radio-group) {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  :deep(.arco-radio) {
+    flex: 0 0 auto;
+    margin-right: 16px;
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
+
+  :deep(.arco-radio-label) {
+    white-space: nowrap;
   }
 }
 

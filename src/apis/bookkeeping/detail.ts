@@ -18,6 +18,11 @@ export function listDetail(query: T.DetailPageQuery) {
   return http.get<PageRes<T.DetailResp[]>>(`${BASE_URL}`, query)
 }
 
+/** @desc 查询移动端明细列表 */
+export function listMobileDetail(query: T.DetailQuery) {
+  return http.get<T.DetailResp[]>(`${BASE_URL}/mobile/list`, query)
+}
+
 /** @desc 查询明细详情 */
 export function getDetail(id: string) {
   return http.get<T.DetailResp>(`${BASE_URL}/${id}`)

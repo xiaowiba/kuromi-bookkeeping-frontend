@@ -152,6 +152,8 @@
  *
  * @author Wangsongsong
  * @date 2026-03-21
+ * @update 2026-03-24 @Wangsongsong
+ * @desc 修复移动端明细表单层在小屏设备上底部按钮被遮挡且无法滚动的问题，改为视口内布局加内部滚动
  * @update 2026-03-21 @Wangsongsong
  * @desc 复用新增表单层承接移动端明细编辑，并补充编辑态回填与保存逻辑
  * @update 2026-03-22 @Wangsongsong
@@ -360,10 +362,14 @@ watch(
 
 <style scoped lang="scss">
 .mobile-create-sheet {
+  display: flex;
+  flex-direction: column;
   border-radius: 0.48rem 0.48rem 0 0;
   background: linear-gradient(180deg, #fffaf1 0%, #fff6e6 100%);
-  padding: 0.32rem 0.32rem calc(env(safe-area-inset-bottom) + 0.32rem);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 0.24rem);
+  padding: 0.32rem 0.32rem calc(env(safe-area-inset-bottom) + 0.44rem);
   box-shadow: 0 -0.18rem 0.52rem rgba(146, 97, 0, 0.14);
+  overflow: hidden;
 }
 
 .mobile-create-sheet__header {
@@ -423,9 +429,16 @@ watch(
 }
 
 .mobile-create-sheet__body {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.24rem;
+  overflow-y: auto;
+  padding-right: 0.04rem;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .mobile-create-sheet__td-control :deep(.t-input),
@@ -566,10 +579,14 @@ watch(
 }
 
 .mobile-create-sheet__footer {
+  flex-shrink: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.2rem;
-  margin-top: 0.32rem;
+  margin-top: 0.28rem;
+  padding-top: 0.22rem;
+  padding-bottom: 0.16rem;
+  background: linear-gradient(180deg, rgba(255, 246, 230, 0) 0%, rgba(255, 246, 230, 0.9) 28%, rgba(255, 246, 230, 1) 100%);
 }
 
 .mobile-create-sheet__footer :deep(.t-button) {

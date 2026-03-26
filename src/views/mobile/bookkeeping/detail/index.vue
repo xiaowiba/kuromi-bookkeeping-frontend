@@ -412,7 +412,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
-import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
+import { type DetailResp, deleteDetail, getDetailStatistics, listMobileDetail } from '@/apis/bookkeeping/detail'
 import { useDict } from '@/hooks/app'
 import { useAppStore, usePrivacyStore, useUserStore } from '@/stores'
 import has from '@/utils/has'
@@ -563,13 +563,11 @@ const loadData = async () => {
   try {
     privacyStore.ensureValid()
     const [detailRes, statisticsRes] = await Promise.all([
-      listDetail({
+      listMobileDetail({
         ...query,
         sort: ['detailDate,desc', 'id,desc'],
-        page: 1,
-        size: 50,
         privacyMode: privacyStore.isPrivacyMode,
-      } as any),
+      }),
       getDetailStatistics({
         ...query,
         sort: ['detailDate,desc', 'id,desc'],
@@ -577,7 +575,7 @@ const loadData = async () => {
       } as any),
     ])
 
-    details.value = detailRes.data.list
+    details.value = detailRes.data
     statistics.value = statisticsRes.data
   } finally {
     loading.value = false

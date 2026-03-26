@@ -193,11 +193,13 @@
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
-import { computed, h, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, h, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 import AddModal from './AddModal.vue'
 import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
 import { getPrivacyConfig, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
+import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive, useTable } from '@/hooks'
 import { useDict } from '@/hooks/app'
@@ -205,7 +207,6 @@ import { usePrivacyStore, useUserStore } from '@/stores'
 import { isMobile } from '@/utils'
 import has from '@/utils/has'
 import mittBus from '@/utils/mitt'
-import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 
 defineOptions({ name: 'BookkeepingDetail' })
 
@@ -233,9 +234,66 @@ const getCurrentMonth = () => {
 
 const [queryForm, resetForm] = useResetReactive({
   sort: ['detailDate,desc', 'id,desc'],
+  name: '',
+  category: '',
+  subjectId: '',
+  paymentMethod: '',
   month: getCurrentMonth(),
+  hidden: '',
   userId: userStore.userInfo.id,
 })
+
+const allSubjects = ref<SubjectResp[]>([])
+const createAllOption = () => ({ label: '全部', value: '' })
+
+const userQueryOptions = computed(() => [
+  createAllOption(),
+  ...(userOptions.value ?? []),
+])
+
+const categoryQueryOptions = computed(() => [
+  createAllOption(),
+  ...(bk_subject_category.value ?? []),
+])
+
+const paymentMethodQueryOptions = computed(() => [
+  createAllOption(),
+  ...(bk_payment_method.value ?? []),
+])
+
+const subjectOptions = computed(() => {
+  const matchedSubjects = queryForm.category
+    ? allSubjects.value.filter(item => item.category === queryForm.category)
+    : allSubjects.value
+
+  return [
+    createAllOption(),
+    ...matchedSubjects.map(item => ({ label: item.name, value: item.id })),
+  ]
+})
+
+const triggerQuerySearch = () => {
+  nextTick(() => {
+    searchMethod()
+  })
+}
+
+const handleCategoryQueryChange = () => {
+  queryForm.subjectId = ''
+  triggerQuerySearch()
+}
+
+const handleSubjectQueryChange = () => {
+  triggerQuerySearch()
+}
+
+const handlePaymentMethodQueryChange = () => {
+  triggerQuerySearch()
+}
+
+const handleUserQueryChange = () => {
+  triggerQuerySearch()
+}
 
 const queryFormColumns: ColumnItem[] = reactive([
   {
@@ -243,31 +301,15 @@ const queryFormColumns: ColumnItem[] = reactive([
     label: '所属用户',
     field: 'userId',
     span: { xs: 24, sm: 8, xxl: 6 },
+    ...(!isMobile() ? { type: 'radio-group' as const } : {}),
     props: {
-      options: userOptions,
-      placeholder: '请选择用户',
-      allowClear: true,
-      allowSearch: true,
-    },
-  },
-  {
-    type: 'input',
-    label: '明细名称',
-    field: 'name',
-    span: { xs: 24, sm: 8, xxl: 6 },
-    props: {
-      placeholder: '请输入明细名称',
-    },
-  },
-  {
-    type: 'select',
-    label: '分类',
-    field: 'category',
-    span: { xs: 24, sm: 8, xxl: 6 },
-    props: {
-      options: bk_subject_category,
-      placeholder: '请选择分类',
-      allowClear: true,
+      options: userQueryOptions,
+      onChange: handleUserQueryChange,
+      ...(isMobile() ? {
+        placeholder: '请选择用户',
+        allowClear: true,
+        allowSearch: true,
+      } : {}),
     },
   },
   {
@@ -282,14 +324,51 @@ const queryFormColumns: ColumnItem[] = reactive([
   },
   {
     type: 'select',
+    label: '分类',
+    field: 'category',
+    span: { xs: 24, sm: 8, xxl: 6 },
+    ...(!isMobile() ? { type: 'radio-group' as const } : {}),
+    props: {
+      options: categoryQueryOptions,
+      placeholder: '请选择分类',
+      allowClear: true,
+      onChange: handleCategoryQueryChange,
+    },
+  },
+  {
+    type: 'select',
+    label: '科目',
+    field: 'subjectId',
+    span: { xs: 24, sm: 8, xxl: 6 },
+    ...(!isMobile() ? { type: 'radio-group' as const } : {}),
+    props: {
+      options: subjectOptions,
+      placeholder: '请选择科目',
+      allowClear: true,
+      allowSearch: true,
+      onChange: handleSubjectQueryChange,
+    },
+  },
+  {
+    type: 'select',
     label: '支付方式',
     field: 'paymentMethod',
     span: { xs: 24, sm: 8, xxl: 6 },
-    show: () => !isMobile(),
+    ...(!isMobile() ? { type: 'radio-group' as const } : {}),
     props: {
-      options: bk_payment_method,
+      options: paymentMethodQueryOptions,
       placeholder: '请选择支付方式',
       allowClear: true,
+      onChange: handlePaymentMethodQueryChange,
+    },
+  },
+  {
+    type: 'input',
+    label: '明细名称',
+    field: 'name',
+    span: { xs: 24, sm: 8, xxl: 6 },
+    props: {
+      placeholder: '请输入明细名称',
     },
   },
   {
@@ -298,6 +377,7 @@ const queryFormColumns: ColumnItem[] = reactive([
     field: 'hidden',
     span: { xs: 24, sm: 8, xxl: 6 },
     show: () => isAdmin.value,
+    ...(!isMobile() ? { type: 'radio-group' as const } : {}),
     props: {
       options: [
         { label: '全部', value: '' },
@@ -332,6 +412,15 @@ const statistics = ref({
   totalIncome: 0,
   netIncome: 0,
 })
+
+const loadSubjectOptions = async () => {
+  try {
+    const { data } = await listSubject({ sort: ['sort,asc', 'id,desc'], page: 1, size: 1000 } as any)
+    allSubjects.value = data.list ?? []
+  } catch {
+    allSubjects.value = []
+  }
+}
 
 /**
  * 加载统计数据
@@ -381,8 +470,8 @@ const columns: TableInstance['columns'] = [
   // PC端：保持原有列结构
   { title: '明细名称', dataIndex: 'name', width: 100, ellipsis: true, tooltip: true, show: !isMobile() },
   { title: '所属用户', dataIndex: 'userNickname', slotName: 'userNickname', width: 90, ellipsis: true, tooltip: true, show: !isMobile() },
-  { title: '科目', dataIndex: 'subjectName', width: 80, align: 'center', show: !isMobile() },
   { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center', show: !isMobile() },
+  { title: '科目', dataIndex: 'subjectName', width: 80, align: 'center', show: !isMobile() },
   { title: '支付方式', dataIndex: 'paymentMethod', slotName: 'paymentMethod', width: 90, align: 'center', show: !isMobile() },
   { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 160, align: 'right', show: !isMobile() },
   { title: '明细日期', dataIndex: 'detailDate', width: 120, align: 'center', show: !isMobile() },
@@ -581,9 +670,9 @@ const onFooterClick = () => {
   }
 }
 
-onMounted(() => {
-  loadUserOptions()
+onMounted(async () => {
   mittBus.on('footer-click', onFooterClick)
+  await Promise.allSettled([loadUserOptions(), loadSubjectOptions()])
   // 初始加载数据和统计
   searchMethod()
   // 移动端默认进入全屏模式

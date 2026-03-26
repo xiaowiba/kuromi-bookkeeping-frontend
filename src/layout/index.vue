@@ -10,6 +10,7 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
+import { isMobileTerminalPath } from '@/router/terminal'
 import { useAppStore } from '@/stores'
 
 /** 组件名称 */
@@ -34,7 +35,7 @@ const layoutMap = {
 
 /** 当前布局组件 */
 const currentLayout = computed(() => {
-  if (route.path.startsWith('/m')) {
+  if (isMobileTerminalPath(route.path)) {
     return LayoutMobile
   }
   return layoutMap[appStore.layout as keyof typeof layoutMap] || layoutMap.default

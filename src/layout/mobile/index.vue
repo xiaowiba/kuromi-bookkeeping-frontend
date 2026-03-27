@@ -23,8 +23,8 @@
 
     <MobileTabBar />
 
-    <MobileDetailCreatePopup
-      v-model:visible="createPopupVisible"
+    <MobileDetailDirectCreatePopup
+      v-model:visible="directCreatePopupVisible"
       :detail-id="editingDetailId"
       @save-success="handleSaveSuccess"
     />
@@ -59,12 +59,14 @@
  * @desc 取消移动端布局内层滚动容器，改为页面自然滚动，修复明细页数据无法滚动到底的问题
  * @update 2026-03-22 @Wangsongsong
  * @desc 移除移动端全局下拉刷新容器及事件派发，避免布局层刷新能力引入额外交互与滚动问题
+ * @update 2026-03-27 @Wangsongsong
+ * @desc 新增与编辑入口统一切换为移动端直接填写明细弹层，旧的先选科目流程组件保留但不再作为布局层入口
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MobileTabBar from './components/MobileTabBar.vue'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
-import MobileDetailCreatePopup from '@/views/mobile/bookkeeping/detail/components/MobileDetailCreatePopup.vue'
+import MobileDetailDirectCreatePopup from '@/views/mobile/bookkeeping/detail/components/MobileDetailDirectCreatePopup.vue'
 import mittBus from '@/utils/mitt'
 import { bindMobileRemResize } from '@/utils/mobile-rem'
 
@@ -73,7 +75,7 @@ defineOptions({ name: 'LayoutMobile' })
 const route = useRoute()
 const router = useRouter()
 
-const createPopupVisible = ref(false)
+const directCreatePopupVisible = ref(false)
 const editingDetailId = ref('')
 const rootPaths = ['/m/bookkeeping/detail', '/m/report', '/m/me']
 const MOBILE_SCROLL_UNLOCK_CLASS = 'mobile-scroll-unlocked'
@@ -94,12 +96,12 @@ const routeSkeletonVariant = computed(() => {
 
 const openAddPopup = () => {
   editingDetailId.value = ''
-  createPopupVisible.value = true
+  directCreatePopupVisible.value = true
 }
 
 const openEditPopup = (id: string) => {
   editingDetailId.value = id
-  createPopupVisible.value = true
+  directCreatePopupVisible.value = true
 }
 
 const handleSaveSuccess = () => {
@@ -123,7 +125,7 @@ const handleBack = () => {
   router.push('/m/bookkeeping/detail')
 }
 
-watch(createPopupVisible, (value) => {
+watch(directCreatePopupVisible, (value) => {
   if (!value) {
     editingDetailId.value = ''
   }

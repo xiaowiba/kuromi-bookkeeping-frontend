@@ -1,0 +1,982 @@
+<template>
+  <t-popup
+    v-model:visible="popupVisible"
+    placement="bottom"
+    destroy-on-close
+    :z-index="1400"
+    :close-on-overlay-click="false"
+  >
+    <div class="mobile-direct-create">
+      <div class="mobile-direct-create__header">
+        <div>
+          <p class="mobile-direct-create__eyebrow">{{ popupEyebrow }}</p>
+          <h3 class="mobile-direct-create__title">{{ popupTitle }}</h3>
+        </div>
+        <button type="button" class="mobile-direct-create__close" @click="popupVisible = false">
+          关闭
+        </button>
+      </div>
+
+      <t-loading :loading="optionsLoading">
+        <div class="mobile-direct-create__body">
+          <div v-if="isAdmin" class="mobile-field">
+            <label class="mobile-field__label">记账用户</label>
+            <select v-model="form.userId" class="mobile-select">
+              <option value="">请选择用户</option>
+              <option v-for="item in userOptions" :key="item.value" :value="item.value">
+                {{ item.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">分类</label>
+            <div class="mobile-direct-create__category-group" role="radiogroup" aria-label="分类">
+              <button
+                v-for="item in categoryOptions"
+                :key="item.value"
+                type="button"
+                class="mobile-direct-create__category-btn"
+                :class="{ 'is-active': form.category === item.value }"
+                @click="handleCategoryChange(item.value)"
+              >
+                {{ item.label }}
+              </button>
+            </div>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">科目</label>
+            <button
+              type="button"
+              class="mobile-direct-create__selector-field"
+              :class="{ 'is-disabled': !form.category }"
+              @click="openSubjectPicker"
+            >
+              <span>{{ selectedSubjectName || '请选择科目' }}</span>
+              <small>{{ form.category ? '点击选择' : '请先选择分类' }}</small>
+            </button>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">明细名称</label>
+            <t-input
+              v-model="form.name"
+              class="mobile-direct-create__td-control"
+              placeholder="请输入明细名称"
+              :maxlength="20"
+              clearable
+            />
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">金额</label>
+            <button type="button" class="mobile-direct-create__value-field" @click="amountKeyboardVisible = true">
+              <span class="mobile-direct-create__value-placeholder">
+                {{ form.amount ? '已录入金额' : '点击输入金额' }}
+              </span>
+              <strong class="mobile-direct-create__value-text">
+                {{ form.amount ? `￥ ${form.amount}` : '￥ 0' }}
+              </strong>
+            </button>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">明细日期</label>
+            <button type="button" class="mobile-direct-create__value-field" @click="openDatePicker">
+              <span class="mobile-direct-create__value-text">{{ form.detailDate || '请选择日期' }}</span>
+              <small class="mobile-direct-create__value-placeholder">点击选择</small>
+            </button>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">支付方式</label>
+            <button type="button" class="mobile-direct-create__selector-field" @click="openPaymentPicker">
+              <span>{{ selectedPaymentMethodLabel }}</span>
+              <small>点击选择</small>
+            </button>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">备注</label>
+            <t-textarea
+              v-model="form.remark"
+              class="mobile-direct-create__td-control"
+              placeholder="选填，补充这笔明细的说明"
+              :maxlength="20"
+              :indicator="true"
+              :autosize="{ minRows: 3, maxRows: 4 }"
+            />
+          </div>
+
+          <div v-if="canManageHidden" class="mobile-direct-create__switch-card">
+            <div>
+              <p class="mobile-direct-create__switch-title">隐藏此笔</p>
+              <small class="mobile-direct-create__switch-desc">当前已进入隐私模式，可选择隐藏本次明细</small>
+            </div>
+            <t-switch
+              v-model="form.hidden"
+              size="large"
+              :custom-value="[1, 0]"
+            />
+          </div>
+        </div>
+      </t-loading>
+
+      <div class="mobile-direct-create__footer">
+        <t-button block variant="outline" size="large" @click="popupVisible = false">
+          取消
+        </t-button>
+        <t-button block theme="primary" size="large" :loading="submitting" @click="handleSubmit">
+          {{ submitButtonText }}
+        </t-button>
+      </div>
+    </div>
+  </t-popup>
+
+  <t-popup
+    v-model:visible="subjectPickerVisible"
+    placement="bottom"
+    destroy-on-close
+    :z-index="1500"
+    :close-on-overlay-click="false"
+  >
+    <div class="mobile-option-picker">
+      <div class="mobile-option-picker__header">
+        <div>
+          <p class="mobile-option-picker__eyebrow">{{ selectedCategoryLabel }}</p>
+          <h3 class="mobile-option-picker__title">选择科目</h3>
+        </div>
+        <button type="button" class="mobile-option-picker__header-btn" @click="subjectPickerVisible = false">
+          取消
+        </button>
+      </div>
+
+      <div class="mobile-option-picker__body">
+        <div v-if="subjectOptions.length" class="mobile-option-picker__subject-grid">
+          <button
+            v-for="item in subjectOptions"
+            :key="item.id"
+            type="button"
+            class="mobile-option-picker__subject-card"
+            :class="{ 'is-active': tempSubjectId === item.id }"
+            @click="tempSubjectId = item.id"
+          >
+            <span class="mobile-option-picker__subject-icon">
+              <BookkeepingSubjectIcon
+                :icon="item.icon"
+                mode="mobile"
+                size="0.8rem"
+              />
+            </span>
+            <span class="mobile-option-picker__subject-name">{{ item.name }}</span>
+          </button>
+        </div>
+
+        <div v-else class="mobile-option-picker__empty">
+          当前分类下暂无可用科目
+        </div>
+      </div>
+
+      <div class="mobile-option-picker__footer">
+        <t-button block variant="outline" size="large" @click="subjectPickerVisible = false">
+          取消
+        </t-button>
+        <t-button block theme="primary" size="large" :disabled="!tempSubjectId" @click="confirmSubjectPicker">
+          确定
+        </t-button>
+      </div>
+    </div>
+  </t-popup>
+
+  <t-popup
+    v-model:visible="paymentPickerVisible"
+    placement="bottom"
+    destroy-on-close
+    :z-index="1500"
+    :close-on-overlay-click="false"
+  >
+    <div class="mobile-option-picker">
+      <div class="mobile-option-picker__header">
+        <div>
+          <p class="mobile-option-picker__eyebrow">支付方式</p>
+          <h3 class="mobile-option-picker__title">选择支付方式</h3>
+        </div>
+        <button type="button" class="mobile-option-picker__header-btn" @click="paymentPickerVisible = false">
+          取消
+        </button>
+      </div>
+
+      <div class="mobile-option-picker__body">
+        <div class="mobile-option-picker__payment-grid">
+          <button
+            v-for="item in paymentMethodOptions"
+            :key="item.value"
+            type="button"
+            class="mobile-option-picker__payment-option"
+            :class="{ 'is-active': tempPaymentMethod === item.value }"
+            @click="tempPaymentMethod = item.value"
+          >
+            <span class="mobile-option-picker__payment-circle">
+              {{ resolvePaymentMethodMarker(item.label) }}
+            </span>
+            <span class="mobile-option-picker__payment-label">{{ item.label }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-option-picker__footer">
+        <t-button block variant="outline" size="large" @click="paymentPickerVisible = false">
+          取消
+        </t-button>
+        <t-button block theme="primary" size="large" @click="confirmPaymentPicker">
+          确定
+        </t-button>
+      </div>
+    </div>
+  </t-popup>
+
+  <t-popup
+    v-model:visible="datePickerVisible"
+    placement="bottom"
+    destroy-on-close
+    :z-index="1550"
+    :close-on-overlay-click="false"
+  >
+    <div class="mobile-direct-create__picker-popup">
+      <t-date-time-picker
+        :default-value="datePickerValue"
+        title="选择日期"
+        format="YYYY-MM-DD"
+        mode="date"
+        @confirm="handleDateConfirm"
+        @cancel="handleDateCancel"
+      />
+    </div>
+  </t-popup>
+
+  <MobileAmountKeyboard
+    v-model:visible="amountKeyboardVisible"
+    v-model="form.amount"
+  />
+</template>
+
+<script setup lang="ts">
+/**
+ * 移动端直接填写明细弹层
+ *
+ * @author Wangsongsong
+ * @date 2026-03-27
+ * @update 2026-03-27 @Wangsongsong
+ * @desc 新增移动端直达填写明细交互，新增入口不再先进入科目选择页，改为在表单内通过 Popup 选择分类科目和支付方式
+ */
+import dayjs from 'dayjs'
+import { computed, reactive, ref, watch } from 'vue'
+import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
+import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
+import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
+import { useDict } from '@/hooks/app'
+import { usePrivacyStore, useUserStore } from '@/stores'
+import { mobileToast } from '@/utils/mobile-toast'
+import has from '@/utils/has'
+import { useDetailUserOptions } from '@/views/bookkeeping/shared/useDetailUserOptions'
+import MobileAmountKeyboard from './MobileAmountKeyboard.vue'
+
+interface Props {
+  visible: boolean
+  detailId?: string
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  (e: 'update:visible', value: boolean): void
+  (e: 'save-success'): void
+}>()
+
+defineOptions({ name: 'MobileDetailDirectCreatePopup' })
+
+const userStore = useUserStore()
+const privacyStore = usePrivacyStore()
+const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
+const { bk_subject_category: bkSubjectCategory, bk_payment_method: bkPaymentMethod } = useDict('bk_subject_category', 'bk_payment_method')
+
+const MAX_AMOUNT = 999999
+const getToday = () => dayjs().format('YYYY-MM-DD')
+
+const popupVisible = computed({
+  get: () => props.visible,
+  set: (value: boolean) => emit('update:visible', value),
+})
+const currentDetailId = computed(() => props.detailId || '')
+const isUpdate = computed(() => !!currentDetailId.value)
+const popupEyebrow = computed(() => (isUpdate.value ? '移动端编辑明细' : '移动端新增明细'))
+const popupTitle = computed(() => (isUpdate.value ? '编辑明细' : '填写明细'))
+const submitButtonText = computed(() => (isUpdate.value ? '保存' : '完成'))
+
+const optionsLoading = ref(false)
+const submitting = ref(false)
+const allSubjects = ref<SubjectResp[]>([])
+const lastAutoFillName = ref('')
+const datePickerVisible = ref(false)
+const amountKeyboardVisible = ref(false)
+const subjectPickerVisible = ref(false)
+const paymentPickerVisible = ref(false)
+const tempSubjectId = ref('')
+const tempPaymentMethod = ref('default')
+const datePickerValue = ref(getToday())
+
+const canManageHidden = computed(() => has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode)
+const categoryOptions = computed(() =>
+  bkSubjectCategory.value.map(item => ({
+    label: String(item.label),
+    value: String(item.value),
+  })),
+)
+const paymentMethodOptions = computed(() =>
+  bkPaymentMethod.value.map(item => ({
+    label: String(item.label),
+    value: String(item.value),
+  })),
+)
+
+const createDefaultForm = () => ({
+  userId: String(userStore.userInfo.id || ''),
+  category: '',
+  subjectId: '',
+  name: '',
+  amount: '',
+  detailDate: getToday(),
+  paymentMethod: 'default',
+  remark: '',
+  hidden: 0,
+})
+
+const form = reactive(createDefaultForm())
+
+const selectedCategoryLabel = computed(() => {
+  const current = categoryOptions.value.find(item => item.value === form.category)
+  return current?.label || '当前分类'
+})
+
+const subjectOptions = computed(() =>
+  allSubjects.value.filter(item => item.status === 1 && item.category === form.category),
+)
+
+const selectedSubject = computed(() =>
+  subjectOptions.value.find(item => item.id === form.subjectId) || null,
+)
+
+const selectedSubjectName = computed(() => selectedSubject.value?.name || '')
+
+const selectedPaymentMethodLabel = computed(() => {
+  const current = paymentMethodOptions.value.find(item => item.value === form.paymentMethod)
+  return current?.label || '默认'
+})
+
+const resolvePaymentMethodMarker = (label: string) => String(label || '').trim().slice(0, 1) || '?'
+
+const resetState = () => {
+  Object.assign(form, createDefaultForm())
+  lastAutoFillName.value = ''
+  tempSubjectId.value = ''
+  tempPaymentMethod.value = form.paymentMethod
+  datePickerValue.value = form.detailDate || getToday()
+  datePickerVisible.value = false
+  amountKeyboardVisible.value = false
+  subjectPickerVisible.value = false
+  paymentPickerVisible.value = false
+}
+
+const loadSubjectOptions = async () => {
+  if (allSubjects.value.length) return
+  const { data } = await listSubject({ sort: ['sort,asc'], page: 1, size: 200 } as any)
+  allSubjects.value = data.list ?? []
+}
+
+const fillFormByDetail = async (id: string) => {
+  const { data } = await getDetail(id)
+  const matchedSubject = allSubjects.value.find(item => item.id === data.subjectId)
+  const category = data.subjectCategory || matchedSubject?.category || ''
+  const name = String(data.name || '')
+
+  Object.assign(form, createDefaultForm(), {
+    ...data,
+    userId: String(data.userId || userStore.userInfo.id || ''),
+    category,
+    subjectId: data.subjectId || '',
+    name,
+    amount: data.amount == null ? '' : String(Math.abs(Number(data.amount))),
+    detailDate: data.detailDate || getToday(),
+    paymentMethod: data.paymentMethod || 'default',
+    remark: data.remark || '',
+    hidden: data.hidden ?? 0,
+  })
+
+  lastAutoFillName.value = name
+  tempSubjectId.value = form.subjectId
+  tempPaymentMethod.value = form.paymentMethod
+  datePickerValue.value = form.detailDate || getToday()
+}
+
+const ensureOptionsLoaded = async () => {
+  const tasks: Promise<any>[] = [loadSubjectOptions()]
+  if (isAdmin.value) {
+    tasks.push(loadUserOptions())
+  }
+  await Promise.all(tasks)
+}
+
+const resetSubjectAndName = () => {
+  form.subjectId = ''
+  if (form.name === lastAutoFillName.value) {
+    form.name = ''
+  }
+  lastAutoFillName.value = ''
+}
+
+const handleCategoryChange = (category: string) => {
+  const changed = form.category !== category
+  form.category = category
+  if (changed) {
+    resetSubjectAndName()
+  }
+  tempSubjectId.value = form.subjectId
+  subjectPickerVisible.value = true
+}
+
+const openSubjectPicker = () => {
+  if (!form.category) {
+    mobileToast.warning('请先选择分类')
+    return
+  }
+  tempSubjectId.value = form.subjectId
+  subjectPickerVisible.value = true
+}
+
+const confirmSubjectPicker = () => {
+  if (!tempSubjectId.value) {
+    mobileToast.warning('请选择科目')
+    return
+  }
+
+  form.subjectId = tempSubjectId.value
+  const current = subjectOptions.value.find(item => item.id === tempSubjectId.value)
+  if (current && (!String(form.name || '').trim() || form.name === lastAutoFillName.value)) {
+    form.name = current.name
+    lastAutoFillName.value = current.name
+  }
+  subjectPickerVisible.value = false
+}
+
+const openPaymentPicker = () => {
+  tempPaymentMethod.value = form.paymentMethod || 'default'
+  paymentPickerVisible.value = true
+}
+
+const confirmPaymentPicker = () => {
+  form.paymentMethod = tempPaymentMethod.value || 'default'
+  paymentPickerVisible.value = false
+}
+
+const openDatePicker = () => {
+  datePickerValue.value = form.detailDate || getToday()
+  datePickerVisible.value = true
+}
+
+const handleDateCancel = () => {
+  datePickerVisible.value = false
+}
+
+const handleDateConfirm = (value: string | number) => {
+  form.detailDate = dayjs(String(value)).format('YYYY-MM-DD')
+  datePickerValue.value = form.detailDate
+  datePickerVisible.value = false
+}
+
+const validateForm = () => {
+  const name = String(form.name || '').trim()
+  const remark = String(form.remark || '').trim()
+  const amount = Number(form.amount)
+
+  if (isAdmin.value && !form.userId) {
+    mobileToast.warning('请选择记账用户')
+    return false
+  }
+  if (!form.category) {
+    mobileToast.warning('请选择分类')
+    return false
+  }
+  if (!form.subjectId) {
+    mobileToast.warning('请选择科目')
+    return false
+  }
+  if (!name) {
+    mobileToast.warning('请输入明细名称')
+    return false
+  }
+  if (name.length > 20) {
+    mobileToast.warning('明细名称最多 20 个字')
+    return false
+  }
+  if (!form.amount) {
+    mobileToast.warning('请输入金额')
+    return false
+  }
+  if (Number.isNaN(amount) || amount <= 0) {
+    mobileToast.warning('请输入正确的金额')
+    return false
+  }
+  if (amount > MAX_AMOUNT) {
+    mobileToast.warning(`金额不能超过 ${MAX_AMOUNT}`)
+    return false
+  }
+  if (!form.detailDate) {
+    mobileToast.warning('请选择明细日期')
+    return false
+  }
+  if (!form.paymentMethod) {
+    mobileToast.warning('请选择支付方式')
+    return false
+  }
+  if (remark.length > 20) {
+    mobileToast.warning('备注最多 20 个字')
+    return false
+  }
+  return true
+}
+
+const handleSubmit = async () => {
+  if (!validateForm()) return
+
+  const payload = {
+    ...form,
+    name: String(form.name || '').trim(),
+    remark: String(form.remark || '').trim(),
+    amount: Number(form.amount),
+    userId: isAdmin.value ? form.userId : String(userStore.userInfo.id || ''),
+  }
+
+  submitting.value = true
+  try {
+    if (isUpdate.value && currentDetailId.value) {
+      await updateDetail(payload, currentDetailId.value)
+      mobileToast.success('修改成功')
+    } else {
+      await addDetail(payload)
+      mobileToast.success('新增成功')
+    }
+    popupVisible.value = false
+    emit('save-success')
+  } finally {
+    submitting.value = false
+  }
+}
+
+watch(
+  [() => props.visible, currentDetailId],
+  async ([visible]) => {
+    if (!visible) {
+      resetState()
+      return
+    }
+
+    resetState()
+    optionsLoading.value = true
+    try {
+      await ensureOptionsLoaded()
+      if (currentDetailId.value) {
+        await fillFormByDetail(currentDetailId.value)
+      }
+    } finally {
+      optionsLoading.value = false
+    }
+  },
+)
+</script>
+
+<style scoped lang="scss">
+.mobile-direct-create {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.48rem 0.48rem 0 0;
+  background: linear-gradient(180deg, #fffaf1 0%, #fff6e6 100%);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 0.24rem);
+  padding: 0.32rem 0.32rem calc(env(safe-area-inset-bottom) + 0.44rem);
+  box-shadow: 0 -0.18rem 0.52rem rgba(146, 97, 0, 0.14);
+  overflow: hidden;
+}
+
+.mobile-direct-create__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.2rem;
+  margin-bottom: 0.28rem;
+}
+
+.mobile-direct-create__eyebrow {
+  margin: 0 0 0.08rem;
+  color: #b47b00;
+  font-size: 0.26rem;
+  font-weight: 600;
+}
+
+.mobile-direct-create__title {
+  margin: 0;
+  color: #4c3200;
+  font-size: 0.44rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mobile-direct-create__close,
+.mobile-option-picker__header-btn {
+  border: none;
+  border-radius: 999rem;
+  background: rgba(255, 255, 255, 0.88);
+  color: #7d5a00;
+  padding: 0.18rem 0.3rem;
+  font-size: 0.28rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 0.08rem 0.2rem rgba(146, 97, 0, 0.08);
+}
+
+.mobile-direct-create__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.24rem;
+  overflow-y: auto;
+  padding-right: 0.04rem;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.mobile-direct-create__category-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.2rem;
+}
+
+.mobile-direct-create__category-btn {
+  min-height: 0.92rem;
+  border: 0.02rem solid rgba(146, 97, 0, 0.12);
+  border-radius: 0.24rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #7d5a00;
+  font-size: 0.3rem;
+  font-weight: 700;
+}
+
+.mobile-direct-create__category-btn.is-active {
+  border-color: rgba(239, 188, 46, 0.35);
+  background: linear-gradient(135deg, rgba(255, 233, 134, 0.9) 0%, rgba(255, 216, 77, 0.92) 100%);
+  color: #5f4a00;
+  box-shadow: 0 0.12rem 0.24rem rgba(239, 188, 46, 0.18);
+}
+
+.mobile-direct-create__selector-field,
+.mobile-direct-create__value-field,
+.mobile-direct-create__switch-card {
+  width: 100%;
+  border: 0.02rem solid rgba(146, 97, 0, 0.1);
+  border-radius: 0.28rem;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.mobile-direct-create__selector-field,
+.mobile-direct-create__value-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.24rem;
+  min-height: 0.96rem;
+  padding: 0 0.28rem;
+  text-align: left;
+}
+
+.mobile-direct-create__selector-field.is-disabled {
+  opacity: 0.65;
+}
+
+.mobile-direct-create__selector-field span,
+.mobile-direct-create__value-text {
+  color: #4c3200;
+  font-size: 0.34rem;
+  font-weight: 700;
+}
+
+.mobile-direct-create__selector-field small,
+.mobile-direct-create__value-placeholder {
+  color: #a07f32;
+  font-size: 0.26rem;
+}
+
+.mobile-direct-create__td-control :deep(.t-input),
+.mobile-direct-create__td-control :deep(.t-textarea) {
+  border-radius: 0.28rem;
+  border-color: rgba(146, 97, 0, 0.1);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.mobile-direct-create__td-control :deep(.t-input__inner),
+.mobile-direct-create__td-control :deep(.t-textarea__inner) {
+  color: #4c3200;
+  font-size: 0.3rem;
+}
+
+.mobile-direct-create__switch-card {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.24rem;
+  padding: 0.24rem 0.36rem 0.24rem 0.28rem;
+}
+
+.mobile-direct-create__switch-title {
+  margin: 0 0 0.08rem;
+  color: #4c3200;
+  font-size: 0.3rem;
+  font-weight: 700;
+}
+
+.mobile-direct-create__switch-desc {
+  color: #a07f32;
+  font-size: 0.24rem;
+  line-height: 1.4;
+}
+
+.mobile-direct-create__footer,
+.mobile-option-picker__footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.2rem;
+}
+
+.mobile-direct-create__footer {
+  flex-shrink: 0;
+  margin-top: 0.28rem;
+  padding-top: 0.22rem;
+  padding-bottom: 0.16rem;
+  background: linear-gradient(180deg, rgba(255, 246, 230, 0) 0%, rgba(255, 246, 230, 0.9) 28%, rgba(255, 246, 230, 1) 100%);
+}
+
+.mobile-direct-create__footer :deep(.t-button),
+.mobile-option-picker__footer :deep(.t-button) {
+  min-height: 0.96rem;
+  border-radius: 0.26rem;
+  font-size: 0.3rem;
+  font-weight: 700;
+}
+
+.mobile-direct-create__footer :deep(.t-button--primary),
+.mobile-option-picker__footer :deep(.t-button--primary) {
+  border: none;
+  background: linear-gradient(135deg, #f7cf4b 0%, #efbc2e 100%);
+  color: #5c3d00;
+  box-shadow: 0 0.12rem 0.26rem rgba(239, 188, 46, 0.24);
+}
+
+.mobile-direct-create__footer :deep(.t-button--outline),
+.mobile-option-picker__footer :deep(.t-button--outline) {
+  border-color: rgba(146, 97, 0, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: #7d5a00;
+}
+
+.mobile-option-picker {
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.48rem 0.48rem 0 0;
+  background: linear-gradient(180deg, #fffaf1 0%, #fff7ea 100%);
+  max-height: calc(100dvh - env(safe-area-inset-top) - 0.64rem);
+  padding: 0.32rem 0.24rem calc(env(safe-area-inset-bottom) + 0.36rem);
+  box-shadow: 0 -0.18rem 0.52rem rgba(146, 97, 0, 0.14);
+  overflow: hidden;
+}
+
+.mobile-option-picker__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.2rem;
+  margin-bottom: 0.24rem;
+}
+
+.mobile-option-picker__eyebrow {
+  margin: 0 0 0.08rem;
+  color: #b47b00;
+  font-size: 0.26rem;
+  font-weight: 600;
+}
+
+.mobile-option-picker__title {
+  margin: 0;
+  color: #4c3200;
+  font-size: 0.42rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mobile-option-picker__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-option-picker__subject-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  row-gap: 0.38rem;
+}
+
+.mobile-option-picker__subject-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.16rem;
+  min-height: 1.76rem;
+  flex: 0 0 25%;
+  width: 25%;
+  max-width: 25%;
+  border: none;
+  background: transparent;
+  padding: 0 0.06rem;
+}
+
+.mobile-option-picker__subject-card.is-active .mobile-option-picker__subject-icon {
+  background: linear-gradient(180deg, #ffe986 0%, #ffd84d 100%);
+  color: #5f4a00;
+  box-shadow: 0 0.08rem 0.18rem rgba(255, 209, 61, 0.28);
+}
+
+.mobile-option-picker__subject-card.is-active .mobile-option-picker__subject-name {
+  color: #1f1f1f;
+  font-weight: 500;
+}
+
+.mobile-option-picker__subject-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: #f5f5f5;
+  color: #666;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.mobile-option-picker__subject-icon :deep(.svg-icon) {
+  width: 0.66rem;
+  height: 0.66rem;
+}
+
+.mobile-option-picker__subject-name {
+  max-width: 100%;
+  overflow: hidden;
+  color: #303133;
+  font-size: 0.4rem;
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mobile-option-picker__payment-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.24rem 0.08rem;
+  align-items: start;
+}
+
+.mobile-option-picker__payment-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.mobile-option-picker__payment-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.96rem;
+  height: 0.96rem;
+  border-radius: 50%;
+  background: #f2f2f2;
+  color: #666;
+  font-size: 0.32rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.mobile-option-picker__payment-option.is-active .mobile-option-picker__payment-circle {
+  background: linear-gradient(180deg, #ffe986 0%, #ffd84d 100%);
+  color: #5f4a00;
+  box-shadow: 0 0.08rem 0.18rem rgba(255, 209, 61, 0.28);
+  transform: translateY(-0.01rem);
+}
+
+.mobile-option-picker__payment-label {
+  min-width: 0;
+  min-height: 0.56rem;
+  color: #303133;
+  font-size: 0.24rem;
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mobile-option-picker__payment-option.is-active .mobile-option-picker__payment-label {
+  color: #1f1f1f;
+  font-weight: 500;
+}
+
+.mobile-option-picker__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  color: #909399;
+  font-size: 0.28rem;
+  line-height: 1.6;
+  text-align: center;
+  padding: 0 0.24rem;
+}
+
+.mobile-option-picker__footer {
+  margin-top: 0.24rem;
+  padding-top: 0.2rem;
+}
+
+.mobile-direct-create__picker-popup {
+  overflow: hidden;
+  background: #fff;
+  border-radius: 0.32rem 0.32rem 0 0;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.24rem);
+  box-shadow: 0 -0.08rem 0.32rem rgba(15, 23, 42, 0.08);
+}
+
+.mobile-direct-create__picker-popup :deep(.t-picker) {
+  background: transparent;
+}
+</style>

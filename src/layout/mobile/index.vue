@@ -106,9 +106,6 @@ const openEditPopup = (id: string) => {
 
 const handleSaveSuccess = () => {
   mittBus.emit('mobile-detail-refresh')
-  if (route.path !== '/m/bookkeeping/detail') {
-    router.push('/m/bookkeeping/detail')
-  }
 }
 
 const handleBack = () => {

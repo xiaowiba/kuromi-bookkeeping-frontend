@@ -1,24 +1,13 @@
 <template>
-  <t-popup
-    v-model:visible="popupVisible"
-    placement="bottom"
-    destroy-on-close
-    :z-index="1400"
-    :close-on-overlay-click="false"
-  >
+  <div v-if="popupVisible" class="mobile-direct-create-overlay">
     <div class="mobile-direct-create">
-      <div class="mobile-direct-create__header">
-        <div>
-          <p class="mobile-direct-create__eyebrow">{{ popupEyebrow }}</p>
-          <h3 class="mobile-direct-create__title">{{ popupTitle }}</h3>
-        </div>
-        <button type="button" class="mobile-direct-create__close" @click="popupVisible = false">
-          关闭
-        </button>
-      </div>
+      <t-loading :loading="optionsLoading" class="mobile-direct-create__loading">
+        <div ref="bodyRef" class="mobile-direct-create__body">
+          <div class="mobile-direct-create__intro">
+            <p class="mobile-direct-create__eyebrow">{{ popupEyebrow }}</p>
+            <h3 class="mobile-direct-create__title">{{ popupTitle }}</h3>
+          </div>
 
-      <t-loading :loading="optionsLoading">
-        <div class="mobile-direct-create__body">
           <div v-if="isAdmin" class="mobile-field">
             <label class="mobile-field__label">记账用户</label>
             <select v-model="form.userId" class="mobile-select">
@@ -32,30 +21,40 @@
           <div class="mobile-field">
             <label class="mobile-field__label">分类</label>
             <div class="mobile-direct-create__category-group" role="radiogroup" aria-label="分类">
-              <button
+              <t-button
                 v-for="item in categoryOptions"
                 :key="item.value"
-                type="button"
+                block
+                size="large"
+                variant="text"
                 class="mobile-direct-create__category-btn"
                 :class="{ 'is-active': form.category === item.value }"
                 @click="handleCategoryChange(item.value)"
               >
                 {{ item.label }}
-              </button>
+              </t-button>
             </div>
           </div>
 
           <div class="mobile-field">
             <label class="mobile-field__label">科目</label>
-            <button
-              type="button"
+            <t-button
+              block
+              size="large"
+              variant="text"
               class="mobile-direct-create__selector-field"
               :class="{ 'is-disabled': !form.category }"
               @click="openSubjectPicker"
             >
-              <span>{{ selectedSubjectName || '请选择科目' }}</span>
-              <small>{{ form.category ? '点击选择' : '请先选择分类' }}</small>
-            </button>
+              <span class="mobile-direct-create__field-main">
+                {{ selectedSubjectName || '请选择科目' }}
+              </span>
+              <template #suffix>
+                <small class="mobile-direct-create__field-side">
+                  {{ form.category ? '点击选择' : '请先选择分类' }}
+                </small>
+              </template>
+            </t-button>
           </div>
 
           <div class="mobile-field">
@@ -71,30 +70,40 @@
 
           <div class="mobile-field">
             <label class="mobile-field__label">金额</label>
-            <button type="button" class="mobile-direct-create__value-field" @click="amountKeyboardVisible = true">
-              <span class="mobile-direct-create__value-placeholder">
+            <t-button block size="large" variant="text" class="mobile-direct-create__value-field" @click="amountKeyboardVisible = true">
+              <span class="mobile-direct-create__field-main mobile-direct-create__value-placeholder">
                 {{ form.amount ? '已录入金额' : '点击输入金额' }}
               </span>
-              <strong class="mobile-direct-create__value-text">
-                {{ form.amount ? `￥ ${form.amount}` : '￥ 0' }}
-              </strong>
-            </button>
+              <template #suffix>
+                <strong class="mobile-direct-create__value-text">
+                  {{ form.amount ? `￥ ${form.amount}` : '￥ 0' }}
+                </strong>
+              </template>
+            </t-button>
           </div>
 
           <div class="mobile-field">
             <label class="mobile-field__label">明细日期</label>
-            <button type="button" class="mobile-direct-create__value-field" @click="openDatePicker">
-              <span class="mobile-direct-create__value-text">{{ form.detailDate || '请选择日期' }}</span>
-              <small class="mobile-direct-create__value-placeholder">点击选择</small>
-            </button>
+            <t-button block size="large" variant="text" class="mobile-direct-create__value-field" @click="openDatePicker">
+              <span class="mobile-direct-create__field-main mobile-direct-create__value-text">
+                {{ form.detailDate || '请选择日期' }}
+              </span>
+              <template #suffix>
+                <small class="mobile-direct-create__value-placeholder">点击选择</small>
+              </template>
+            </t-button>
           </div>
 
           <div class="mobile-field">
             <label class="mobile-field__label">支付方式</label>
-            <button type="button" class="mobile-direct-create__selector-field" @click="openPaymentPicker">
-              <span>{{ selectedPaymentMethodLabel }}</span>
-              <small>点击选择</small>
-            </button>
+            <t-button block size="large" variant="text" class="mobile-direct-create__selector-field" @click="openPaymentPicker">
+              <span class="mobile-direct-create__field-main">
+                {{ selectedPaymentMethodLabel }}
+              </span>
+              <template #suffix>
+                <small class="mobile-direct-create__field-side">点击选择</small>
+              </template>
+            </t-button>
           </div>
 
           <div class="mobile-field">
@@ -105,7 +114,7 @@
               placeholder="选填，补充这笔明细的说明"
               :maxlength="20"
               :indicator="true"
-              :autosize="{ minRows: 3, maxRows: 4 }"
+              :autosize="{ minRows: 1, maxRows: 2 }"
             />
           </div>
 
@@ -124,7 +133,7 @@
       </t-loading>
 
       <div class="mobile-direct-create__footer">
-        <t-button block variant="outline" size="large" @click="popupVisible = false">
+        <t-button block variant="outline" size="large" @click="handleClose">
           取消
         </t-button>
         <t-button block theme="primary" size="large" :loading="submitting" @click="handleSubmit">
@@ -132,14 +141,17 @@
         </t-button>
       </div>
     </div>
-  </t-popup>
+  </div>
 
   <t-popup
     v-model:visible="subjectPickerVisible"
     placement="bottom"
-    destroy-on-close
+    :prevent-scroll-through="true"
+    :close-btn="true"
+    :destroy-on-close="true"
     :z-index="1500"
-    :close-on-overlay-click="false"
+    :show-overlay="true"
+    :close-on-overlay-click="true"
   >
     <div class="mobile-option-picker">
       <div class="mobile-option-picker__header">
@@ -147,30 +159,34 @@
           <p class="mobile-option-picker__eyebrow">{{ selectedCategoryLabel }}</p>
           <h3 class="mobile-option-picker__title">选择科目</h3>
         </div>
-        <button type="button" class="mobile-option-picker__header-btn" @click="subjectPickerVisible = false">
+        <!-- t-button size="large" variant="text" class="mobile-option-picker__header-btn" @click="subjectPickerVisible = false">
           取消
-        </button>
+        </t-button -->
       </div>
 
       <div class="mobile-option-picker__body">
         <div v-if="subjectOptions.length" class="mobile-option-picker__subject-grid">
-          <button
+          <t-button
             v-for="item in subjectOptions"
             :key="item.id"
-            type="button"
+            block
+            size="large"
+            variant="text"
             class="mobile-option-picker__subject-card"
             :class="{ 'is-active': tempSubjectId === item.id }"
             @click="tempSubjectId = item.id"
           >
-            <span class="mobile-option-picker__subject-icon">
-              <BookkeepingSubjectIcon
-                :icon="item.icon"
-                mode="mobile"
-                size="0.8rem"
-              />
+            <span class="mobile-option-picker__subject-card-content">
+              <span class="mobile-option-picker__subject-icon">
+                <BookkeepingSubjectIcon
+                  :icon="item.icon"
+                  mode="mobile"
+                  size="0.8rem"
+                />
+              </span>
+              <span class="mobile-option-picker__subject-name">{{ item.name }}</span>
             </span>
-            <span class="mobile-option-picker__subject-name">{{ item.name }}</span>
-          </button>
+          </t-button>
         </div>
 
         <div v-else class="mobile-option-picker__empty">
@@ -192,9 +208,12 @@
   <t-popup
     v-model:visible="paymentPickerVisible"
     placement="bottom"
-    destroy-on-close
+    :prevent-scroll-through="true"
+    :close-btn="true"
+    :destroy-on-close="true"
     :z-index="1500"
-    :close-on-overlay-click="false"
+    :show-overlay="true"
+    :close-on-overlay-click="true"
   >
     <div class="mobile-option-picker">
       <div class="mobile-option-picker__header">
@@ -202,26 +221,30 @@
           <p class="mobile-option-picker__eyebrow">支付方式</p>
           <h3 class="mobile-option-picker__title">选择支付方式</h3>
         </div>
-        <button type="button" class="mobile-option-picker__header-btn" @click="paymentPickerVisible = false">
+        <!-- t-button size="large" variant="text" class="mobile-option-picker__header-btn" @click="paymentPickerVisible = false">
           取消
-        </button>
+        </t-button -->
       </div>
 
       <div class="mobile-option-picker__body">
         <div class="mobile-option-picker__payment-grid">
-          <button
+          <t-button
             v-for="item in paymentMethodOptions"
             :key="item.value"
-            type="button"
+            block
+            size="large"
+            variant="text"
             class="mobile-option-picker__payment-option"
             :class="{ 'is-active': tempPaymentMethod === item.value }"
             @click="tempPaymentMethod = item.value"
           >
-            <span class="mobile-option-picker__payment-circle">
-              {{ resolvePaymentMethodMarker(item.label) }}
+            <span class="mobile-option-picker__payment-option-content">
+              <span class="mobile-option-picker__payment-circle">
+                {{ resolvePaymentMethodMarker(item.label) }}
+              </span>
+              <span class="mobile-option-picker__payment-label">{{ item.label }}</span>
             </span>
-            <span class="mobile-option-picker__payment-label">{{ item.label }}</span>
-          </button>
+          </t-button>
         </div>
       </div>
 
@@ -268,17 +291,17 @@
  * @author Wangsongsong
  * @date 2026-03-27
  * @update 2026-03-27 @Wangsongsong
- * @desc 新增移动端直达填写明细交互，新增入口不再先进入科目选择页，改为在表单内通过 Popup 选择分类科目和支付方式
+ * @desc 新增移动端直达填写明细交互，新增与编辑入口复用同一表单组件，在表单内通过 Popup 选择分类科目和支付方式
  */
 import dayjs from 'dayjs'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
 import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
 import { useDict } from '@/hooks/app'
 import { usePrivacyStore, useUserStore } from '@/stores'
-import { mobileToast } from '@/utils/mobile-toast'
 import has from '@/utils/has'
+import { mobileToast } from '@/utils/mobile-toast'
 import { useDetailUserOptions } from '@/views/bookkeeping/shared/useDetailUserOptions'
 import MobileAmountKeyboard from './MobileAmountKeyboard.vue'
 
@@ -303,6 +326,7 @@ const { bk_subject_category: bkSubjectCategory, bk_payment_method: bkPaymentMeth
 const MAX_AMOUNT = 999999
 const getToday = () => dayjs().format('YYYY-MM-DD')
 
+const bodyRef = ref<HTMLElement | null>(null)
 const popupVisible = computed({
   get: () => props.visible,
   set: (value: boolean) => emit('update:visible', value),
@@ -493,6 +517,10 @@ const handleDateConfirm = (value: string | number) => {
   datePickerVisible.value = false
 }
 
+const handleClose = () => {
+  popupVisible.value = false
+}
+
 const validateForm = () => {
   const name = String(form.name || '').trim()
   const remark = String(form.remark || '').trim()
@@ -572,6 +600,21 @@ const handleSubmit = async () => {
   }
 }
 
+const initializePage = async () => {
+  resetState()
+  optionsLoading.value = true
+  try {
+    await ensureOptionsLoaded()
+    if (currentDetailId.value) {
+      await fillFormByDetail(currentDetailId.value)
+    }
+  } finally {
+    optionsLoading.value = false
+    await nextTick()
+    bodyRef.value?.scrollTo({ top: 0, behavior: 'auto' })
+  }
+}
+
 watch(
   [() => props.visible, currentDetailId],
   async ([visible]) => {
@@ -580,42 +623,52 @@ watch(
       return
     }
 
-    resetState()
-    optionsLoading.value = true
-    try {
-      await ensureOptionsLoaded()
-      if (currentDetailId.value) {
-        await fillFormByDetail(currentDetailId.value)
-      }
-    } finally {
-      optionsLoading.value = false
-    }
+    await initializePage()
   },
 )
 </script>
 
 <style scoped lang="scss">
-.mobile-direct-create {
+.mobile-direct-create-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
   display: flex;
   flex-direction: column;
-  border-radius: 0.48rem 0.48rem 0 0;
+  padding: calc(env(safe-area-inset-top) + 0.08rem) 0 calc(env(safe-area-inset-bottom) + 0.08rem);
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(255, 250, 241, 0.98) 0%, rgba(255, 246, 230, 0.98) 100%);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.mobile-direct-create {
+  --mobile-direct-create-field-height: 1.18rem;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 0.16rem);
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 0.16rem);
+  margin: 0 auto;
+  box-sizing: border-box;
+  border-radius: 0;
   background: linear-gradient(180deg, #fffaf1 0%, #fff6e6 100%);
-  max-height: calc(100dvh - env(safe-area-inset-top) - 0.24rem);
-  padding: 0.32rem 0.32rem calc(env(safe-area-inset-bottom) + 0.44rem);
-  box-shadow: 0 -0.18rem 0.52rem rgba(146, 97, 0, 0.14);
+  padding: 0.12rem 0 0.12rem;
+  // box-shadow: 0 0.16rem 0.44rem rgba(146, 97, 0, 0.12);
   overflow: hidden;
 }
 
-.mobile-direct-create__header {
+.mobile-direct-create__intro {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.2rem;
-  margin-bottom: 0.28rem;
+  flex-direction: column;
+  gap: 0.04rem;
+  margin-bottom: 0.02rem;
+  padding: 0;
 }
 
 .mobile-direct-create__eyebrow {
-  margin: 0 0 0.08rem;
+  margin: 0;
   color: #b47b00;
   font-size: 0.26rem;
   font-weight: 600;
@@ -629,7 +682,6 @@ watch(
   line-height: 1.2;
 }
 
-.mobile-direct-create__close,
 .mobile-option-picker__header-btn {
   border: none;
   border-radius: 999rem;
@@ -642,16 +694,65 @@ watch(
   box-shadow: 0 0.08rem 0.2rem rgba(146, 97, 0, 0.08);
 }
 
+.mobile-direct-create__loading {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobile-direct-create__loading :deep(.t-loading__parent),
+.mobile-direct-create__loading :deep(.t-loading__parent--relative) {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .mobile-direct-create__body {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.24rem;
+  gap: 0.16rem;
+  // padding: 0 0 10px;
+  overflow-x: hidden;
   overflow-y: auto;
-  padding-right: 0.04rem;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  touch-action: pan-y;
+  width: calc(100vw - 0.4rem);
+  padding: 0.1rem 0.2rem;
+}
+
+.mobile-direct-create__body .mobile-field {
+  gap: 0.1rem;
+}
+
+.mobile-direct-create__body .mobile-field__label {
+  font-size: 0.26rem;
+  line-height: 1.2;
+}
+
+.mobile-direct-create__category-btn,
+.mobile-direct-create__selector-field,
+.mobile-direct-create__value-field,
+.mobile-option-picker__subject-card,
+.mobile-option-picker__payment-option {
+  padding: 0;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.mobile-direct-create__category-btn::after,
+.mobile-direct-create__selector-field::after,
+.mobile-direct-create__value-field::after,
+.mobile-option-picker__header-btn::after,
+.mobile-option-picker__subject-card::after,
+.mobile-option-picker__payment-option::after {
+  display: none;
 }
 
 .mobile-direct-create__category-group {
@@ -661,18 +762,22 @@ watch(
 }
 
 .mobile-direct-create__category-btn {
-  min-height: 0.92rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // min-height: 0.96rem;
   border: 0.02rem solid rgba(146, 97, 0, 0.12);
-  border-radius: 0.24rem;
+  // border-radius: 0.24rem;
   background: rgba(255, 255, 255, 0.92);
   color: #7d5a00;
-  font-size: 0.3rem;
-  font-weight: 700;
+  // font-size: 0.4rem;
+  // font-weight: 700;
+  height: 1.12rem;
 }
 
 .mobile-direct-create__category-btn.is-active {
   border-color: rgba(239, 188, 46, 0.35);
-  background: linear-gradient(135deg, rgba(255, 233, 134, 0.9) 0%, rgba(255, 216, 77, 0.92) 100%);
+  background: linear-gradient(135deg, #f7cf4b 0%, #efbc2e 100%);
   color: #5f4a00;
   box-shadow: 0 0.12rem 0.24rem rgba(239, 188, 46, 0.18);
 }
@@ -688,37 +793,71 @@ watch(
 
 .mobile-direct-create__selector-field,
 .mobile-direct-create__value-field {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 0.24rem;
-  min-height: 0.96rem;
+  box-sizing: border-box;
+  min-height: var(--mobile-direct-create-field-height);
+  height: var(--mobile-direct-create-field-height);
   padding: 0 0.28rem;
   text-align: left;
+}
+
+.mobile-direct-create__field-main,
+.mobile-direct-create__field-side,
+.mobile-direct-create__value-text,
+.mobile-direct-create__value-placeholder {
+  min-width: 0;
+}
+
+.mobile-direct-create__field-main {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-direct-create__selector-field.is-disabled {
   opacity: 0.65;
 }
 
-.mobile-direct-create__selector-field span,
+.mobile-direct-create__field-main,
 .mobile-direct-create__value-text {
   color: #4c3200;
-  font-size: 0.34rem;
+  font-size: 0.48rem;
   font-weight: 700;
+  line-height: 1.25;
 }
 
-.mobile-direct-create__selector-field small,
+.mobile-direct-create__field-side,
 .mobile-direct-create__value-placeholder {
   color: #a07f32;
-  font-size: 0.26rem;
+  font-size: 0.4rem;
+  line-height: 1.25;
 }
 
-.mobile-direct-create__td-control :deep(.t-input),
-.mobile-direct-create__td-control :deep(.t-textarea) {
-  border-radius: 0.28rem;
+.mobile-direct-create__field-side,
+.mobile-direct-create__value-text {
+  flex-shrink: 0;
+}
+
+:deep(.mobile-direct-create__td-control.t-input),
+:deep(.mobile-direct-create__td-control.t-textarea) {
   border-color: rgba(146, 97, 0, 0.1);
   background: rgba(255, 255, 255, 0.94);
+}
+
+:deep(.mobile-direct-create__td-control.t-input) {
+  // --td-input-vertical-padding: 0;
+  padding: 0.28rem;
+  border-radius: 0.28rem;
+  align-items: left;
+  border: 0.02rem solid rgba(146, 97, 0, 0.1);
+}
+
+:deep(.mobile-direct-create__td-control.t-input .t-input__wrap),
+:deep(.mobile-direct-create__td-control.t-input .t-input__content) {
+  align-items: left;
 }
 
 .mobile-direct-create__td-control :deep(.t-input__inner),
@@ -758,9 +897,12 @@ watch(
 
 .mobile-direct-create__footer {
   flex-shrink: 0;
-  margin-top: 0.28rem;
-  padding-top: 0.22rem;
-  padding-bottom: 0.16rem;
+  margin-top: 0;
+  padding-top: 0.12rem;
+  padding-right: 0;
+  padding-bottom: 0;
+  padding-left: 0;
+  padding: 0 0.28rem;
   background: linear-gradient(180deg, rgba(255, 246, 230, 0) 0%, rgba(255, 246, 230, 0.9) 28%, rgba(255, 246, 230, 1) 100%);
 }
 
@@ -774,10 +916,18 @@ watch(
 
 .mobile-direct-create__footer :deep(.t-button--primary),
 .mobile-option-picker__footer :deep(.t-button--primary) {
-  border: none;
+  --td-button-primary-border-color: transparent;
+  --td-button-primary-active-border-color: transparent;
+  --td-button-primary-disabled-border-color: transparent;
+  border: none !important;
   background: linear-gradient(135deg, #f7cf4b 0%, #efbc2e 100%);
   color: #5c3d00;
-  box-shadow: 0 0.12rem 0.26rem rgba(239, 188, 46, 0.24);
+  box-shadow: 0 0.08rem 0.22rem rgba(239, 188, 46, 0.22);
+}
+
+.mobile-direct-create__footer :deep(.t-button--primary::after),
+.mobile-option-picker__footer :deep(.t-button--primary::after) {
+  border-color: transparent !important;
 }
 
 .mobile-direct-create__footer :deep(.t-button--outline),
@@ -834,14 +984,10 @@ watch(
   align-items: flex-start;
   align-content: flex-start;
   row-gap: 0.38rem;
+  padding: 0.2rem 0.1rem;
 }
 
 .mobile-option-picker__subject-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.16rem;
   min-height: 1.76rem;
   flex: 0 0 25%;
   width: 25%;
@@ -849,6 +995,16 @@ watch(
   border: none;
   background: transparent;
   padding: 0 0.06rem;
+  margin: 0 0 0.4rem 0;
+}
+
+.mobile-option-picker__subject-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.16rem;
+  width: 100%;
 }
 
 .mobile-option-picker__subject-card.is-active .mobile-option-picker__subject-icon {
@@ -899,26 +1055,32 @@ watch(
 }
 
 .mobile-option-picker__payment-option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.12rem;
   min-width: 0;
   border: none;
   background: transparent;
   padding: 0;
+  margin: 0 0 1.2rem 0;
+}
+
+.mobile-option-picker__payment-option-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.16rem;
+  width: 100%;
+  white-space: normal;
 }
 
 .mobile-option-picker__payment-circle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 0.96rem;
-  height: 0.96rem;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: 50%;
   background: #f2f2f2;
   color: #666;
-  font-size: 0.32rem;
+  font-size: 0.46rem;
   font-weight: 700;
   line-height: 1;
   transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.2s ease;
@@ -932,14 +1094,15 @@ watch(
 }
 
 .mobile-option-picker__payment-label {
-  min-width: 0;
-  min-height: 0.56rem;
+  // min-width: 0;
+  // min-height: 0.56rem;
   color: #303133;
-  font-size: 0.24rem;
+  font-size: 0.4rem;
   font-weight: 400;
   line-height: 1.2;
   text-align: center;
   word-break: break-all;
+  white-space: normal;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

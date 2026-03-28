@@ -19,13 +19,13 @@
           <button type="button" class="mobile-amount-keyboard__action" @click="handleClear">
             清空
           </button>
-          <button
+          <!-- button
             type="button"
             class="mobile-amount-keyboard__action mobile-amount-keyboard__action--primary"
             @click="popupVisible = false"
           >
             完成
-          </button>
+          </button -->
         </div>
       </div>
 

@@ -175,7 +175,7 @@
             variant="text"
             class="mobile-option-picker__subject-card"
             :class="{ 'is-active': tempSubjectId === item.id }"
-            @click="tempSubjectId = item.id"
+            @click="handleSubjectSelect(item.id)"
           >
             <span class="mobile-option-picker__subject-card-content">
               <span class="mobile-option-picker__subject-icon">
@@ -193,15 +193,6 @@
         <div v-else class="mobile-option-picker__empty">
           当前分类下暂无可用科目
         </div>
-      </div>
-
-      <div class="mobile-option-picker__footer">
-        <t-button block variant="outline" size="large" @click="subjectPickerVisible = false">
-          取消
-        </t-button>
-        <t-button block theme="primary" size="large" :disabled="!tempSubjectId" @click="confirmSubjectPicker">
-          确定
-        </t-button>
       </div>
     </div>
   </t-popup>
@@ -238,7 +229,7 @@
             variant="text"
             class="mobile-option-picker__payment-option"
             :class="{ 'is-active': tempPaymentMethod === item.value }"
-            @click="tempPaymentMethod = item.value"
+            @click="handlePaymentMethodSelect(item.value)"
           >
             <span class="mobile-option-picker__payment-option-content">
               <span class="mobile-option-picker__payment-circle">
@@ -248,15 +239,6 @@
             </span>
           </t-button>
         </div>
-      </div>
-
-      <div class="mobile-option-picker__footer">
-        <t-button block variant="outline" size="large" @click="paymentPickerVisible = false">
-          取消
-        </t-button>
-        <t-button block theme="primary" size="large" @click="confirmPaymentPicker">
-          确定
-        </t-button>
       </div>
     </div>
   </t-popup>
@@ -494,18 +476,19 @@ const openSubjectPicker = () => {
   subjectPickerVisible.value = true
 }
 
-const confirmSubjectPicker = () => {
-  if (!tempSubjectId.value) {
-    mobileToast.warning('请选择科目')
-    return
-  }
-
-  form.subjectId = tempSubjectId.value
-  const current = subjectOptions.value.find(item => item.id === tempSubjectId.value)
+const applySubjectSelection = (subjectId: string) => {
+  if (!subjectId) return
+  tempSubjectId.value = subjectId
+  form.subjectId = subjectId
+  const current = subjectOptions.value.find(item => item.id === subjectId)
   if (current && (!String(form.name || '').trim() || form.name === lastAutoFillName.value)) {
     form.name = current.name
     lastAutoFillName.value = current.name
   }
+}
+
+const handleSubjectSelect = (subjectId: string) => {
+  applySubjectSelection(subjectId)
   subjectPickerVisible.value = false
 }
 
@@ -514,8 +497,13 @@ const openPaymentPicker = () => {
   paymentPickerVisible.value = true
 }
 
-const confirmPaymentPicker = () => {
-  form.paymentMethod = tempPaymentMethod.value || 'default'
+const applyPaymentMethodSelection = (paymentMethod: string) => {
+  tempPaymentMethod.value = paymentMethod || 'default'
+  form.paymentMethod = tempPaymentMethod.value
+}
+
+const handlePaymentMethodSelect = (paymentMethod: string) => {
+  applyPaymentMethodSelection(paymentMethod)
   paymentPickerVisible.value = false
 }
 
@@ -905,8 +893,7 @@ watch(
   line-height: 1.4;
 }
 
-.mobile-direct-create__footer,
-.mobile-option-picker__footer {
+.mobile-direct-create__footer {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.2rem;
@@ -923,16 +910,14 @@ watch(
   background: linear-gradient(180deg, rgba(255, 246, 230, 0) 0%, rgba(255, 246, 230, 0.9) 28%, rgba(255, 246, 230, 1) 100%);
 }
 
-.mobile-direct-create__footer :deep(.t-button),
-.mobile-option-picker__footer :deep(.t-button) {
+.mobile-direct-create__footer :deep(.t-button) {
   min-height: 0.96rem;
   border-radius: 0.26rem;
   font-size: 0.3rem;
   font-weight: 700;
 }
 
-.mobile-direct-create__footer :deep(.t-button--primary),
-.mobile-option-picker__footer :deep(.t-button--primary) {
+.mobile-direct-create__footer :deep(.t-button--primary) {
   --td-button-primary-border-color: transparent;
   --td-button-primary-active-border-color: transparent;
   --td-button-primary-disabled-border-color: transparent;
@@ -942,13 +927,11 @@ watch(
   box-shadow: 0 0.08rem 0.22rem rgba(239, 188, 46, 0.22);
 }
 
-.mobile-direct-create__footer :deep(.t-button--primary::after),
-.mobile-option-picker__footer :deep(.t-button--primary::after) {
+.mobile-direct-create__footer :deep(.t-button--primary::after) {
   border-color: transparent !important;
 }
 
-.mobile-direct-create__footer :deep(.t-button--outline),
-.mobile-option-picker__footer :deep(.t-button--outline) {
+.mobile-direct-create__footer :deep(.t-button--outline) {
   border-color: rgba(146, 97, 0, 0.14);
   background: rgba(255, 255, 255, 0.9);
   color: #7d5a00;
@@ -1145,11 +1128,6 @@ watch(
   line-height: 1.6;
   text-align: center;
   padding: 0 0.24rem;
-}
-
-.mobile-option-picker__footer {
-  margin-top: 0.24rem;
-  padding-top: 0.2rem;
 }
 
 .mobile-direct-create__picker-popup {

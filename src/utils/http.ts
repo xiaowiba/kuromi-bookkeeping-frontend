@@ -19,6 +19,10 @@ interface RequestConfig extends AxiosRequestConfig {
   __skipEntryRetry?: boolean
 }
 
+// 这两类 401 代表用户被明确下线，不能再走专属入口自动续登
+const KICK_OUT_MSG = '您已被踢下线'
+const BE_REPLACED_MSG = '您已被顶下线'
+
 const StatusCodeMessage: ICodeMessage = {
   200: '服务器成功返回请求的数据',
   201: '新建或修改数据成功。',
@@ -62,9 +66,15 @@ const isLoginEndpoint = (config?: RequestConfig) => {
   return url.includes('/auth/login') || url.includes('/auth/entry-login')
 }
 
-const canRetryByEntryLogin = (config?: RequestConfig) => {
+// 只要是被踢下线或被顶下线，就视为强制退出
+const isForcedOfflineMessage = (msg?: string) => {
+  return msg === KICK_OUT_MSG || msg === BE_REPLACED_MSG
+}
+
+// 专属入口静默续登只用于“正常过期”，不能拦截明确的强制下线场景
+const canRetryByEntryLogin = (config?: RequestConfig, msg?: string) => {
   const url = config?.url || ''
-  if (!config || config.__skipEntryRetry || config.__entryRetried) {
+  if (!config || config.__skipEntryRetry || config.__entryRetried || isForcedOfflineMessage(msg)) {
     return false
   }
   return !url.includes('/auth/login') && !url.includes('/auth/entry-login') && !url.includes('/auth/logout')
@@ -161,7 +171,12 @@ http.interceptors.response.use(
 
     const requestConfig = response.config as RequestConfig
     if (code === '401') {
-      if (canRetryByEntryLogin(requestConfig)) {
+      // 用户被强退后，必须清理本地专属入口信息，避免下一次请求又自动登录回来
+      if (isForcedOfflineMessage(msg)) {
+        const userStore = useUserStore()
+        userStore.clearEntryLoginState()
+      }
+      if (canRetryByEntryLogin(requestConfig, msg)) {
         const restored = await tryRestoreByEntryLogin()
         if (restored) {
           requestConfig.__entryRetried = true

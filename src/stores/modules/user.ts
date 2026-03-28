@@ -55,6 +55,8 @@ const storeSetup = () => {
   const pwdExpiredShow = ref<boolean>(true)
   const roles = ref<string[]>([]) // 当前用户角色
   const permissions = ref<string[]>([]) // 当前角色权限标识集合
+  // 同一标签页内复用专属入口登录请求，避免并发触发时重复生成 token
+  let entryLoginTask: Promise<void> | null = null
   const applyLoginResp = (data: { token: string; tenantId: string }) => {
     setToken(data.token)
     tenantStore.setTenantId(data.tenantId)
@@ -111,19 +113,26 @@ const storeSetup = () => {
 
   // 专属入口登录
   const entryLogin = async (entryKey: string, options?: { silent?: boolean; persist?: boolean }) => {
-    const req: EntryLoginReq = {
-      entryKey,
-      clientId: import.meta.env.VITE_CLIENT_ID,
-      authType: AuthTypeConstants.ENTRY,
+    if (!entryLoginTask) {
+      entryLoginTask = (async () => {
+        const req: EntryLoginReq = {
+          entryKey,
+          clientId: import.meta.env.VITE_CLIENT_ID,
+          authType: AuthTypeConstants.ENTRY,
+        }
+        const res = await entryLoginApi(req, {
+          __skipEntryRetry: true,
+          __silentAuthError: options?.silent,
+        })
+        applyLoginResp(res.data)
+        if (options?.persist !== false) {
+          saveEntryLoginState(entryKey)
+        }
+      })().finally(() => {
+        entryLoginTask = null
+      })
     }
-    const res = await entryLoginApi(req, {
-      __skipEntryRetry: true,
-      __silentAuthError: options?.silent,
-    })
-    applyLoginResp(res.data)
-    if (options?.persist !== false) {
-      saveEntryLoginState(entryKey)
-    }
+    await entryLoginTask
   }
 
   // 使用本地专属入口恢复登录
@@ -140,6 +149,7 @@ const storeSetup = () => {
     roles.value = []
     permissions.value = []
     pwdExpiredShow.value = true
+    // 手动退出、强退、顶下线最终都要走这里，统一清理本地自动登录痕迹
     clearLocalEntryLoginState()
     resetToken()
     resetRouter()
@@ -149,12 +159,15 @@ const storeSetup = () => {
   // 退出登录
   const logout = async () => {
     try {
-      await logoutApi()
-      await logoutCallBack()
-      return true
+      await logoutApi({
+        __skipEntryRetry: true,
+        __silentAuthError: true,
+      })
     } catch (error) {
-      return false
+      // 手动退出时，即便服务端会话已失效，也要清理本地自动登录状态
     }
+    await logoutCallBack()
+    return true
   }
 
   // 获取用户信息

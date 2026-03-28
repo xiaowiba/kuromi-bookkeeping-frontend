@@ -1,7 +1,8 @@
 <template>
   <GiPageLayout>
+    <!-- 在线用户按 token 区分，同一用户可能存在多条不同会话 -->
     <GiTable
-      row-key="id"
+      row-key="token"
       :data="dataList"
       :columns="columns"
       :loading="loading"

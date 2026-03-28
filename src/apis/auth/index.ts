@@ -46,8 +46,8 @@ export function socialAuth(source: string) {
 }
 
 /** @desc 退出登录 */
-export function logout() {
-  return http.post(`${BASE_URL}/logout`)
+export function logout(config?: any) {
+  return http.post(`${BASE_URL}/logout`, undefined, config)
 }
 
 /** @desc 获取用户信息 */

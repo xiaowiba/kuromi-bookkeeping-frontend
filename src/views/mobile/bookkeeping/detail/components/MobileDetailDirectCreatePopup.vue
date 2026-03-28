@@ -922,10 +922,9 @@ watch(
   flex-shrink: 0;
   margin-top: 0;
   padding-top: 0.12rem;
-  padding-right: 0;
-  padding-bottom: 0;
-  padding-left: 0;
-  padding: 0 0.28rem;
+  padding-right: 0.28rem;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.16rem);
+  padding-left: 0.28rem;
   background: linear-gradient(180deg, rgba(255, 246, 230, 0) 0%, rgba(255, 246, 230, 0.9) 28%, rgba(255, 246, 230, 1) 100%);
 }
 

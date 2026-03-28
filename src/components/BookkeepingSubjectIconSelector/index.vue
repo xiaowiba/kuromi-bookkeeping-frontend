@@ -2,7 +2,7 @@
   <a-popover
     v-model:popup-visible="popupVisible"
     trigger="click"
-    position="bl"
+    position="right"
     :disabled="disabled"
   >
     <a-input
@@ -113,14 +113,15 @@ const handleClear = () => {
 
 <style scoped lang="scss">
 .subject-icon-selector {
-  width: 420px;
+  // width: min(50vw, 40vw);
+  width: 40vw;
 }
 
 .subject-icon-selector__grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 8px;
-  max-height: 360px;
+  max-height: 90vh;
   margin-top: 10px;
   overflow-y: auto;
   padding-right: 2px;
@@ -184,5 +185,11 @@ const handleClear = () => {
 
 .subject-icon-selector__mobile-label {
   white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .subject-icon-selector__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 </style>

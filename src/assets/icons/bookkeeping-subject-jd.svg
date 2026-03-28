@@ -1,0 +1,14 @@
+<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <rect x="4" y="4" width="40" height="40" rx="12" fill="#d81e06" />
+  <text
+    x="24"
+    y="31"
+    text-anchor="middle"
+    font-size="16"
+    font-weight="700"
+    fill="#ffffff"
+    font-family="Arial, sans-serif"
+  >
+    JD
+  </text>
+</svg>

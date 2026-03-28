@@ -292,18 +292,29 @@
       </div>
     </t-popup>
 
-    <t-popup v-model:visible="actionPopupVisible" placement="bottom" destroy-on-close>
+    <t-popup v-model:visible="actionPopupVisible"
+             placement="bottom"
+             :close-btn="true"
+             destroy-on-close>
       <div class="mobile-bottom-sheet">
         <div class="mobile-bottom-sheet__panel">
           <div class="mobile-bottom-sheet__header">
             <p class="mobile-bottom-sheet__eyebrow">{{ actionSheetEyebrow }}</p>
-            <h3 class="mobile-bottom-sheet__title">{{ activeDetail?.name || '当前明细' }}</h3>
-            <p v-if="activeDetail" class="mobile-bottom-sheet__meta">
-              {{ activeDetail.subjectName }} · {{ activeDetail.userNickname }} · {{ activeDetail.detailDate }}
-            </p>
+            <!-- h3 class="mobile-bottom-sheet__title">{{ activeDetail?.name || '当前明细' }}</h3 -->
+            <!-- p v-if="activeDetail" class="mobile-bottom-sheet__meta">
+              {{ activeDetail.detailDate }}
+            </p -->
           </div>
 
           <div v-if="activeDetail" class="mobile-bottom-sheet__detail-card">
+            <div class="mobile-bottom-sheet__detail-row">
+              <span>名称</span>
+              <strong>{{ activeDetail.name }}</strong>
+            </div>
+            <div class="mobile-bottom-sheet__detail-row">
+              <span>日期</span>
+              <strong>{{ activeDetail.detailDate }}</strong>
+            </div>
             <div class="mobile-bottom-sheet__detail-row">
               <span>金额</span>
               <strong :class="activeDetail.amount >= 0 ? 'is-income' : 'is-expense'">
@@ -313,6 +324,10 @@
             <div class="mobile-bottom-sheet__detail-row">
               <span>分类</span>
               <strong>{{ subjectCategoryLabel(activeDetail.subjectCategory) }}</strong>
+            </div>
+            <div class="mobile-bottom-sheet__detail-row">
+              <span>科目</span>
+              <strong>{{ activeDetail.subjectName }}</strong>
             </div>
             <div class="mobile-bottom-sheet__detail-row">
               <span>记账人</span>
@@ -341,29 +356,31 @@
           </p>
 
           <div class="mobile-bottom-sheet__stack">
-            <button
-              v-if="canEditActiveDetail"
-              type="button"
-              class="mobile-bottom-sheet__action"
-              @click="handleEditActiveDetail"
-            >
-              <span>编辑明细</span>
-              <small>进入移动端独立编辑表单</small>
-            </button>
-            <button
+            <t-button
               v-if="canDeleteActiveDetail"
-              type="button"
-              class="mobile-bottom-sheet__action is-danger"
+              block
+              size="large"
+              variant="outline"
+              class="mobile-bottom-sheet__action mobile-bottom-sheet__action--danger"
               @click="handleDeleteActiveDetail"
             >
-              <span>删除明细</span>
-              <small>删除后不可恢复，请确认后再执行</small>
-            </button>
+              删除
+            </t-button>
+            <t-button
+              v-if="canEditActiveDetail"
+              block
+              size="large"
+              theme="primary"
+              class="mobile-bottom-sheet__action mobile-bottom-sheet__action--primary"
+              @click="handleEditActiveDetail"
+            >
+              修改
+            </t-button>
           </div>
 
-          <button type="button" class="mobile-bottom-sheet__cancel" @click="closeActionPopup">
+          <!-- button type="button" class="mobile-bottom-sheet__cancel" @click="closeActionPopup">
             取消
-          </button>
+          </button -->
         </div>
       </div>
     </t-popup>
@@ -1449,15 +1466,21 @@ onUnmounted(() => {
 }
 
 .mobile-bottom-sheet__meta {
-  margin: 8px 0 0;
+  //margin: 8px 0 0;
   color: #8a7a68;
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 16px;
+  //line-height: 1.6;
+  font-weight: 700;
+  //text-align: right;
 }
 
 .mobile-bottom-sheet__stack {
   display: grid;
-  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 8px;
+  background: linear-gradient(180deg, rgba(255, 246, 230, 0) 0%, rgba(255, 246, 230, 0.86) 26%, rgba(255, 246, 230, 1) 100%);
 }
 
 .mobile-bottom-sheet__detail-card {
@@ -1479,14 +1502,14 @@ onUnmounted(() => {
 .mobile-bottom-sheet__detail-row span {
   flex-shrink: 0;
   color: #8a7a68;
-  font-size: 13px;
+  font-size: 18px;
   line-height: 1.5;
 }
 
 .mobile-bottom-sheet__detail-row strong {
   min-width: 0;
   color: #3b2a16;
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.5;
   text-align: right;
@@ -1514,38 +1537,44 @@ onUnmounted(() => {
 }
 
 .mobile-bottom-sheet__action {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-  padding: 16px 18px;
-  border: none;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #3b2a16;
-  text-align: left;
-  box-shadow: inset 0 0 0 1px rgba(83, 56, 15, 0.08);
-}
-
-.mobile-bottom-sheet__action span {
+  //min-height: 58px;
+  //border-radius: 18px;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
-.mobile-bottom-sheet__action small {
-  color: #8a7a68;
-  font-size: 12px;
-  line-height: 1.5;
+.mobile-bottom-sheet__action :deep(.t-button__content) {
+  font-size: 16px;
+  font-weight: 700;
 }
 
-.mobile-bottom-sheet__action.is-danger {
-  background: rgba(211, 79, 48, 0.08);
+.mobile-bottom-sheet__action--primary {
+  --td-button-primary-border-color: transparent;
+  --td-button-primary-active-border-color: transparent;
+  --td-button-primary-disabled-border-color: transparent;
+  border: none !important;
+  background: linear-gradient(135deg, #f7cf4b 0%, #efbc2e 100%);
+  color: #5c3d00;
+  box-shadow: 0 0.08rem 0.22rem rgba(239, 188, 46, 0.22);
+}
+
+.mobile-bottom-sheet__action--primary::after {
+  border-color: transparent !important;
+}
+
+.mobile-bottom-sheet__action--danger {
+  background: rgba(255, 255, 255, 0.92);
   color: #bf452c;
-  box-shadow: inset 0 0 0 1px rgba(211, 79, 48, 0.12);
+  box-shadow: 0 0.08rem 0.2rem rgba(65, 45, 11, 0.04);
+  //border: none !important;
 }
 
-.mobile-bottom-sheet__action.is-danger small {
-  color: rgba(191, 69, 44, 0.78);
+.mobile-bottom-sheet__action--danger::after {
+  border-color: rgba(146, 97, 0, 0.14) !important;
+}
+
+.mobile-bottom-sheet__action--danger :deep(.t-button__content) {
+  color: #bf452c;
 }
 
 .mobile-bottom-sheet__actions {

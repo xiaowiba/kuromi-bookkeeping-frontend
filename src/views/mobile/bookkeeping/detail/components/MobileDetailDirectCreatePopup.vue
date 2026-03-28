@@ -71,13 +71,13 @@
           <div class="mobile-field">
             <label class="mobile-field__label">金额</label>
             <t-button block size="large" variant="text" class="mobile-direct-create__value-field" @click="amountKeyboardVisible = true">
-              <span class="mobile-direct-create__field-main mobile-direct-create__value-placeholder">
-                {{ form.amount ? '已录入金额' : '点击输入金额' }}
+              <span class="mobile-direct-create__field-main mobile-direct-create__value-text">
+                {{ form.amount ? `￥ ${form.amount}` : '￥ 0' }}
               </span>
               <template #suffix>
-                <strong class="mobile-direct-create__value-text">
-                  {{ form.amount ? `￥ ${form.amount}` : '￥ 0' }}
-                </strong>
+                <small class="mobile-direct-create__value-placeholder">
+                  {{ form.amount ? '已录入金额' : '点击输入金额' }}
+                </small>
               </template>
             </t-button>
           </div>

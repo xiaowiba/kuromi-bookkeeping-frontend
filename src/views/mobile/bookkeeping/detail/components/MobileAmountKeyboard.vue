@@ -156,7 +156,7 @@ const handleKeyPress = (key: KeyboardKey) => {
 .mobile-amount-keyboard {
   border-radius: 0.48rem 0.48rem 0 0;
   background: linear-gradient(180deg, #fff9ef 0%, #fff4db 100%);
-  height: min(7.32rem, calc(100dvh - 4.72rem));
+  height: min(7.88rem, calc(100dvh - 4.16rem));
   padding: 0.46rem 0.32rem calc(env(safe-area-inset-bottom) + 0.26rem);
   box-shadow: 0 -0.16rem 0.48rem rgba(146, 97, 0, 0.12);
   overflow: hidden;
@@ -196,9 +196,9 @@ const handleKeyPress = (key: KeyboardKey) => {
   border-radius: 999rem;
   background: rgba(255, 255, 255, 0.88);
   color: #7d5a00;
-  min-height: 0.78rem;
-  padding: 0.16rem 0.36rem;
-  font-size: 0.32rem;
+  min-height: 0.92rem;
+  padding: 0.2rem 0.42rem;
+  font-size: 0.36rem;
   font-weight: 700;
   box-shadow: 0 0.08rem 0.18rem rgba(146, 97, 0, 0.08);
 }
@@ -211,21 +211,21 @@ const handleKeyPress = (key: KeyboardKey) => {
 .mobile-amount-keyboard__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.18rem;
+  gap: 0.2rem;
 }
 
 .mobile-amount-keyboard__key {
-  min-height: 1.1rem;
+  min-height: 1.24rem;
   border: none;
   border-radius: 0.28rem;
   background: rgba(255, 255, 255, 0.92);
   color: #4c3200;
-  font-size: 0.46rem;
+  font-size: 0.6rem;
   font-weight: 700;
   box-shadow: inset 0 -0.02rem 0 rgba(146, 97, 0, 0.08);
 }
 
 .mobile-amount-keyboard__key.is-action {
-  font-size: 0.34rem;
+  font-size: 0.48rem;
 }
 </style>

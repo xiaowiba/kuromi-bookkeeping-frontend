@@ -61,7 +61,7 @@
             <label class="mobile-field__label">明细名称</label>
             <t-input
               v-model="form.name"
-              class="mobile-direct-create__td-control"
+              class="mobile-direct-create__td-control mobile-direct-create__name-input"
               placeholder="请输入明细名称"
               :maxlength="20"
               clearable
@@ -860,15 +860,34 @@ watch(
   border: 0.02rem solid rgba(146, 97, 0, 0.1);
 }
 
+:deep(.mobile-direct-create__name-input.t-input) {
+  min-height: var(--mobile-direct-create-field-height);
+  height: var(--mobile-direct-create-field-height);
+  padding: 0 0.28rem;
+}
+
 :deep(.mobile-direct-create__td-control.t-input .t-input__wrap),
 :deep(.mobile-direct-create__td-control.t-input .t-input__content) {
   align-items: left;
 }
 
-.mobile-direct-create__td-control :deep(.t-input__inner),
+.mobile-direct-create__td-control :deep(.t-input__control),
 .mobile-direct-create__td-control :deep(.t-textarea__inner) {
   color: #4c3200;
   font-size: 0.3rem;
+}
+
+.mobile-direct-create__name-input :deep(.t-input__control) {
+  color: #4c3200;
+  font-size: 0.48rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.mobile-direct-create__name-input :deep(.t-input__control::placeholder) {
+  color: #a07f32;
+  font-size: 0.4rem;
+  font-weight: 400;
 }
 
 .mobile-direct-create__switch-card {
@@ -912,8 +931,8 @@ watch(
 
 .mobile-direct-create__footer :deep(.t-button) {
   min-height: 0.96rem;
-  border-radius: 0.26rem;
-  font-size: 0.3rem;
+  // border-radius: 0.26rem;
+  // font-size: 0.3rem;
   font-weight: 700;
 }
 

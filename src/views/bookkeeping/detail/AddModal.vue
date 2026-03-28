@@ -4,7 +4,7 @@
     :title="title"
     :mask-closable="false"
     :esc-to-close="false"
-    :width="width >= 500 ? 500 : '100%'"
+    :width="width >= 800 ? 800 : '100%'"
     :class="{ 'mobile-modal': isMobile() }"
     draggable
     @before-ok="save"

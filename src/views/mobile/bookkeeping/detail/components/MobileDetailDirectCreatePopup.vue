@@ -121,7 +121,7 @@
           <div v-if="canManageHidden" class="mobile-direct-create__switch-card">
             <div>
               <p class="mobile-direct-create__switch-title">隐藏此笔</p>
-              <small class="mobile-direct-create__switch-desc">当前已进入隐私模式，可选择隐藏本次明细</small>
+              <!-- small class="mobile-direct-create__switch-desc">当前已进入隐私模式，可选择隐藏本次明细</small -->
             </div>
             <t-switch
               v-model="form.hidden"
@@ -902,7 +902,7 @@ watch(
 .mobile-direct-create__switch-title {
   margin: 0 0 0.08rem;
   color: #4c3200;
-  font-size: 0.3rem;
+  font-size: 0.48rem;
   font-weight: 700;
 }
 

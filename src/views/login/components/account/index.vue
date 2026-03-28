@@ -73,8 +73,12 @@ const form = reactive({
 const rules: FormInstance['rules'] = {
   username: [{ required: true, message: '请输入用户名' }],
   password: [{ required: true, message: '请输入密码' }],
-  captcha: [{ required: isCaptchaEnabled.value, message: '请输入验证码' }],
+  captcha: [{ required: false, message: '请输入验证码' }],
 }
+
+watch(isCaptchaEnabled, (value) => {
+  rules.captcha = [{ required: value, message: '请输入验证码' }]
+}, { immediate: true })
 
 // 验证码过期定时器
 let timer
@@ -99,19 +103,20 @@ onBeforeUnmount(() => {
 })
 
 // 获取验证码
-const getCaptcha = () => {
-  if (isCaptchaEnabled.value) {
-    return getImageCaptcha().then((res) => {
-      const { uuid, img, expireTime, isEnabled } = res.data
-      isCaptchaEnabled.value = isEnabled
-      captchaImgBase64.value = img
-      form.uuid = uuid
-      form.expired = false
-      startTimer(expireTime, Number(res.timestamp))
-    })
-  } else {
-    console.error('未开启验证码')
+const getCaptcha = async () => {
+  const res = await getImageCaptcha()
+  const { uuid, img, expireTime, isEnabled } = res.data
+  isCaptchaEnabled.value = isEnabled
+  form.captcha = ''
+  form.expired = false
+  if (!isEnabled) {
+    captchaImgBase64.value = undefined
+    form.uuid = ''
+    return
   }
+  captchaImgBase64.value = img
+  form.uuid = uuid
+  startTimer(expireTime, Number(res.timestamp))
 }
 
 const tenantStore = useTenantStore()
@@ -121,10 +126,54 @@ const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 
+const navigateAfterLogin = async () => {
+  tabsStore.reset()
+  const { redirect, ...othersQuery } = router.currentRoute.value.query
+  const { rememberMe } = loginConfig.value
+  loginConfig.value.username = rememberMe ? form.username : ''
+
+  if (redirect) {
+    const redirectPath = decodeURIComponent(redirect as string)
+    const resolvedRoute = router.resolve(redirectPath)
+    const targetPath = resolveTerminalTargetPath(resolvedRoute.path) || resolvedRoute.path
+    await router.push({
+      path: targetPath,
+      query: resolvedRoute.query,
+      hash: resolvedRoute.hash,
+    })
+    return
+  }
+
+  await router.push({
+    path: getDefaultTerminalHomePath(),
+    query: {
+      ...othersQuery,
+    },
+  })
+}
+
+const getHashEntryKey = () => {
+  if (!route.hash) {
+    return ''
+  }
+  return new URLSearchParams(route.hash.replace(/^#/, '')).get('entryKey') || ''
+}
+
+const clearHashEntryKey = async () => {
+  if (!route.hash) {
+    return
+  }
+  await router.replace({
+    path: route.path,
+    query: route.query,
+    hash: '',
+  })
+}
+
 /**
- * 执行登录请求
+ * 执行账号密码登录
  */
-const doLogin = async () => {
+const doAccountLogin = async () => {
   try {
     loading.value = true
     await userStore.accountLogin({
@@ -133,34 +182,51 @@ const doLogin = async () => {
       captcha: form.captcha,
       uuid: form.uuid,
     }, tenantCode.value)
-    tabsStore.reset()
-    const { redirect, ...othersQuery } = router.currentRoute.value.query
-    const { rememberMe } = loginConfig.value
-    loginConfig.value.username = rememberMe ? form.username : ''
-
-    // 如果有重定向参数，解码并直接跳转到完整路径
-    if (redirect) {
-      const redirectPath = decodeURIComponent(redirect as string)
-      const resolvedRoute = router.resolve(redirectPath)
-      const targetPath = resolveTerminalTargetPath(resolvedRoute.path) || resolvedRoute.path
-      await router.push({
-        path: targetPath,
-        query: resolvedRoute.query,
-        hash: resolvedRoute.hash,
-      })
-    } else {
-      await router.push({
-        path: getDefaultTerminalHomePath(),
-        query: {
-          ...othersQuery,
-        },
-      })
-    }
+    await navigateAfterLogin()
     Message.success('欢迎使用')
   } catch (error) {
     console.error(error)
     await getCaptcha()
-    form.captcha = ''
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * 执行专属入口登录
+ */
+const doEntryLogin = async (entryKey: string, options?: { silent?: boolean }) => {
+  try {
+    loading.value = true
+    await userStore.entryLogin(entryKey, { silent: options?.silent, persist: true })
+    await clearHashEntryKey()
+    await navigateAfterLogin()
+    if (!options?.silent) {
+      Message.success('欢迎使用')
+    }
+    return true
+  } catch (error) {
+    console.error(error)
+    userStore.clearEntryLoginState()
+    await clearHashEntryKey()
+    await getCaptcha()
+    return false
+  } finally {
+    loading.value = false
+  }
+}
+
+const doStoredEntryLogin = async (options?: { silent?: boolean }) => {
+  try {
+    loading.value = true
+    await userStore.restoreLoginByEntryKey({ silent: options?.silent })
+    await navigateAfterLogin()
+    return true
+  } catch (error) {
+    console.error(error)
+    userStore.clearEntryLoginState()
+    await getCaptcha()
+    return false
   } finally {
     loading.value = false
   }
@@ -172,32 +238,24 @@ const doLogin = async () => {
 const handleLogin = async () => {
   const isInvalid = await formRef.value?.validate()
   if (isInvalid) return
-  await doLogin()
-}
-
-/**
- * 从 URL 参数获取账号密码并自动登录
- * 使用场景：内部人员通过链接快速登录，如 http://localhost:5173/login?username=ChangWei&password=Qw5211314!
- */
-const autoLoginFromQuery = async () => {
-  const { username, password } = route.query
-  // 只有当用户名和密码都存在时才执行自动登录
-  if (!username || !password) return
-
-  form.username = String(username)
-  form.password = String(password)
-  // 先获取验证码（无论是否启用，确保后续流程正常）
-  await getCaptcha()
-  await doLogin()
+  await doAccountLogin()
 }
 
 onMounted(async () => {
-  // 如果有 URL 参数则自动登录，否则只加载验证码
-  if (route.query.username && route.query.password) {
-    await autoLoginFromQuery()
-  } else {
-    await getCaptcha()
+  const hashEntryKey = getHashEntryKey()
+  if (hashEntryKey) {
+    await doEntryLogin(hashEntryKey)
+    return
   }
+
+  if (userStore.canEntryLogin()) {
+    const restored = await doStoredEntryLogin({ silent: true })
+    if (restored) {
+      return
+    }
+  }
+
+  await getCaptcha()
 })
 </script>
 

@@ -64,6 +64,26 @@ export function updateUserRole(data: { roleIds: string[] }, id: string) {
   return http.patch(`${BASE_URL}/${id}/role`, data)
 }
 
+/** @desc 查询用户专属入口信息 */
+export function getUserEntryLoginInfo(id: string) {
+  return http.get<T.UserEntryLoginInfoResp>(`${BASE_URL}/${id}/entry-login/info`)
+}
+
+/** @desc 查询用户专属入口链接 */
+export function getUserEntryLoginLink(id: string) {
+  return http.get<T.UserEntryLoginLinkResp>(`${BASE_URL}/${id}/entry-login/link`)
+}
+
+/** @desc 修改用户专属入口状态 */
+export function updateUserEntryLoginStatus(id: string, enabled: boolean) {
+  return http.patch(`${BASE_URL}/${id}/entry-login/status`, { enabled })
+}
+
+/** @desc 重新生成用户专属入口 */
+export function regenerateUserEntryLogin(id: string) {
+  return http.post<T.UserEntryLoginLinkResp>(`${BASE_URL}/${id}/entry-login/regenerate`)
+}
+
 /** @desc 查询用户字典 */
 export function listUserDict(query?: { status: number }) {
   return http.get<LabelValueState[]>(`${BASE_URL}/dict`, query)

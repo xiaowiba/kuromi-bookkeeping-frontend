@@ -8,7 +8,7 @@
       :data="dataList"
       :columns="columns"
       :loading="loading"
-      :scroll="{ x: '100%', y: '100%', minWidth: 1500 }"
+      :scroll="{ x: '100%', y: '100%', minWidth: 1700 }"
       :pagination="pagination"
       :disabled-tools="['size']"
       :disabled-column-keys="['nickname']"
@@ -49,12 +49,24 @@
         <a-tag v-if="record.isSystem" color="red" size="small">是</a-tag>
         <a-tag v-else color="arcoblue" size="small">否</a-tag>
       </template>
+      <template #entryLogin="{ record }">
+        <a-tooltip>
+          <a-tag :color="record.entryLoginEnabled ? 'green' : 'orangered'" size="small">
+            {{ record.entryLoginEnabled ? '已启用' : '已禁用' }}
+          </a-tag>
+          <template #content>
+            <div>版本：{{ record.entryLoginVersion || 1 }}</div>
+            <div>最近生成：{{ record.entryLoginGeneratedTime || '暂无' }}</div>
+            <div>最近使用：{{ record.entryLoginLastUsedTime || '暂无' }}</div>
+          </template>
+        </a-tooltip>
+      </template>
       <template #action="{ record }">
         <a-space>
           <a-link v-permission="['system:user:get']" title="详情" @click="onDetail(record)">详情</a-link>
           <a-link v-permission="['system:user:update']" title="修改" @click="onUpdate(record)">修改</a-link>
           <a-dropdown>
-            <a-button v-if="has.hasPermOr(['system:user:resetPwd', 'system:user:updateRole', 'system:user:delete'])" type="text" size="mini" title="更多">
+            <a-button v-if="has.hasPermOr(['system:user:resetPwd', 'system:user:updateRole', 'system:user:entryLogin:get', 'system:user:entryLogin:update', 'system:user:delete'])" type="text" size="mini" title="更多">
               <template #icon>
                 <icon-more :size="16" />
               </template>
@@ -62,6 +74,28 @@
             <template #content>
               <a-doption v-permission="['system:user:resetPwd']" title="重置密码" @click="onResetPwd(record)">重置密码</a-doption>
               <a-doption v-permission="['system:user:updateRole']" :disabled="record.isSystem" title="分配角色" @click="onUpdateRole(record)">分配角色</a-doption>
+              <a-doption
+                v-permission="['system:user:entryLogin:get']"
+                :disabled="!record.entryLoginEnabled"
+                :title="record.entryLoginEnabled ? '复制专属链接' : '专属入口已禁用'"
+                @click="onCopyEntryLogin(record)"
+              >
+                复制专属链接
+              </a-doption>
+              <a-doption
+                v-permission="['system:user:entryLogin:update']"
+                title="重新生成专属入口"
+                @click="onRegenerateEntryLogin(record)"
+              >
+                重新生成
+              </a-doption>
+              <a-doption
+                v-permission="['system:user:entryLogin:update']"
+                :title="record.entryLoginEnabled ? '禁用专属入口' : '启用专属入口'"
+                @click="onToggleEntryLogin(record)"
+              >
+                {{ record.entryLoginEnabled ? '禁用专属入口' : '启用专属入口' }}
+              </a-doption>
               <a-doption v-permission="['system:user:delete']">
                 <a-link
                   status="danger"
@@ -90,17 +124,25 @@
 /**
  * 用户管理列表页面
  */
-import type { TableInstance } from '@arco-design/web-vue'
+import { Message, Modal, type TableInstance } from '@arco-design/web-vue'
 import DeptTree from './dept/index.vue'
 import AddDrawer from './AddDrawer.vue'
 import ImportDrawer from './ImportDrawer.vue'
 import DetailDrawer from './DetailDrawer.vue'
 import PwdResetModal from './PwdResetModal.vue'
 import RoleUpdateModal from './RoleUpdateModal.vue'
-import { type UserResp, deleteUser, exportUser, listUser } from '@/apis/system/user'
+import {
+  type UserResp,
+  deleteUser,
+  exportUser,
+  getUserEntryLoginLink,
+  listUser,
+  regenerateUserEntryLogin,
+  updateUserEntryLoginStatus,
+} from '@/apis/system/user'
 import { DisEnableStatusList } from '@/constant/common'
 import { useDownload, useResetReactive, useTable } from '@/hooks'
-import { isMobile } from '@/utils'
+import { copyText, isMobile } from '@/utils'
 import has from '@/utils/has'
 import type { ColumnItem } from '@/components/GiForm'
 
@@ -169,6 +211,7 @@ const columns: TableInstance['columns'] = [
   { title: '手机号', dataIndex: 'phone', minWidth: 170, ellipsis: true, tooltip: true },
   { title: '邮箱', dataIndex: 'email', minWidth: 170, ellipsis: true, tooltip: true },
   { title: '系统内置', dataIndex: 'isSystem', slotName: 'isSystem', width: 100, align: 'center', show: false },
+  { title: '专属入口', dataIndex: 'entryLoginEnabled', slotName: 'entryLogin', width: 120, align: 'center' },
   { title: '描述', dataIndex: 'description', minWidth: 130, ellipsis: true, tooltip: true },
   { title: '创建人', dataIndex: 'createUserString', width: 140, ellipsis: true, tooltip: true, show: false },
   { title: '创建时间', dataIndex: 'createTime', width: 180 },
@@ -178,7 +221,7 @@ const columns: TableInstance['columns'] = [
     title: '操作',
     dataIndex: 'action',
     slotName: 'action',
-    width: 160,
+    width: 200,
     align: 'center',
     fixed: !isMobile() ? 'right' : undefined,
     show: has.hasPermOr([
@@ -186,6 +229,8 @@ const columns: TableInstance['columns'] = [
       'system:user:update',
       'system:user:resetPwd',
       'system:user:updateRole',
+      'system:user:entryLogin:get',
+      'system:user:entryLogin:update',
       'system:user:delete',
     ]),
   },
@@ -249,6 +294,46 @@ const RoleUpdateModalRef = ref<InstanceType<typeof RoleUpdateModal>>()
 // 分配角色
 const onUpdateRole = (record: UserResp) => {
   RoleUpdateModalRef.value?.onOpen(record.id)
+}
+
+// 复制专属入口
+const onCopyEntryLogin = async (record: UserResp) => {
+  const { data } = await getUserEntryLoginLink(record.id)
+  copyText(data.link)
+}
+
+// 重新生成专属入口
+const onRegenerateEntryLogin = (record: UserResp) => {
+  Modal.warning({
+    title: '提示',
+    content: `是否重新生成用户「${record.nickname}(${record.username})」的专属入口？重新生成后旧链接会立即失效。`,
+    hideCancel: false,
+    maskClosable: false,
+    async onOk() {
+      const { data } = await regenerateUserEntryLogin(record.id)
+      copyText(data.link)
+      Message.success('重新生成成功，已复制新链接')
+      search()
+    },
+  })
+}
+
+// 启用或禁用专属入口
+const onToggleEntryLogin = (record: UserResp) => {
+  const enabled = !record.entryLoginEnabled
+  Modal.warning({
+    title: '提示',
+    content: enabled
+      ? `是否启用用户「${record.nickname}(${record.username})」的专属入口？`
+      : `是否禁用用户「${record.nickname}(${record.username})」的专属入口？`,
+    hideCancel: false,
+    maskClosable: false,
+    async onOk() {
+      await updateUserEntryLoginStatus(record.id, enabled)
+      Message.success(enabled ? '已启用专属入口' : '已禁用专属入口')
+      search()
+    },
+  })
 }
 </script>
 

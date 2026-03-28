@@ -18,10 +18,24 @@ export interface UserResp {
   deptName: string
   roleIds: Array<number>
   roleNames: Array<string>
+  entryLoginEnabled: boolean
+  entryLoginVersion?: number
+  entryLoginGeneratedTime?: string
+  entryLoginLastUsedTime?: string
   disabled: boolean
 }
 export type UserDetailResp = UserResp & {
   pwdResetTime?: string
+}
+export interface UserEntryLoginInfoResp {
+  enabled: boolean
+  version: number
+  generatedTime?: string
+  lastUsedTime?: string
+}
+export interface UserEntryLoginLinkResp extends UserEntryLoginInfoResp {
+  entryKey: string
+  link: string
 }
 export interface UserImportResp {
   importKey: string
@@ -355,6 +369,7 @@ export interface BasicConfig {
   SITE_TITLE: string
   SITE_COPYRIGHT: string
   SITE_BEIAN: string
+  SITE_FRONTEND_DOMAIN: string
 }
 
 /** 基础配置类型 */
@@ -365,6 +380,7 @@ export interface SiteConfig {
   SITE_DESCRIPTION: OptionResp
   SITE_COPYRIGHT: OptionResp
   SITE_BEIAN: OptionResp
+  SITE_FRONTEND_DOMAIN: OptionResp
 }
 
 /** 安全配置类型 */

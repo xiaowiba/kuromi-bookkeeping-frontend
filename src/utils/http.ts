@@ -13,6 +13,12 @@ interface ICodeMessage {
   [propName: number]: string
 }
 
+interface RequestConfig extends AxiosRequestConfig {
+  __entryRetried?: boolean
+  __silentAuthError?: boolean
+  __skipEntryRetry?: boolean
+}
+
 const StatusCodeMessage: ICodeMessage = {
   200: '服务器成功返回请求的数据',
   201: '新建或修改数据成功。',
@@ -35,6 +41,9 @@ const http: AxiosInstance = axios.create({
   timeout: 30 * 1000,
 })
 
+let entryLoginRefreshing: Promise<boolean> | null = null
+let authExpiredHandling = false
+
 const handleError = (msg: string) => {
   if (msg.length >= 15) {
     return notificationErrorWrapper({
@@ -48,9 +57,65 @@ const handleError = (msg: string) => {
   })
 }
 
+const isLoginEndpoint = (config?: RequestConfig) => {
+  const url = config?.url || ''
+  return url.includes('/auth/login') || url.includes('/auth/entry-login')
+}
+
+const canRetryByEntryLogin = (config?: RequestConfig) => {
+  const url = config?.url || ''
+  if (!config || config.__skipEntryRetry || config.__entryRetried) {
+    return false
+  }
+  return !url.includes('/auth/login') && !url.includes('/auth/entry-login') && !url.includes('/auth/logout')
+}
+
+const handleAuthExpired = (msg: string) => {
+  if (authExpiredHandling) {
+    return
+  }
+  authExpiredHandling = true
+  modalErrorWrapper({
+    title: '提示',
+    content: msg,
+    maskClosable: false,
+    escToClose: false,
+    okText: '重新登录',
+    async onOk() {
+      try {
+        const userStore = useUserStore()
+        await userStore.logoutCallBack()
+        const currentPath = router.currentRoute.value.fullPath
+        await router.replace(`/login?redirect=${encodeURIComponent(currentPath)}`)
+      } finally {
+        authExpiredHandling = false
+      }
+    },
+  })
+}
+
+const tryRestoreByEntryLogin = async () => {
+  const userStore = useUserStore()
+  if (!userStore.canEntryLogin()) {
+    return false
+  }
+  if (!entryLoginRefreshing) {
+    entryLoginRefreshing = userStore.restoreLoginByEntryKey({ silent: true })
+      .then(() => true)
+      .catch(async () => {
+        await userStore.logoutCallBack()
+        return false
+      })
+      .finally(() => {
+        entryLoginRefreshing = null
+      })
+  }
+  return entryLoginRefreshing
+}
+
 // 请求拦截器
 http.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config: RequestConfig) => {
     const token = getToken()
     if (!config.headers) {
       config.headers = {}
@@ -69,7 +134,7 @@ http.interceptors.request.use(
 
 // 响应拦截器
 http.interceptors.response.use(
-  (response: AxiosResponse) => {
+  async (response: AxiosResponse) => {
     const { data } = response
     const { success, code, msg } = data
 
@@ -94,21 +159,23 @@ http.interceptors.response.use(
       return response
     }
 
-    // Token 失效
-    if (code === '401' && response.config.url !== '/auth/user/info') {
-      modalErrorWrapper({
-        title: '提示',
-        content: msg,
-        maskClosable: false,
-        escToClose: false,
-        okText: '重新登录',
-        async onOk() {
-          const userStore = useUserStore()
-          await userStore.logoutCallBack()
-          const currentPath = router.currentRoute.value.fullPath
-          await router.replace(`/login?redirect=${encodeURIComponent(currentPath)}`)
-        },
-      })
+    const requestConfig = response.config as RequestConfig
+    if (code === '401') {
+      if (canRetryByEntryLogin(requestConfig)) {
+        const restored = await tryRestoreByEntryLogin()
+        if (restored) {
+          requestConfig.__entryRetried = true
+          return http.request(requestConfig)
+        }
+      }
+      if (requestConfig.__silentAuthError) {
+        return Promise.reject(new Error(msg || '认证已失效'))
+      }
+      if (isLoginEndpoint(requestConfig)) {
+        handleError(msg)
+      } else {
+        handleAuthExpired(msg)
+      }
     } else {
       handleError(msg)
     }
@@ -126,20 +193,20 @@ http.interceptors.response.use(
   },
 )
 
-const request = async <T = unknown>(config: AxiosRequestConfig): Promise<ApiRes<T>> => {
+const request = async <T = unknown>(config: RequestConfig): Promise<ApiRes<T>> => {
   return http.request<T>(config)
     .then((res: AxiosResponse) => res.data)
     .catch((err: { msg: string }) => Promise.reject(err))
 }
 
-const requestNative = async <T = unknown>(config: AxiosRequestConfig): Promise<AxiosResponse> => {
+const requestNative = async <T = unknown>(config: RequestConfig): Promise<AxiosResponse> => {
   return http.request<T>(config)
     .then((res: AxiosResponse) => res)
     .catch((err: { msg: string }) => Promise.reject(err))
 }
 
 const createRequest = (method: string) => {
-  return <T = any>(url: string, params?: object, config?: AxiosRequestConfig): Promise<ApiRes<T>> => {
+  return <T = any>(url: string, params?: object, config?: RequestConfig): Promise<ApiRes<T>> => {
     return request({
       method,
       url,
@@ -154,7 +221,7 @@ const createRequest = (method: string) => {
   }
 }
 
-const download = (url: string, params?: object, config?: AxiosRequestConfig): Promise<AxiosResponse> => {
+const download = (url: string, params?: object, config?: RequestConfig): Promise<AxiosResponse> => {
   return requestNative({
     method: 'get',
     url,

@@ -6,16 +6,27 @@ import {
   type AccountLoginReq,
   AuthTypeConstants,
   type EmailLoginReq,
+  type EntryLoginReq,
   type PhoneLoginReq,
   type UserInfo,
   accountLogin as accountLoginApi,
   emailLogin as emailLoginApi,
+  entryLogin as entryLoginApi,
   getUserInfo as getUserInfoApi,
   logout as logoutApi,
   phoneLogin as phoneLoginApi,
   socialLogin as socialLoginApi,
 } from '@/apis'
-import { clearToken, getToken, setToken } from '@/utils/auth'
+import {
+  clearEntryLoginState,
+  clearToken,
+  getEntryLoginEnabled,
+  getEntryLoginKey,
+  getToken,
+  setEntryLoginEnabled,
+  setEntryLoginKey,
+  setToken,
+} from '@/utils/auth'
 import { resetHasRouteFlag } from '@/router/guard'
 
 const storeSetup = () => {
@@ -44,6 +55,25 @@ const storeSetup = () => {
   const pwdExpiredShow = ref<boolean>(true)
   const roles = ref<string[]>([]) // 当前用户角色
   const permissions = ref<string[]>([]) // 当前角色权限标识集合
+  const applyLoginResp = (data: { token: string; tenantId: string }) => {
+    setToken(data.token)
+    tenantStore.setTenantId(data.tenantId)
+    token.value = data.token
+  }
+
+  const saveEntryLoginState = (entryKey: string) => {
+    setEntryLoginKey(entryKey)
+    setEntryLoginEnabled(true)
+  }
+
+  const canEntryLogin = () => {
+    return getEntryLoginEnabled() && !!getEntryLoginKey()
+  }
+
+  const clearLocalEntryLoginState = () => {
+    clearEntryLoginState()
+  }
+
   // 重置token
   const resetToken = () => {
     token.value = ''
@@ -54,33 +84,55 @@ const storeSetup = () => {
   // 登录
   const accountLogin = async (req: AccountLoginReq, tenantCode?: string) => {
     const res = await accountLoginApi({ ...req, clientId: import.meta.env.VITE_CLIENT_ID, authType: AuthTypeConstants.ACCOUNT }, tenantCode)
-    setToken(res.data.token)
-    tenantStore.setTenantId(res.data.tenantId)
-    token.value = res.data.token
+    clearLocalEntryLoginState()
+    applyLoginResp(res.data)
   }
 
   // 邮箱登录
   const emailLogin = async (req: EmailLoginReq, tenantCode?: string) => {
     const res = await emailLoginApi({ ...req, clientId: import.meta.env.VITE_CLIENT_ID, authType: AuthTypeConstants.EMAIL }, tenantCode)
-    setToken(res.data.token)
-    tenantStore.setTenantId(res.data.tenantId)
-    token.value = res.data.token
+    clearLocalEntryLoginState()
+    applyLoginResp(res.data)
   }
 
   // 手机号登录
   const phoneLogin = async (req: PhoneLoginReq, tenantCode?: string) => {
     const res = await phoneLoginApi({ ...req, clientId: import.meta.env.VITE_CLIENT_ID, authType: AuthTypeConstants.PHONE }, tenantCode)
-    setToken(res.data.token)
-    tenantStore.setTenantId(res.data.tenantId)
-    token.value = res.data.token
+    clearLocalEntryLoginState()
+    applyLoginResp(res.data)
   }
 
   // 三方账号登录
   const socialLogin = async (source: string, req: any) => {
     const res: any = await socialLoginApi({ ...req, source, clientId: import.meta.env.VITE_CLIENT_ID, authType: AuthTypeConstants.SOCIAL })
-    setToken(res.data.token)
-    tenantStore.setTenantId(res.data.tenantId)
-    token.value = res.data.token
+    clearLocalEntryLoginState()
+    applyLoginResp(res.data)
+  }
+
+  // 专属入口登录
+  const entryLogin = async (entryKey: string, options?: { silent?: boolean; persist?: boolean }) => {
+    const req: EntryLoginReq = {
+      entryKey,
+      clientId: import.meta.env.VITE_CLIENT_ID,
+      authType: AuthTypeConstants.ENTRY,
+    }
+    const res = await entryLoginApi(req, {
+      __skipEntryRetry: true,
+      __silentAuthError: options?.silent,
+    })
+    applyLoginResp(res.data)
+    if (options?.persist !== false) {
+      saveEntryLoginState(entryKey)
+    }
+  }
+
+  // 使用本地专属入口恢复登录
+  const restoreLoginByEntryKey = async (options?: { silent?: boolean }) => {
+    const entryKey = getEntryLoginKey()
+    if (!entryKey || !getEntryLoginEnabled()) {
+      throw new Error('专属入口未启用')
+    }
+    await entryLogin(entryKey, { silent: options?.silent })
   }
 
   // 退出登录回调
@@ -88,6 +140,7 @@ const storeSetup = () => {
     roles.value = []
     permissions.value = []
     pwdExpiredShow.value = true
+    clearLocalEntryLoginState()
     resetToken()
     resetRouter()
     tenantStore.resetTenantId()
@@ -128,10 +181,14 @@ const storeSetup = () => {
     emailLogin,
     phoneLogin,
     socialLogin,
+    entryLogin,
+    restoreLoginByEntryKey,
     logout,
     logoutCallBack,
     getInfo,
     resetToken,
+    canEntryLogin,
+    clearEntryLoginState: clearLocalEntryLoginState,
   }
 }
 

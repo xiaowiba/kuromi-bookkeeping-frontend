@@ -89,6 +89,17 @@
         <a-form-item field="SITE_BEIAN" :label="siteConfig.SITE_BEIAN.name" :help="siteConfig.SITE_BEIAN.description">
           <a-input v-model="form.SITE_BEIAN" placeholder="请输入备案号" :max-length="30" show-word-limit />
         </a-form-item>
+        <a-form-item
+          field="SITE_FRONTEND_DOMAIN"
+          :label="siteConfig.SITE_FRONTEND_DOMAIN.name"
+          :help="siteConfig.SITE_FRONTEND_DOMAIN.description"
+        >
+          <a-input v-model="form.SITE_FRONTEND_DOMAIN" placeholder="请输入前台完整访问域名" />
+        </a-form-item>
+        <a-alert style="margin-bottom: 16px" type="info" show-icon>
+          此处“前台域名”用于生成用户专属快捷登录链接，请填写完整协议头，例如 `http://` 或 `https://`。
+          修改后会影响后续从用户管理中复制出的专属链接地址。
+        </a-alert>
         <a-space style="margin-top: 16px">
           <a-button v-if="!isUpdate" v-permission="['system:siteConfig:update']" type="primary" @click="onUpdate">
             <template #icon>
@@ -142,12 +153,35 @@ const [form] = useResetReactive({
   SITE_FAVICON: '',
   SITE_LOGO: '',
   SITE_TITLE: '',
+  SITE_DESCRIPTION: '',
   SITE_COPYRIGHT: '',
+  SITE_BEIAN: '',
+  SITE_FRONTEND_DOMAIN: '',
 })
 const rules: FormInstance['rules'] = {
   SITE_TITLE: [{ required: true, message: '请输入系统名称' }],
   SITE_DESCRIPTION: [{ required: true, message: '请输入系统描述' }],
   SITE_COPYRIGHT: [{ required: true, message: '请输入版权声明' }],
+  SITE_FRONTEND_DOMAIN: [
+    {
+      validator: (value: string, callback: (errorMessage?: string) => void) => {
+        if (!value) {
+          callback()
+          return
+        }
+        try {
+          const url = new URL(value)
+          if (!['http:', 'https:'].includes(url.protocol)) {
+            callback('请输入以 http:// 或 https:// 开头的完整域名')
+            return
+          }
+          callback()
+        } catch (error) {
+          callback('请输入以 http:// 或 https:// 开头的完整域名')
+        }
+      },
+    },
+  ],
 }
 
 const siteConfig = ref<SiteConfig>({
@@ -157,6 +191,7 @@ const siteConfig = ref<SiteConfig>({
   SITE_DESCRIPTION: {},
   SITE_COPYRIGHT: {},
   SITE_BEIAN: {},
+  SITE_FRONTEND_DOMAIN: {},
 })
 const faviconFile = ref<FileItem>({ uid: '-1' })
 const logoFile = ref<FileItem>({ uid: '-2' })
@@ -169,6 +204,7 @@ const reset = () => {
   form.SITE_DESCRIPTION = siteConfig.value.SITE_DESCRIPTION.value || ''
   form.SITE_COPYRIGHT = siteConfig.value.SITE_COPYRIGHT.value || ''
   form.SITE_BEIAN = siteConfig.value.SITE_BEIAN.value || ''
+  form.SITE_FRONTEND_DOMAIN = siteConfig.value.SITE_FRONTEND_DOMAIN.value || ''
   faviconFile.value.url = siteConfig.value.SITE_FAVICON.value
   logoFile.value.url = siteConfig.value.SITE_LOGO.value
 }

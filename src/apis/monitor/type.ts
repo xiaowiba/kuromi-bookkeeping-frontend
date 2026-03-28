@@ -1,17 +1,19 @@
 /** 在线用户类型 */
 export interface OnlineUserResp {
   id: string
-  description: string
-  module: string
-  timeTaken: number
+  token: string
+  username: string
+  nickname: string
+  clientType: string
+  clientId: string
   ip: string
   address: string
   browser: string
   os: string
-  status: number
-  errorMsg: string
-  createUserString: string
-  createTime: string
+  loginTime: string
+  lastActiveTime: string
+  loginMode?: string
+  entryLogin?: boolean
 }
 export interface OnlineUserQuery {
   nickname?: string

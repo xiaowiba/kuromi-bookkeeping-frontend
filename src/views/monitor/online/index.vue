@@ -19,6 +19,16 @@
         </a-button>
       </template>
       <template #nickname="{ record }">{{ record.nickname }}({{ record.username }})</template>
+      <template #loginMode="{ record }">
+        <a-tag :color="record.entryLogin ? 'green' : 'arcoblue'">
+          {{ loginModeLabelMap[record.loginMode || 'ACCOUNT'] || record.loginMode || '账号密码' }}
+        </a-tag>
+      </template>
+      <template #entryLogin="{ record }">
+        <a-tag :color="record.entryLogin ? 'green' : 'gray'">
+          {{ record.entryLogin ? '是' : '否' }}
+        </a-tag>
+      </template>
       <template #action="{ record }">
         <a-space>
           <a-popconfirm
@@ -56,6 +66,13 @@ defineOptions({ name: 'MonitorOnline' })
 
 const userStore = useUserStore()
 const currentToken = userStore.token
+const loginModeLabelMap: Record<string, string> = {
+  ACCOUNT: '账号密码',
+  PHONE: '手机号',
+  EMAIL: '邮箱',
+  SOCIAL: '第三方账号',
+  ENTRY: '专属入口',
+}
 
 const queryForm = reactive<OnlineUserQuery>({
   sort: ['createTime,desc'],
@@ -75,6 +92,8 @@ const columns: TableInstance['columns'] = [
     render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + (pagination.current - 1) * pagination.pageSize),
   },
   { title: '用户昵称', dataIndex: 'nickname', slotName: 'nickname', ellipsis: true, tooltip: true },
+  { title: '登录方式', dataIndex: 'loginMode', slotName: 'loginMode', width: 120, align: 'center' },
+  { title: '快捷登录', dataIndex: 'entryLogin', slotName: 'entryLogin', width: 100, align: 'center' },
   { title: '登录 IP', dataIndex: 'ip', ellipsis: true, tooltip: true },
   { title: '登录地点', dataIndex: 'address', ellipsis: true, tooltip: true },
   { title: '浏览器', dataIndex: 'browser', ellipsis: true, tooltip: true },

@@ -93,6 +93,44 @@ const resolveTerminalRoute = (to: Parameters<Router['beforeEach']>[0]) => {
   }
 }
 
+const loadUserRoutes = async (
+  to: Parameters<Router['beforeEach']>[0],
+  router: Router,
+  userStore: ReturnType<typeof useUserStore>,
+  routeStore: ReturnType<typeof useRouteStore>,
+) => {
+  if (!hasRouteFlag) {
+    await userStore.getInfo()
+
+    if (userStore.userInfo.pwdExpired && to.path !== '/pwdExpired') {
+      Message.warning('密码已过期，请修改密码')
+      return '/pwdExpired'
+    }
+
+    const accessRoutes = await routeStore.generateRoutes()
+    accessRoutes.forEach((route) => {
+      if (!isHttp(route.path)) {
+        router.addRoute(route)
+      }
+    })
+    hasRouteFlag = true
+
+    const terminalRoute = resolveTerminalRoute(to)
+    if (terminalRoute) {
+      return terminalRoute
+    }
+
+    return { ...to, replace: true }
+  }
+
+  const terminalRoute = resolveTerminalRoute(to)
+  if (terminalRoute) {
+    return terminalRoute
+  }
+
+  return true
+}
+
 /** 初始化路由守卫 */
 export const setupRouterGuard = (router: Router) => {
   router.beforeEach(async (to) => {
@@ -102,7 +140,7 @@ export const setupRouterGuard = (router: Router) => {
 
     try {
       if (getToken()) {
-        if (to.path === '/login') {
+        if (to.path === '/login' && !to.hash.includes('entryKey=')) {
           return {
             path: getDefaultTerminalHomePath(),
             replace: true,
@@ -111,43 +149,26 @@ export const setupRouterGuard = (router: Router) => {
 
         if (!hasRouteFlag) {
           try {
-            await userStore.getInfo()
-
-            if (userStore.userInfo.pwdExpired && to.path !== '/pwdExpired') {
-              Message.warning('密码已过期，请修改密码')
-              return '/pwdExpired'
-            }
-
-            const accessRoutes = await routeStore.generateRoutes()
-            accessRoutes.forEach((route) => {
-              if (!isHttp(route.path)) {
-                router.addRoute(route)
-              }
-            })
-            hasRouteFlag = true
-
-            const terminalRoute = resolveTerminalRoute(to)
-            if (terminalRoute) {
-              return terminalRoute
-            }
-
-            return { ...to, replace: true }
+            return await loadUserRoutes(to, router, userStore, routeStore)
           } catch (error) {
             await userStore.logoutCallBack()
             return `/login?redirect=${encodeURIComponent(to.fullPath)}`
           }
         }
-
-        const terminalRoute = resolveTerminalRoute(to)
-        if (terminalRoute) {
-          return terminalRoute
-        }
-
-        return true
+        return await loadUserRoutes(to, router, userStore, routeStore)
       }
 
       if (whiteList.includes(to.path)) {
         return true
+      }
+
+      if (userStore.canEntryLogin()) {
+        try {
+          await userStore.restoreLoginByEntryKey({ silent: true })
+          return await loadUserRoutes(to, router, userStore, routeStore)
+        } catch (error) {
+          await userStore.logoutCallBack()
+        }
       }
 
       return `/login?redirect=${encodeURIComponent(to.fullPath)}`

@@ -35,6 +35,11 @@ export function socialLogin(req: any) {
   return http.post<T.LoginResp>(`${BASE_URL}/login`, req)
 }
 
+/** @desc 专属入口登录 */
+export function entryLogin(req: T.EntryLoginReq, config?: any) {
+  return http.post<T.LoginResp>(`${BASE_URL}/entry-login`, req, config)
+}
+
 /** @desc 三方账号登录授权 */
 export function socialAuth(source: string) {
   return http.get<T.SocialAuthAuthorizeResp>(`${BASE_URL}/${source}`)

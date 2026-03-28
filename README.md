@@ -1,204 +1,249 @@
-# 家庭记账管理系统前端
+# 酷洛米记账系统前端
 
-基于 `ContiNew Admin UI 4.2.0-SNAPSHOT` 二次开发的前端项目，当前同时承载：
+基于 `ContiNew Admin UI 4.2.0-SNAPSHOT` 二次开发的前端项目，当前已经从通用后台模板演进为一套可同时支撑 Web 端和移动端 H5 的酷洛米记账系统前端。
 
-- Web 端管理后台
-- `/m` 独立移动端
+当前版本重点是：
+
+1. Web 端记账主流程已可稳定使用。
+2. `/m` 移动端独立页面体系已落地。
+3. 专属入口登录与静默续登链路已接通。
+4. 验证码、隐私模式、用户管理、在线用户展示等配套能力已打通。
+5. 报表模块需求和技术方案已完成，代码尚未正式开发。
+
+当前移动端展示版本号：
+
+`v1.1.15`
+
+---
 
 ## 项目定位
 
-当前项目不是单纯的上游管理后台模板，而是已经落地为“家庭记账系统前端”。其中：
+本项目不是简单套壳的管理后台，而是当前酷洛米记账系统的前端主仓库，负责：
 
-- Web 端继续使用 `Arco Design`
-- 移动端 `/m` 使用 `TDesign Mobile Vue`
-- PC 页面与移动端页面分开开发
-- 公共 API、Store、Hook 和工具方法可复用
+1. Web 端管理后台页面
+2. `/m` 移动端独立页面
+3. 登录、权限、专属入口、隐私模式等前端交互
+4. 与后端共用的记账 API 对接
 
-## 技术栈
+设计原则如下：
 
-- Vue 3
-- TypeScript
-- Vite 5
-- Pinia
-- Vue Router
-- Arco Design Vue
-- TDesign Mobile Vue
-- Sass
+1. Web 端和移动端页面分开开发，不强行共用页面结构。
+2. 公共 API、Store、Hook、工具方法尽量复用。
+3. 移动端优先使用 `TDesign Mobile Vue`。
+4. Web 端继续使用 `Arco Design Vue`。
 
-## 当前已落地能力
+---
+
+## 当前已完成功能
 
 ### Web 端
 
-- 科目管理
-- 明细管理
-- 隐藏对象配置
-- 隐私密码与隐私时长配置
-- 明细统计区结余展示
+当前 Web 端已完成以下能力：
+
+1. 科目管理
+2. 明细管理
+3. 关注关系管理
+4. 隐藏对象配置
+5. 隐私密码与隐私时长配置
+6. 用户管理中的专属入口维护
+7. 在线用户中的登录方式与快捷登录标识展示
+8. 网站配置中的前台域名维护
+
+其中记账相关已经具备：
+
+1. 分类、科目、支付方式、所属用户等维度查询
+2. 明细统计区总支出、总收入、结余展示
+3. 科目图标选择器与图标字段录入
+4. 明细新增、编辑、删除完整链路
 
 ### 移动端
 
-- `/m/bookkeeping/detail`：移动端明细主页
-- `/m/me`：移动端“我的”页面
-- `/m/subject`：移动端科目页
-- `/m/report`：报表入口预留页
+当前移动端已完成以下能力：
 
-### 移动端已完成的重点能力
+1. 独立 `/m` 路由入口与终端映射
+2. 独立移动端布局与底部导航
+3. `/m/bookkeeping/detail` 明细主页
+4. `/m/me` 我的页面
+5. `/m/subject` 科目页
+6. `/m/report` 报表入口占位页
 
-- 独立移动端布局与底部菜单
-- `/m` 路由独立入口与终端映射
-- rem 适配
-- 黄色主题统一
-- 骨架屏
-- 移动端 Toast 提示
-- 回到顶部
-- 移动端月份选择器
-- 独立的移动端新增 / 编辑记账表单
-- 全屏分类选择页
-- 移动端隐私模式入口
-- 版本号脚本化递增
+当前移动端明细主链路已完成：
 
-## 关键业务约定
+1. 月份切换
+2. 用户筛选
+3. 收支汇总展示
+4. 独立新增 / 编辑记账交互
+5. 科目与支付方式弹层即时选择并关闭
+6. 自定义金额键盘
+7. 隐私模式入口与状态联动
+8. 骨架屏、回到顶部、移动端 Toast
 
-### 1. 移动端页面与 PC 页面分离
+### 登录与安全链路
 
-移动端页面不复用 PC 页面的弹窗与页面结构。
+当前前端已完成以下登录安全能力：
 
-约定如下：
+1. 账号密码登录支持按后端配置动态启用图形验证码
+2. 登录页支持专属入口登录
+3. 前端本地保存 `entryKey`
+4. Token 失效后自动静默续登
+5. 被强制下线或手动退出时自动清理本地专属入口信息
+6. 在线用户列表可区分普通登录和专属入口登录
 
-- 页面单独开发
-- 样式单独维护
-- 公共 API、字典、Store、工具方法可以复用
+---
 
-### 2. 移动端统一组件体系
+## 技术栈
 
-`/m` 下的页面统一优先使用 `TDesign Mobile Vue` 组件。
+核心技术栈如下：
 
-当前已经统一到以下能力：
+1. Vue 3
+2. TypeScript
+3. Vite 5
+4. Pinia
+5. Vue Router
+6. Arco Design Vue
+7. TDesign Mobile Vue
+8. ECharts
+9. Sass
 
-- `Toast`
-- `Loading`
-- `Skeleton`
-- `BackTop`
-- `Footer`
-- `Tabs`
-- `DateTimePicker`
+说明：
 
-### 3. 移动端版本号统一管理
+1. Web 端图表和后续报表模块统一采用 `ECharts + vue-echarts`
+2. 移动端不额外引入第二套图表框架
 
-展示版本号不使用 `package.json` 的项目版本，而是统一使用：
-
-`src/config/app-version.ts`
-
-当前已提供两条版本脚本：
-
-```bash
-pnpm mobile:version:patch
-pnpm mobile:version:minor
-```
-
-适用规则：
-
-- 小改动：`patch`
-- 阶段性功能升级：`minor`
+---
 
 ## 目录结构
 
 ```text
 continew-admin-ui
+├─ public
+├─ scripts
+│  └─ bump-mobile-version.mjs
 ├─ src
 │  ├─ apis
-│  │  └─ bookkeeping              记账相关接口
+│  │  ├─ auth
+│  │  ├─ bookkeeping
+│  │  ├─ monitor
+│  │  └─ system
+│  ├─ components
+│  │  ├─ BookkeepingSubjectIconSelector
+│  │  ├─ Chart
+│  │  └─ Verify
 │  ├─ config
-│  │  └─ app-version.ts           移动端展示版本号
+│  │  └─ app-version.ts
 │  ├─ hooks
 │  ├─ layout
-│  │  └─ mobile                   移动端布局
+│  │  └─ mobile
 │  ├─ router
-│  │  └─ terminal.ts              Web / 移动端入口映射
+│  │  └─ terminal.ts
 │  ├─ stores
 │  │  └─ modules
-│  │     └─ privacy.ts            隐私模式状态
 │  ├─ styles
-│  │  └─ mobile.scss              移动端主题变量与统一样式
 │  ├─ utils
-│  │  ├─ mobile-rem.ts            rem 适配
-│  │  └─ mobile-toast.ts          移动端提示封装
-│  ├─ views
-│  │  ├─ bookkeeping              Web 端记账页面
-│  │  └─ mobile                   移动端页面
-│  │     ├─ bookkeeping
-│  │     ├─ me
-│  │     ├─ report
-│  │     └─ subject
-│  └─ main.ts
-├─ scripts
-│  └─ bump-mobile-version.mjs     移动端版本号递增脚本
-└─ package.json
+│  └─ views
+│     ├─ bookkeeping
+│     ├─ login
+│     ├─ mobile
+│     ├─ monitor
+│     └─ system
+├─ package.json
+└─ README.md
 ```
 
-## 路由入口
+关键目录说明：
 
-当前 `/m` 相关入口映射定义在：
+1. `src/views/bookkeeping`
+   - Web 端记账页面
+2. `src/views/mobile`
+   - 移动端页面
+3. `src/apis/bookkeeping`
+   - 记账模块前端接口封装
+4. `src/layout/mobile`
+   - 移动端布局、底部导航、全局挂载组件
+5. `src/utils/auth.ts`
+   - token 与专属入口本地存储能力
+6. `src/utils/http.ts`
+   - 401、静默续登、请求重放等拦截逻辑
 
-`src/router/terminal.ts`
+---
 
-默认移动端首页：
+## 关键页面与路由
 
-```text
-/m/bookkeeping/detail
-```
+### Web 端核心页面
 
-当前主要移动端页面：
+1. `/bookkeeping/subject`
+   - 科目管理
+2. `/bookkeeping/detail`
+   - 明细管理
+3. `/bookkeeping/follow`
+   - 关注关系管理
+4. `/bookkeeping/hide-target`
+   - 隐藏对象配置
+5. `/system/user`
+   - 用户管理，包含专属入口维护
+6. `/system/config`
+   - 系统配置，包含前台域名
+7. `/monitor/online`
+   - 在线用户，包含登录方式与快捷登录标识
 
-- `/m/bookkeeping/detail`
-- `/m/report`
-- `/m/subject`
-- `/m/me`
+### 移动端核心页面
 
-## 开发环境
+1. `/m/bookkeeping/detail`
+   - 移动端明细首页
+2. `/m/report`
+   - 移动端报表入口占位页
+3. `/m/subject`
+   - 移动端科目页
+4. `/m/me`
+   - 移动端我的页面
 
-建议本地准备：
+终端默认映射定义在：
 
-- Node.js 18+
-- pnpm
+- `src/router/terminal.ts`
 
-后端默认联调地址：
+当前默认移动端首页：
 
-- 前端：`http://localhost:5173`
-- 后端：`http://localhost:8000`
+`/m/bookkeeping/detail`
 
-## 常用命令
+---
 
-### 1. 安装依赖
+## 本地开发
+
+建议环境：
+
+1. Node.js 18+
+2. pnpm
+
+### 安装依赖
 
 ```bash
 pnpm i
 ```
 
-或使用镜像安装：
+或使用镜像源：
 
 ```bash
 pnpm bootstrap
 ```
 
-### 2. 启动开发环境
+### 启动开发环境
 
 ```bash
 pnpm dev
 ```
 
-启动后默认访问：
+默认访问地址：
 
-- Web：`http://localhost:5173`
-- 移动端：`http://localhost:5173/m/bookkeeping/detail`
+1. Web：`http://localhost:5173`
+2. 移动端：`http://localhost:5173/m/bookkeeping/detail`
 
-### 3. 类型检查
+### 类型检查
 
 ```bash
 pnpm typecheck
 ```
 
-### 4. 打包
+### 打包
 
 ```bash
 pnpm build
@@ -210,66 +255,124 @@ pnpm build
 pnpm build:test
 ```
 
-### 5. 代码检查
+### 代码检查
 
 ```bash
 pnpm lint
 pnpm lint:fix
 ```
 
-### 6. 移动端版本号递增
+### 移动端展示版本号递增
 
 ```bash
 pnpm mobile:version:patch
 pnpm mobile:version:minor
 ```
 
-## 当前移动端说明
+使用规则：
 
-### 1. 明细页
+1. `patch`
+   - 小范围修复或样式调整
+2. `minor`
+   - 阶段性功能升级
 
-移动端明细页已经完成：
+移动端展示版本号统一维护在：
 
-- 顶部月份查询
-- 用户筛选
-- 收支统计
-- 骨架屏
-- 回到顶部
-- 删除与编辑交互
-- 隐私模式退出按钮
+- `src/config/app-version.ts`
 
-### 2. 新增 / 编辑记账
+---
 
-当前移动端表单已经改为独立实现，不再复用 PC 弹窗页面。
+## 与后端联调说明
 
-已包含：
+默认联调端口：
 
-- 全屏分类选择页
-- 金额键盘
-- 表单校验
-- 隐私模式下“隐藏此笔”开关
+1. 前端：`5173`
+2. 后端：`8000`
 
-### 3. 隐私模式
+当前前后端已打通的重点链路：
 
-当前移动端隐私链路已经接通：
+1. 账号密码登录与验证码链路
+2. 专属入口登录链路
+3. 专属入口静默续登链路
+4. 用户管理中的专属入口启用、禁用、复制、重新生成
+5. 在线用户中的登录方式展示
+6. 记账明细、科目、关注、隐私、隐藏对象等业务链路
 
-- “我的”页面底部版本号三连击进入隐私入口
-- 首次可设置隐私密码
-- 已设置密码时可验证进入
-- 有效时长由后端配置返回
-- 状态由 `sessionStorage` 持有
+前端依赖的关键后端配置项：
 
-### 4. 报表页
+1. `LOGIN_CAPTCHA_ENABLED`
+   - 控制账号密码登录是否展示图形验证码
+2. `SITE_FRONTEND_DOMAIN`
+   - 用于生成用户专属快捷登录链接
 
-报表页当前是入口预留，后续继续补充图表与统计能力。
+---
 
-## 协作建议
+## 当前业务约定
 
-- 需求文档、技术方案、修改日志统一维护在 `D:\ShaYuJiZhang\markdown`
-- 移动端相关变更优先同步更新本 README
-- 如果涉及展示版本号，请同步使用版本脚本，不要手改多个地方
+### 1. Web 与移动端页面分离
+
+约定如下：
+
+1. 移动端页面不直接复用 Web 页面的表格与弹窗结构
+2. 业务数据模型和 API 可复用
+3. 页面布局和视觉样式分开维护
+
+### 2. 移动端优先使用 TDesign Mobile Vue
+
+`/m` 目录下页面默认遵循：
+
+1. 优先使用 `TDesign Mobile Vue`
+2. 非必要不新增原生按钮和原生弹层实现
+3. 保持黄色主题和移动端统一风格
+
+### 3. 专属入口与静默续登
+
+当前前端专属入口链路约定如下：
+
+1. 首次通过专属链接进入登录页后，会自动发起专属入口登录
+2. 登录成功后，本地保存 `entryKey`
+3. Token 正常过期时，HTTP 拦截器会尝试静默续登
+4. 手动退出或被强制下线时，会清理本地专属入口信息
+
+### 4. 报表模块尚未开发
+
+当前状态：
+
+1. 需求文档已完成
+2. 技术方案已完成
+3. 移动端报表页当前仍是占位页
+4. Web 端报表页尚未开发
+
+---
+
+## 相关文档
+
+当前需求、方案、修改记录统一维护在工作区 `markdown` 目录中。
+
+重点文档包括：
+
+1. `1821.移动端报表模块需求文档.md`
+2. `2026-03-28.记账报表模块技术方案.md`
+3. `2026-03-28.用户永久专属入口与静默续登方案.md`
+4. 其他需求文档、技术方案、修改日志
+
+---
+
+## 发布前建议
+
+如果要以当前已完成功能作为一个稳定版本发布，建议至少完成以下检查：
+
+1. `pnpm typecheck`
+2. `pnpm build`
+3. 核对专属入口登录、静默续登、手动退出链路
+4. 核对账号密码登录在验证码开启和关闭两种场景下的表现
+5. 核对移动端新增 / 编辑明细主链路
+6. 核对用户管理、在线用户、系统配置三个管理页
+7. 再从当前稳定代码切发布分支或打 tag
+
+---
 
 ## License
 
-- 遵循 Apache-2.0 协议
-- 基于 ContiNew Admin UI 二次开发
+1. 遵循 Apache-2.0 协议
+2. 基于 ContiNew Admin UI 二次开发

@@ -3,8 +3,11 @@
     v-model:visible="popupVisible"
     placement="bottom"
     destroy-on-close
-    :z-index="1600"
-    :close-on-overlay-click="false"
+    :prevent-scroll-through="true"
+    :z-index="AMOUNT_KEYBOARD_POPUP_Z_INDEX"
+    :show-overlay="true"
+    :overlay-props="amountKeyboardOverlayProps"
+    :close-on-overlay-click="true"
   >
     <div class="mobile-amount-keyboard">
       <div class="mobile-amount-keyboard__header">
@@ -78,6 +81,10 @@ defineOptions({ name: 'MobileAmountKeyboard' })
 
 const MAX_AMOUNT = 999999
 const MAX_DECIMAL_LENGTH = 2
+const AMOUNT_KEYBOARD_POPUP_Z_INDEX = 1600
+const amountKeyboardOverlayProps = {
+  zIndex: AMOUNT_KEYBOARD_POPUP_Z_INDEX - 1,
+}
 
 const keyList: KeyboardKey[] = [
   { label: '1', value: '1', type: 'digit' },

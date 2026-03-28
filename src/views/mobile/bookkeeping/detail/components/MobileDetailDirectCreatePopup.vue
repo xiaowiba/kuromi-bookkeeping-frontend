@@ -149,8 +149,9 @@
     :prevent-scroll-through="true"
     :close-btn="true"
     :destroy-on-close="true"
-    :z-index="1500"
+    :z-index="SUBJECT_PICKER_POPUP_Z_INDEX"
     :show-overlay="true"
+    :overlay-props="subjectPickerOverlayProps"
     :close-on-overlay-click="true"
   >
     <div class="mobile-option-picker">
@@ -211,8 +212,9 @@
     :prevent-scroll-through="true"
     :close-btn="true"
     :destroy-on-close="true"
-    :z-index="1500"
+    :z-index="PAYMENT_PICKER_POPUP_Z_INDEX"
     :show-overlay="true"
+    :overlay-props="paymentPickerOverlayProps"
     :close-on-overlay-click="true"
   >
     <div class="mobile-option-picker">
@@ -262,9 +264,12 @@
   <t-popup
     v-model:visible="datePickerVisible"
     placement="bottom"
+    :prevent-scroll-through="true"
     destroy-on-close
-    :z-index="1550"
-    :close-on-overlay-click="false"
+    :z-index="DATE_PICKER_POPUP_Z_INDEX"
+    :show-overlay="true"
+    :overlay-props="datePickerOverlayProps"
+    :close-on-overlay-click="true"
   >
     <div class="mobile-direct-create__picker-popup">
       <t-date-time-picker
@@ -325,6 +330,18 @@ const { bk_subject_category: bkSubjectCategory, bk_payment_method: bkPaymentMeth
 
 const MAX_AMOUNT = 999999
 const getToday = () => dayjs().format('YYYY-MM-DD')
+const SUBJECT_PICKER_POPUP_Z_INDEX = 1500
+const PAYMENT_PICKER_POPUP_Z_INDEX = 1500
+const DATE_PICKER_POPUP_Z_INDEX = 1550
+const subjectPickerOverlayProps = {
+  zIndex: SUBJECT_PICKER_POPUP_Z_INDEX - 1,
+}
+const paymentPickerOverlayProps = {
+  zIndex: PAYMENT_PICKER_POPUP_Z_INDEX - 1,
+}
+const datePickerOverlayProps = {
+  zIndex: DATE_PICKER_POPUP_Z_INDEX - 1,
+}
 
 const bodyRef = ref<HTMLElement | null>(null)
 const popupVisible = computed({
@@ -1050,24 +1067,28 @@ watch(
 .mobile-option-picker__payment-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.24rem 0.08rem;
+  gap: 0.32rem 0.08rem;
   align-items: start;
+  padding: 0.18rem 0.08rem 0.28rem;
 }
 
 .mobile-option-picker__payment-option {
   min-width: 0;
+  min-height: 2.4rem;
   border: none;
   background: transparent;
   padding: 0;
-  margin: 0 0 1.2rem 0;
+  margin: 0;
 }
 
 .mobile-option-picker__payment-option-content {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.16rem;
   width: 100%;
+  min-height: 100%;
   white-space: normal;
 }
 
@@ -1094,12 +1115,12 @@ watch(
 }
 
 .mobile-option-picker__payment-label {
-  // min-width: 0;
-  // min-height: 0.56rem;
+  min-width: 100%;
+  min-height: 0.96rem;
   color: #303133;
   font-size: 0.4rem;
   font-weight: 400;
-  line-height: 1.2;
+  line-height: 1.25;
   text-align: center;
   word-break: break-all;
   white-space: normal;

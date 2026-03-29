@@ -1,106 +1,237 @@
 <template>
-  <div class="mobile-page">
-    <section class="mobile-report-hero mobile-panel">
-      <p class="mobile-report-hero__eyebrow">Phase 1 占位</p>
-      <h2 class="mobile-report-hero__title">报表入口已预留</h2>
-      <p class="mobile-report-hero__desc">
-        下一阶段会在这里接入月度收支、分类分布和趋势图表，当前先完成移动端独立框架与导航切换。
-      </p>
+  <div class="mobile-page mobile-report-page">
+    <section class="mobile-panel mobile-report-hero">
+      <div class="mobile-report-hero__top">
+        <t-button size="small" variant="outline" @click="filterPopupVisible = true">筛选</t-button>
+      </div>
+
+      <div class="mobile-report-hero__preset-group">
+        <button
+          v-for="item in datePresetOptions"
+          :key="String(item.value)"
+          type="button"
+          class="mobile-report-hero__preset"
+          :class="{ 'is-active': filterForm.datePreset === item.value }"
+          @click="handlePresetChange(item.value as any)"
+        >
+          {{ item.shortLabel }}
+        </button>
+      </div>
+
+      <p class="mobile-report-hero__desc">{{ filterSummaryText }}</p>
     </section>
 
-    <section class="mobile-panel mobile-report-card">
-      <h3 class="mobile-section-title">规划中的报表能力</h3>
-      <div class="mobile-report-grid">
-        <article class="mobile-report-grid__item">
-          <span class="mobile-report-grid__label">月度汇总</span>
-          <strong>收入 / 支出</strong>
-        </article>
-        <article class="mobile-report-grid__item">
-          <span class="mobile-report-grid__label">分类分析</span>
-          <strong>消费结构</strong>
-        </article>
-        <article class="mobile-report-grid__item">
-          <span class="mobile-report-grid__label">趋势对比</span>
-          <strong>多月变化</strong>
-        </article>
-      </div>
-    </section>
+    <MobilePageSkeleton v-if="loading" variant="report" />
+
+    <template v-else>
+      <MobileReportSummaryCards :overview="dashboard.overview" />
+      <MobileReportTrendChart :option="trendOption" />
+      <MobileReportCategoryPie :option="categoryOption" :items="dashboard.categoryShare" @select="handleCategoryDrilldown" />
+      <MobileReportSubjectRank :option="subjectRankOption" />
+      <MobileReportPaymentMethod :option="paymentMethodOption" />
+      <MobileReportUserCompare v-if="showUserCompare" :option="userCompareOption" />
+      <MobileReportInsightPanel :insight="dashboard.insight" />
+    </template>
+
+    <MobileReportFilterPopup
+      v-model:visible="filterPopupVisible"
+      :filter-form="filterForm"
+      :date-preset-options="datePresetOptions"
+      :category-options="categoryOptions"
+      :subject-options="subjectOptions"
+      :payment-method-options="paymentMethodOptions"
+      :user-scope-options="userScopeOptions"
+      :user-select-options="userSelectOptions"
+      :all-subjects="allSubjects"
+      :auto-open-calendar="autoOpenCalendar"
+      @confirm="handleConfirmFilters"
+      @reset="handleResetFilters"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-/**
- * 移动端报表入口页
- *
- * @author Wangsongsong
- * @date 2026-03-21
- * @update 2026-03-22 @Wangsongsong
- * @desc 接入移动端布局层下拉刷新，报表占位页支持刷新手势完成回调
- * @update 2026-03-22 @Wangsongsong
- * @desc 报表占位页的眉标、卡片和边框统一收为黄色系视觉
- * @update 2026-03-22 @Wangsongsong
- * @desc 移除报表占位页的下拉刷新空回调，避免保留无实际价值的手势交互
- */
+import { computed, onMounted, ref, watch } from 'vue'
+import { getReportDashboard } from '@/apis/bookkeeping/report'
+import type * as T from '@/apis/bookkeeping/type'
+import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
+import { mobileToast } from '@/utils/mobile-toast'
+import {
+  REPORT_DATE_PRESET_OPTIONS,
+  REPORT_USER_SCOPE_OPTIONS,
+  createEmptyReportDashboard,
+} from '@/views/bookkeeping/report/shared/reportConstants'
+import { useReportFilters } from '@/views/bookkeeping/report/shared/useReportFilters'
+import { useReportOptions } from '@/views/bookkeeping/report/shared/useReportOptions'
+import MobileReportCategoryPie from './components/MobileReportCategoryPie.vue'
+import MobileReportFilterPopup from './components/MobileReportFilterPopup.vue'
+import MobileReportInsightPanel from './components/MobileReportInsightPanel.vue'
+import MobileReportPaymentMethod from './components/MobileReportPaymentMethod.vue'
+import MobileReportSubjectRank from './components/MobileReportSubjectRank.vue'
+import MobileReportSummaryCards from './components/MobileReportSummaryCards.vue'
+import MobileReportTrendChart from './components/MobileReportTrendChart.vue'
+import MobileReportUserCompare from './components/MobileReportUserCompare.vue'
+
 defineOptions({ name: 'MobileReport' })
+
+const loading = ref(false)
+const filterPopupVisible = ref(false)
+const autoOpenCalendar = ref(false)
+const dashboard = ref<T.ReportDashboardResp>(createEmptyReportDashboard())
+
+const {
+  filterForm,
+  allSubjects,
+  userSelectOptions,
+  categoryOptions,
+  paymentMethodOptions,
+  subjectOptions,
+  loadFilterOptions,
+  resetFilters,
+  buildDashboardQuery,
+} = useReportFilters()
+
+const datePresetOptions = REPORT_DATE_PRESET_OPTIONS
+const userScopeOptions = REPORT_USER_SCOPE_OPTIONS
+const showUserCompare = computed(() => dashboard.value.userCompare.length > 1)
+const { trendOption, categoryOption, subjectRankOption, paymentMethodOption, userCompareOption } = useReportOptions(
+  () => dashboard.value,
+  () => ({ compact: true, dualAxis: true }),
+)
+
+const resolveOptionLabel = (options: Array<{ label: string; value: any }>, value: string) => {
+  return options.find(item => String(item.value) === String(value))?.label || '全部'
+}
+
+const filterSummaryText = computed(() => {
+  const categoryText = resolveOptionLabel(categoryOptions.value, filterForm.category)
+  const subjectText = resolveOptionLabel(subjectOptions.value, filterForm.subjectId)
+  const paymentText = resolveOptionLabel(paymentMethodOptions.value, filterForm.paymentMethod)
+  const userText = filterForm.userScope === 'all'
+    ? '全部用户'
+    : filterForm.userScope === 'specific'
+      ? resolveOptionLabel(userSelectOptions.value, filterForm.userId)
+      : '当前用户'
+  return `${userText} · ${categoryText} · ${subjectText} · ${paymentText}`
+})
+
+const loadDashboard = async () => {
+  loading.value = true
+  try {
+    const { data } = await getReportDashboard(buildDashboardQuery())
+    dashboard.value = data || createEmptyReportDashboard()
+  } catch {
+    dashboard.value = createEmptyReportDashboard()
+    mobileToast.error('加载报表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const handlePresetChange = async (preset: T.ReportDatePreset) => {
+  if (preset === 'custom') {
+    filterForm.datePreset = 'custom'
+    autoOpenCalendar.value = true
+    filterPopupVisible.value = true
+    return
+  }
+
+  autoOpenCalendar.value = false
+  if (filterForm.datePreset === preset) {
+    return
+  }
+  filterForm.datePreset = preset
+  await loadDashboard()
+}
+
+const handleConfirmFilters = async () => {
+  filterPopupVisible.value = false
+  await loadDashboard()
+}
+
+const handleResetFilters = async () => {
+  resetFilters()
+  filterPopupVisible.value = false
+  await loadDashboard()
+}
+
+const handleCategoryDrilldown = async (subjectName: string) => {
+  const matchedSubject = allSubjects.value.find(item => item.name === subjectName && (!filterForm.category || item.category === filterForm.category))
+  if (!matchedSubject) {
+    return
+  }
+  filterForm.subjectId = String(matchedSubject.id)
+  await loadDashboard()
+}
+
+onMounted(async () => {
+  await loadFilterOptions()
+  await loadDashboard()
+})
+
+watch(filterPopupVisible, (visible) => {
+  if (!visible) {
+    autoOpenCalendar.value = false
+  }
+})
 </script>
 
 <style scoped lang="scss">
+.mobile-report-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .mobile-report-hero {
-  padding: 22px 18px;
-}
-
-.mobile-report-hero__eyebrow {
-  margin: 0 0 8px;
-  color: var(--mobile-brand);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.mobile-report-hero__title {
-  margin: 0 0 10px;
-  color: var(--color-text-1);
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.mobile-report-hero__desc {
-  margin: 0;
-  color: var(--color-text-2);
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.mobile-report-card {
-  margin-top: 14px;
   padding: 18px 16px;
 }
 
-.mobile-report-grid {
-  display: grid;
+.mobile-report-hero__top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 12px;
 }
 
-.mobile-report-grid__item {
-  padding: 16px;
+.mobile-report-hero__preset-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.mobile-report-hero__preset-group::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-report-hero__preset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 62px;
+  min-height: 34px;
+  padding: 0 14px;
   border: 1px solid rgba(143, 99, 17, 0.1);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 248, 231, 0.82) 100%);
-  box-shadow: 0 8px 20px rgba(130, 90, 22, 0.04);
-}
-
-.mobile-report-grid__item strong {
-  display: block;
-  color: var(--color-text-1);
-  font-size: 18px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #6f5b37;
+  font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
-.mobile-report-grid__label {
-  display: block;
-  margin-bottom: 6px;
-  color: rgba(120, 94, 51, 0.64);
-  font-size: 12px;
+.mobile-report-hero__preset.is-active {
+  border-color: rgba(197, 138, 18, 0.26);
+  background: linear-gradient(135deg, rgba(255, 243, 201, 0.98) 0%, rgba(251, 191, 36, 0.24) 100%);
+  color: #8b5e00;
+}
+
+.mobile-report-hero__desc {
+  margin: 14px 0 0;
+  color: #7d6a47;
+  font-size: 13px;
+  line-height: 1.7;
 }
 </style>

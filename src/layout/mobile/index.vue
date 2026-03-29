@@ -82,7 +82,7 @@ const MOBILE_SCROLL_UNLOCK_CLASS = 'mobile-scroll-unlocked'
 let cleanupMobileRemResize: (() => void) | null = null
 
 const pageTitle = computed(() => (route.meta.title as string) || '移动端')
-const showNavbar = computed(() => route.path !== '/m/bookkeeping/detail')
+const showNavbar = computed(() => !route.meta.hideMobileNavbar)
 const showBack = computed(() => !rootPaths.includes(route.path))
 const routeSkeletonVariant = computed(() => {
   if (route.path.startsWith('/m/report')) {

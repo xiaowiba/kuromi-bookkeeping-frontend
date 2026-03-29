@@ -22,19 +22,19 @@ export const systemRoutes: RouteRecordRaw[] = [
         path: 'bookkeeping/detail',
         name: 'MobileBookkeepingDetail',
         component: () => import('@/views/mobile/bookkeeping/detail/index.vue'),
-        meta: { title: '明细', hidden: true, showInTabs: false, isMobile: true },
+        meta: { title: '明细', hidden: true, showInTabs: false, isMobile: true, hideMobileNavbar: true },
       },
       {
         path: 'report',
         name: 'MobileReport',
         component: () => import('@/views/mobile/report/index.vue'),
-        meta: { title: '报表', hidden: true, showInTabs: false, isMobile: true },
+        meta: { title: '报表', hidden: true, showInTabs: false, isMobile: true, hideMobileNavbar: true },
       },
       {
         path: 'me',
         name: 'MobileMe',
         component: () => import('@/views/mobile/me/index.vue'),
-        meta: { title: '我的', hidden: true, showInTabs: false, isMobile: true },
+        meta: { title: '我的', hidden: true, showInTabs: false, isMobile: true, hideMobileNavbar: true },
       },
       {
         path: 'subject',

@@ -41,5 +41,7 @@ declare module 'vue-router' {
     roles?: string[]
     /** 排序 */
     sort?: number
+    /** Hide the mobile navbar for full-screen mobile pages */
+    hideMobileNavbar?: boolean
   }
 }

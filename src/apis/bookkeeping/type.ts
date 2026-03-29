@@ -167,3 +167,131 @@ export interface PrivacyConfigResp {
 export interface PrivacyConfigUpdateReq {
   expireMinutes: number
 }
+
+/** 报表时间预设 */
+export type ReportDatePreset =
+  | 'currentMonth'
+  | 'lastMonth'
+  | 'last3Months'
+  | 'last6Months'
+  | 'currentYear'
+  | 'custom'
+
+/** 报表用户范围 */
+export type ReportUserScope = 'current' | 'all' | 'specific'
+
+/** 报表查询条件 */
+export interface ReportQuery {
+  datePreset?: ReportDatePreset
+  startDate?: string
+  endDate?: string
+  category?: string
+  subjectId?: string
+  paymentMethod?: string
+  userId?: string
+  privacyMode?: boolean
+}
+
+/** 报表分页查询条件 */
+export interface ReportPageQuery extends ReportQuery, PageQuery {
+  sort: Array<string>
+}
+
+/** 报表筛选表单 */
+export interface ReportFilterForm {
+  datePreset: ReportDatePreset
+  dateRange: string[]
+  category: string
+  subjectId: string
+  paymentMethod: string
+  userScope: ReportUserScope
+  userId: string
+}
+
+/** 报表总览 */
+export interface ReportOverviewResp {
+  totalExpense: number
+  totalIncome: number
+  balance: number
+  recordCount: number
+  maxExpenseCategoryName: string
+  maxExpenseCategoryAmount: number
+  maxIncomeSubjectName: string
+  maxIncomeSubjectAmount: number
+}
+
+/** 报表趋势点 */
+export interface ReportTrendPointResp {
+  label: string
+  expense: number
+  income: number
+}
+
+/** 报表趋势 */
+export interface ReportTrendResp {
+  granularity: 'day' | 'month'
+  points: ReportTrendPointResp[]
+}
+
+/** 报表分类占比项 */
+export interface ReportCategoryShareItemResp {
+  name: string
+  amount: number
+  ratio: number
+}
+
+/** 报表科目排行项 */
+export interface ReportSubjectRankItemResp {
+  subjectId: string
+  subjectName: string
+  category: string
+  amount: number
+  ratio: number
+  count: number
+}
+
+/** 报表支付方式占比项 */
+export interface ReportPaymentMethodShareItemResp {
+  key: string
+  label: string
+  amount: number
+  ratio: number
+}
+
+/** 报表用户对比项 */
+export interface ReportUserCompareItemResp {
+  userId: string
+  userName: string
+  expense: number
+  income: number
+}
+
+/** 报表看板响应 */
+export interface ReportDashboardResp {
+  overview: ReportOverviewResp
+  trend: ReportTrendResp
+  categoryShare: ReportCategoryShareItemResp[]
+  subjectRank: ReportSubjectRankItemResp[]
+  paymentMethodShare: ReportPaymentMethodShareItemResp[]
+  userCompare: ReportUserCompareItemResp[]
+  insight: string[]
+}
+
+/** 报表表格行 */
+export interface ReportRankingTableResp {
+  detailId: string
+  detailDate: string
+  detailName: string
+  subjectId: string
+  subjectName: string
+  subjectIcon?: string
+  dimensionName: string
+  category: string
+  paymentMethod: string
+  paymentMethodLabel: string
+  userId: string
+  userName: string
+  amount: number
+  ratio: number
+  count: number
+}

@@ -11,21 +11,25 @@
   >
     <div class="mobile-amount-keyboard">
       <div class="mobile-amount-keyboard__header">
-        <div>
-          <p class="mobile-amount-keyboard__eyebrow">金额输入</p>
-          <strong class="mobile-amount-keyboard__value">{{ keyboardValue || '0' }}</strong>
-        </div>
         <div class="mobile-amount-keyboard__actions">
           <button type="button" class="mobile-amount-keyboard__action" @click="handleClear">
             清空
           </button>
-          <!-- button
+          <button type="button" class="mobile-amount-keyboard__action" @click="handleCancel">
+            取消
+          </button>
+          <button
             type="button"
             class="mobile-amount-keyboard__action mobile-amount-keyboard__action--primary"
-            @click="popupVisible = false"
+            @click="handleConfirm"
           >
-            完成
-          </button -->
+            确认
+          </button>
+        </div>
+
+        <div class="mobile-amount-keyboard__summary">
+          <p class="mobile-amount-keyboard__eyebrow">金额输入</p>
+          <strong class="mobile-amount-keyboard__value">{{ draftValue || '0' }}</strong>
         </div>
       </div>
 
@@ -46,19 +50,7 @@
 </template>
 
 <script setup lang="ts">
-/**
- * 移动端金额数字键盘
- *
- * @author Wangsongsong
- * @date 2026-03-21
- * @update 2026-03-22 @Wangsongsong
- * @desc 放大金额键盘弹层、数字按键和右上角操作按钮，提升移动端输入触控面积
- * @update 2026-03-23 @Wangsongsong
- * @desc 进一步放大金额键盘可视区域与键位尺寸，尽量扩展到金额输入框下方可用空间
- * @update 2026-03-23 @Wangsongsong
- * @desc 修复金额键盘放大后最后一行被遮挡的问题，通过抬升键盘高度并重新平衡间距，确保四行按键完整可见
- */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 interface Props {
   visible: boolean
@@ -106,10 +98,11 @@ const popupVisible = computed({
   set: (value: boolean) => emit('update:visible', value),
 })
 
-const keyboardValue = computed({
-  get: () => String(props.modelValue || ''),
-  set: (value: string) => emit('update:modelValue', value),
-})
+const draftValue = ref('')
+
+const syncDraftValue = () => {
+  draftValue.value = String(props.modelValue || '')
+}
 
 const isValidAmount = (value: string) => {
   if (!value) return true
@@ -121,25 +114,25 @@ const isValidAmount = (value: string) => {
 }
 
 const appendDigit = (digit: string) => {
-  const current = keyboardValue.value
+  const current = draftValue.value
 
   if (digit === '.') {
     if (current.includes('.')) return
-    keyboardValue.value = current ? `${current}.` : '0.'
+    draftValue.value = current ? `${current}.` : '0.'
     return
   }
 
   const nextValue = current === '0' ? digit : `${current}${digit}`
   if (!isValidAmount(nextValue)) return
-  keyboardValue.value = nextValue
+  draftValue.value = nextValue
 }
 
 const handleDelete = () => {
-  keyboardValue.value = keyboardValue.value.slice(0, -1)
+  draftValue.value = draftValue.value.slice(0, -1)
 }
 
 const handleClear = () => {
-  keyboardValue.value = ''
+  draftValue.value = ''
 }
 
 const handleKeyPress = (key: KeyboardKey) => {
@@ -150,37 +143,79 @@ const handleKeyPress = (key: KeyboardKey) => {
 
   appendDigit(key.value)
 }
+
+const normalizeAmountValue = (value: string) => {
+  if (!value) {
+    return ''
+  }
+  return value.endsWith('.') ? value.slice(0, -1) : value
+}
+
+const handleCancel = () => {
+  syncDraftValue()
+  popupVisible.value = false
+}
+
+const handleConfirm = () => {
+  emit('update:modelValue', normalizeAmountValue(draftValue.value))
+  popupVisible.value = false
+}
+
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      syncDraftValue()
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped lang="scss">
 .mobile-amount-keyboard {
-  border-radius: 0.48rem 0.48rem 0 0;
+  box-sizing: border-box;
+  border-radius: 0.56rem 0.56rem 0 0;
   background: linear-gradient(180deg, #fff9ef 0%, #fff4db 100%);
-  height: min(7.88rem, calc(100dvh - 4.16rem));
-  padding: 0.46rem 0.32rem calc(env(safe-area-inset-bottom) + 0.26rem);
+  min-height: 8.96rem;
+  max-height: calc(100dvh - 1.92rem);
+  padding:
+    max(0.6rem, calc(env(safe-area-inset-top) + 0.18rem))
+    0.36rem
+    calc(env(safe-area-inset-bottom) + 1.12rem);
   box-shadow: 0 -0.16rem 0.48rem rgba(146, 97, 0, 0.12);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-amount-keyboard__header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.28rem;
-  margin-bottom: 0.34rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.24rem;
+  margin-bottom: 0.42rem;
+}
+
+.mobile-amount-keyboard__summary {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
 }
 
 .mobile-amount-keyboard__eyebrow {
   margin: 0 0 0.08rem;
   color: #b47b00;
-  font-size: 0.28rem;
+  font-size: 0.3rem;
   font-weight: 600;
 }
 
 .mobile-amount-keyboard__value {
   display: block;
   color: #4c3200;
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.1;
 }
@@ -188,18 +223,22 @@ const handleKeyPress = (key: KeyboardKey) => {
 .mobile-amount-keyboard__actions {
   display: flex;
   align-items: center;
-  gap: 0.18rem;
+  justify-content: flex-end;
+  gap: 0.16rem;
+  width: 100%;
+  flex-wrap: nowrap;
 }
 
 .mobile-amount-keyboard__action {
   border: none;
-  border-radius: 999rem;
+  border-radius: 0.28rem;
   background: rgba(255, 255, 255, 0.88);
   color: #7d5a00;
-  min-height: 0.92rem;
-  padding: 0.2rem 0.42rem;
-  font-size: 0.36rem;
+  min-height: 0.98rem;
+  padding: 0.28rem 0.68rem;
+  font-size: 0.5rem;
   font-weight: 700;
+  line-height: 1;
   box-shadow: 0 0.08rem 0.18rem rgba(146, 97, 0, 0.08);
 }
 
@@ -211,21 +250,22 @@ const handleKeyPress = (key: KeyboardKey) => {
 .mobile-amount-keyboard__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.2rem;
+  gap: 0.24rem;
+  padding-bottom: 0.72rem;
 }
 
 .mobile-amount-keyboard__key {
-  min-height: 1.24rem;
+  min-height: 1.38rem;
   border: none;
-  border-radius: 0.28rem;
+  border-radius: 0.32rem;
   background: rgba(255, 255, 255, 0.92);
   color: #4c3200;
-  font-size: 0.6rem;
+  font-size: 0.66rem;
   font-weight: 700;
   box-shadow: inset 0 -0.02rem 0 rgba(146, 97, 0, 0.08);
 }
 
 .mobile-amount-keyboard__key.is-action {
-  font-size: 0.48rem;
+  font-size: 0.52rem;
 }
 </style>

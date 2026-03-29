@@ -5,27 +5,9 @@
         {{ avatarText }}
       </div>
       <div class="mobile-me-profile__content">
-        <p class="mobile-me-profile__eyebrow">个人中心</p>
         <h2 class="mobile-me-profile__name">{{ userStore.userInfo.nickname }}</h2>
         <p class="mobile-me-profile__account">{{ userStore.userInfo.username }}</p>
       </div>
-    </section>
-
-    <section class="mobile-panel mobile-me-grid">
-      <h3 class="mobile-section-title">常用功能</h3>
-      <t-grid :column="3" theme="card" border>
-        <t-grid-item
-          v-for="item in gridItems"
-          :key="item.key"
-          :text="item.text"
-          :description="item.description"
-          @click="handleGridClick(item.key)"
-        >
-          <template #icon>
-            <span class="mobile-me-grid__icon">{{ item.icon }}</span>
-          </template>
-        </t-grid-item>
-      </t-grid>
     </section>
 
     <section class="mobile-panel mobile-me-actions">
@@ -66,13 +48,12 @@
 
           <div class="mobile-field">
             <label class="mobile-field__label">隐私密码</label>
-            <input
+            <t-input
               v-model.trim="verifyPassword"
-              class="mobile-input"
+              class="mobile-me__password-input"
               type="password"
-              maxlength="32"
+              :maxlength="32"
               placeholder="请输入隐私密码"
-              @keydown.enter="handleVerifyPassword"
             />
           </div>
 
@@ -99,24 +80,23 @@
 
           <div class="mobile-field">
             <label class="mobile-field__label">新密码</label>
-            <input
+            <t-input
               v-model.trim="setupForm.password"
-              class="mobile-input"
+              class="mobile-me__password-input"
               type="password"
-              maxlength="32"
+              :maxlength="32"
               placeholder="请输入新密码"
             />
           </div>
 
           <div class="mobile-field">
             <label class="mobile-field__label">确认密码</label>
-            <input
+            <t-input
               v-model.trim="setupForm.confirmPassword"
-              class="mobile-input"
+              class="mobile-me__password-input"
               type="password"
-              maxlength="32"
+              :maxlength="32"
               placeholder="请再次输入密码"
-              @keydown.enter="handleSetupPassword"
             />
           </div>
 
@@ -135,27 +115,10 @@
 </template>
 
 <script setup lang="ts">
-/**
- * 移动端我的页面
- *
- * @author Wangsongsong
- * @date 2026-03-21
- * @update 2026-03-22 @Wangsongsong
- * @desc 底部版本号切换为 TDesign Footer，并改为三连击触发隐私模式入口
- * @update 2026-03-22 @Wangsongsong
- * @desc 移动端页面提示统一改为使用 TDesign Toast
- * @update 2026-03-22 @Wangsongsong
- * @desc 接入移动端布局层下拉刷新，页面注册个人中心刷新回调
- * @update 2026-03-22 @Wangsongsong
- * @desc 统一我的页面、九宫格和隐私弹层为黄色系风格
- * @update 2026-03-22 @Wangsongsong
- * @desc 移除我的页面下拉刷新回调，避免隐私入口页再依赖全局手势刷新链路
- */
 import { computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MOBILE_DISPLAY_VERSION } from '@/config/app-version'
 import { usePrivacyStore, useUserStore } from '@/stores'
-import { mobileToast } from '@/utils/mobile-toast'
 import { usePrivacyEntry } from '@/views/bookkeeping/shared/usePrivacyEntry'
 
 defineOptions({ name: 'MobileMe' })
@@ -193,26 +156,6 @@ const privacyStatusText = computed(() => {
 })
 
 const footerText = computed(() => `版本 ${MOBILE_DISPLAY_VERSION}`)
-
-const gridItems = [
-  { key: 'subject', text: '科目', description: '管理科目', icon: '科' },
-  { key: 'report', text: '报表', description: '查看规划', icon: '报' },
-  { key: 'follow', text: '关注', description: '后续接入', icon: '关' },
-]
-
-const handleGridClick = (key: string) => {
-  if (key === 'subject') {
-    router.push('/m/subject')
-    return
-  }
-
-  if (key === 'report') {
-    router.push('/m/report')
-    return
-  }
-
-  mobileToast.info('该移动端能力将在后续阶段补充')
-}
 
 const resetVersionClickState = () => {
   versionClickCount = 0
@@ -281,15 +224,6 @@ onUnmounted(() => {
   font-weight: 700;
 }
 
-.mobile-me-profile__eyebrow {
-  margin: 0 0 6px;
-  color: var(--mobile-brand);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .mobile-me-profile__name {
   margin: 0;
   color: var(--color-text-1);
@@ -303,42 +237,14 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
-.mobile-me-grid,
 .mobile-me-actions {
   margin-top: 14px;
   padding: 18px 16px;
 }
 
-.mobile-me-grid :deep(.t-grid-item) {
-  background: rgba(255, 252, 244, 0.82);
-  border-color: rgba(143, 99, 17, 0.08);
-}
-
-.mobile-me-grid :deep(.t-grid-item__text) {
-  color: var(--color-text-1);
-  font-weight: 600;
-}
-
-.mobile-me-grid :deep(.t-grid-item__description) {
-  color: rgba(120, 94, 51, 0.62);
-}
-
 .mobile-me-actions :deep(.t-cell) {
   background: rgba(255, 252, 244, 0.8);
   border-color: rgba(143, 99, 17, 0.08);
-}
-
-.mobile-me-grid__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  background: rgba(255, 214, 98, 0.22);
-  color: var(--mobile-brand-deep);
-  font-size: 14px;
-  font-weight: 700;
 }
 
 .mobile-me-footer {
@@ -403,5 +309,35 @@ onUnmounted(() => {
 
 .mobile-bottom-sheet__actions {
   margin-top: 18px;
+}
+
+:deep(.mobile-me__password-input.t-input) {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(146, 97, 0, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.mobile-me__password-input :deep(.t-input__wrap),
+.mobile-me__password-input :deep(.t-input__content) {
+  align-items: center;
+}
+
+.mobile-me__password-input :deep(.t-input__control) {
+  color: #4c3200;
+  font-size: 15px;
+}
+
+.mobile-me__password-input :deep(.t-input__control::placeholder) {
+  color: #a07f32;
+}
+
+:deep(.mobile-me__password-input.t-input.t-is-focused) {
+  border-color: rgba(197, 138, 18, 0.4);
+  box-shadow:
+    0 0 0 4px rgba(197, 138, 18, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 </style>

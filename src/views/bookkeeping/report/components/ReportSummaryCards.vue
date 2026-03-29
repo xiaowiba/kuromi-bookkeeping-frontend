@@ -136,11 +136,12 @@ const cards = computed<SummaryCard[]>(() => [
 }
 
 .report-summary-card {
+  overflow: hidden;
   padding: 18px 18px 16px;
-  border: 1px solid rgba(202, 138, 4, 0.12);
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 250, 238, 0.94) 100%);
-  box-shadow: 0 14px 24px rgba(130, 90, 22, 0.06);
+  border: 1px solid rgba(229, 230, 235, 0.9);
+  border-radius: 16px;
+  background: var(--color-bg-1);
+  box-shadow: none;
 }
 
 .report-summary-card__head {
@@ -181,7 +182,7 @@ const cards = computed<SummaryCard[]>(() => [
 
 .report-summary-card__label {
   margin: 0;
-  color: #8a7754;
+  color: var(--color-text-2);
   font-size: 13px;
   font-weight: 700;
 }
@@ -189,7 +190,7 @@ const cards = computed<SummaryCard[]>(() => [
 .report-summary-card__value {
   display: block;
   margin-top: 10px;
-  color: #362a14;
+  color: var(--color-text-1);
   font-size: 24px;
   font-weight: 800;
 }
@@ -204,7 +205,7 @@ const cards = computed<SummaryCard[]>(() => [
 
 .report-summary-card__meta {
   margin: 10px 0 0;
-  color: #8f7a57;
+  color: var(--color-text-3);
   font-size: 12px;
   line-height: 1.6;
 }

@@ -1,30 +1,26 @@
 <template>
-  <a-card :bordered="false" class="report-chart-card">
-    <template #title>
-      <div class="report-chart-card__title">
-        <span>分类占比</span>
-        <small>点击下方分类可联动筛选到对应科目</small>
+  <ReportPanelShell
+    title="分类占比"
+    description="查看当前区间内主要分类的结构分布，右侧列表点击后可继续联动筛选。"
+    :loading="loading"
+  >
+    <div class="report-category-card">
+      <Chart :option="option" :update-options="{ notMerge: true }" height="320px" />
+      <div class="report-category-card__list">
+        <button
+          v-for="item in items.slice(0, 6)"
+          :key="item.name"
+          type="button"
+          class="report-category-card__item"
+          @click="emit('select', item.name)"
+        >
+          <span class="report-category-card__name">{{ item.name }}</span>
+          <strong class="report-category-card__amount">{{ formatReportCurrency(item.amount) }}</strong>
+          <small class="report-category-card__ratio">{{ formatReportRatio(item.ratio) }}</small>
+        </button>
       </div>
-    </template>
-    <a-spin :loading="loading" class="report-chart-card__spin">
-      <div class="report-category-card">
-        <Chart :option="option" :update-options="{ notMerge: true }" height="320px" />
-        <div class="report-category-card__list">
-          <button
-            v-for="item in items.slice(0, 6)"
-            :key="item.name"
-            type="button"
-            class="report-category-card__item"
-            @click="emit('select', item.name)"
-          >
-            <span>{{ item.name }}</span>
-            <strong>{{ formatReportCurrency(item.amount) }}</strong>
-            <small>{{ formatReportRatio(item.ratio) }}</small>
-          </button>
-        </div>
-      </div>
-    </a-spin>
-  </a-card>
+    </div>
+  </ReportPanelShell>
 </template>
 
 <script setup lang="ts">
@@ -32,6 +28,7 @@ import type { EChartsOption } from 'echarts'
 import type { ReportCategoryShareItemResp } from '@/apis/bookkeeping/type'
 import Chart from '@/components/Chart/index.vue'
 import { formatReportCurrency, formatReportRatio } from '../shared/reportFormat'
+import ReportPanelShell from './ReportPanelShell.vue'
 
 withDefaults(defineProps<{
   option: EChartsOption
@@ -47,35 +44,12 @@ const emit = defineEmits<{
 </script>
 
 <style scoped lang="scss">
-.report-chart-card {
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 250, 240, 0.96) 100%);
-  box-shadow: 0 16px 28px rgba(130, 90, 22, 0.06);
-}
-
-.report-chart-card__title {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.report-chart-card__title span {
-  color: #342714;
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.report-chart-card__title small {
-  color: #907b58;
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .report-category-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(220px, 0.9fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(240px, 0.9fr);
   gap: 20px;
   align-items: center;
+  padding-top: 2px;
 }
 
 .report-category-card__list {
@@ -90,26 +64,34 @@ const emit = defineEmits<{
   gap: 8px;
   align-items: center;
   padding: 10px 12px;
-  border: 1px solid rgba(202, 138, 4, 0.1);
-  border-radius: 16px;
-  background: rgba(255, 252, 244, 0.9);
-  color: #453521;
+  border: 1px solid var(--color-border-2);
+  border-radius: 12px;
+  background: var(--color-fill-1);
+  color: var(--color-text-1);
   text-align: left;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-.report-chart-card__spin {
-  display: block;
-  width: 100%;
+.report-category-card__item:hover {
+  border-color: rgb(var(--primary-4));
+  background: var(--color-fill-2);
 }
 
-.report-chart-card__spin :deep(.arco-spin) {
-  display: block;
-  width: 100%;
+.report-category-card__name {
+  color: var(--color-text-1);
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.report-chart-card__spin :deep(.arco-spin-children) {
-  display: block;
-  width: 100%;
+.report-category-card__amount {
+  color: var(--color-text-1);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.report-category-card__ratio {
+  color: var(--color-text-3);
+  font-size: 12px;
 }
 
 @media (max-width: 1280px) {

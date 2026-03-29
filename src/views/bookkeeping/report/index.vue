@@ -80,6 +80,7 @@
           @page-change="handlePageChange"
           @page-size-change="handlePageSizeChange"
           @sort-change="handleSortChange"
+          @refresh="handleRankingRefresh"
         />
       </div>
     </div>
@@ -262,6 +263,11 @@ const handleRankingReset = async () => {
 /** 明细排行时间预设切换：仅刷新表格 */
 const handleRankingPresetChange = async () => {
   resetRankingTablePage()
+  await loadRankingTable()
+}
+
+/** 明细排行手动刷新：保持当前筛选、排序和分页，仅重新请求表格 */
+const handleRankingRefresh = async () => {
   await loadRankingTable()
 }
 

@@ -1,7 +1,12 @@
 <template>
   <div v-if="popupVisible" class="mobile-direct-create-overlay">
     <div class="mobile-direct-create">
-      <t-loading :loading="optionsLoading" class="mobile-direct-create__loading">
+      <MobileDetailFormSkeleton
+        v-if="optionsLoading"
+        :show-user-field="isAdmin"
+        :show-switch-field="canManageHidden"
+      />
+      <template v-else>
         <div ref="bodyRef" class="mobile-direct-create__body">
           <div class="mobile-direct-create__intro">
             <p class="mobile-direct-create__eyebrow">{{ popupEyebrow }}</p>
@@ -130,9 +135,9 @@
             />
           </div>
         </div>
-      </t-loading>
+      </template>
 
-      <div class="mobile-direct-create__footer">
+      <div v-if="!optionsLoading" class="mobile-direct-create__footer">
         <t-button block variant="outline" size="large" @click="handleClose">
           取消
         </t-button>
@@ -291,6 +296,7 @@ import has from '@/utils/has'
 import { mobileToast } from '@/utils/mobile-toast'
 import { useDetailUserOptions } from '@/views/bookkeeping/shared/useDetailUserOptions'
 import MobileAmountKeyboard from './MobileAmountKeyboard.vue'
+import MobileDetailFormSkeleton from './MobileDetailFormSkeleton.vue'
 
 interface Props {
   visible: boolean
@@ -697,23 +703,6 @@ watch(
   font-weight: 700;
   line-height: 1;
   box-shadow: 0 0.08rem 0.2rem rgba(146, 97, 0, 0.08);
-}
-
-.mobile-direct-create__loading {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.mobile-direct-create__loading :deep(.t-loading__parent),
-.mobile-direct-create__loading :deep(.t-loading__parent--relative) {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 .mobile-direct-create__body {

@@ -9,7 +9,7 @@
       :scroll="isMobile() ? { x: '100%', y: '100%' } : { x: '100%', y: '100%', minWidth: 900 }"
       :pagination="pagination"
       :disabled-tools="['size']"
-      :disabled-column-keys="['name']"
+      :disabled-column-keys="['subjectDetail']"
       @refresh="searchMethod"
     >
       <template #top>
@@ -142,8 +142,21 @@
       <template #subjectCategory="{ record }">
         <GiCellTag :value="record.subjectCategory" :dict="bk_subject_category" />
       </template>
+      <template #subjectDetail="{ record }">
+        <BookkeepingSubjectDetailCell
+          :icon="record.subjectIcon"
+          :subject-name="record.subjectName"
+          :detail-name="record.name"
+        />
+      </template>
       <template #paymentMethod="{ record }">
         <GiCellTag :value="record.paymentMethod" :dict="bk_payment_method" />
+      </template>
+      <template #detailDate="{ record }">
+        <div class="detail-date-inline">
+          <span class="detail-date-inline__text">{{ record.detailDate }}</span>
+          <BookkeepingWeekdayTag :date="record.detailDate" />
+        </div>
       </template>
       <template #amount="{ record }">
         <span :style="{ color: record.amount < 0 ? '#f53f3f' : '#00b42a', fontWeight: 'bold' }">
@@ -231,6 +244,8 @@ import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
 import { computed, h, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import BookkeepingSubjectDetailCell from '../shared/components/BookkeepingSubjectDetailCell.vue'
+import BookkeepingWeekdayTag from '../shared/components/BookkeepingWeekdayTag.vue'
 import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 import AddModal from './AddModal.vue'
 import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
@@ -504,13 +519,12 @@ const columns: TableInstance['columns'] = [
     show: isMobile(),
   },
   // PC端：保持原有列结构
-  { title: '明细名称', dataIndex: 'name', width: 100, ellipsis: true, tooltip: true, show: !isMobile() },
+  { title: '科目 / 明细', dataIndex: 'subjectDetail', slotName: 'subjectDetail', width: 240, show: !isMobile() },
   { title: '所属用户', dataIndex: 'userNickname', slotName: 'userNickname', width: 90, ellipsis: true, tooltip: true, show: !isMobile() },
   { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center', show: !isMobile() },
-  { title: '科目', dataIndex: 'subjectName', width: 80, align: 'center', show: !isMobile() },
   { title: '支付方式', dataIndex: 'paymentMethod', slotName: 'paymentMethod', width: 90, align: 'center', show: !isMobile() },
-  { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 160, align: 'right', show: !isMobile() },
-  { title: '明细日期', dataIndex: 'detailDate', width: 120, align: 'center', show: !isMobile() },
+  { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 100, align: 'right', show: !isMobile() },
+  { title: '明细日期', dataIndex: 'detailDate', slotName: 'detailDate', width: 180, align: 'center', show: !isMobile() },
   { title: '备注', dataIndex: 'remark', width: 120, ellipsis: true, tooltip: true, show: !isMobile() },
   { title: '隐藏', dataIndex: 'hidden', slotName: 'hidden', width: 60, align: 'center', show: ((has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value) && !isMobile() },
   { title: '创建人', dataIndex: 'createUserString', width: 100, ellipsis: true, tooltip: true, show: false },
@@ -782,6 +796,19 @@ onUnmounted(() => {
   :deep(.arco-radio-label) {
     white-space: nowrap;
   }
+}
+
+.detail-date-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.detail-date-inline__text {
+  color: var(--color-text-1);
+  font-weight: 600;
 }
 
 // 移动端紧凑布局样式

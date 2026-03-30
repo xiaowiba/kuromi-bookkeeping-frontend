@@ -137,7 +137,7 @@
 ## 🗂️ 目录结构
 
 ```text
-continew-admin-ui
+kuromi-bookkeeping-frontend
 ├─ public
 ├─ scripts
 │  └─ bump-mobile-version.mjs

@@ -3,6 +3,8 @@ import type { RouteRecordRaw } from 'vue-router'
 /** 默认布局 */
 const Layout = () => import('@/layout/index.vue')
 
+// @ts-ignore
+// @ts-ignore
 /** 系统路由 */
 export const systemRoutes: RouteRecordRaw[] = [
   {
@@ -57,12 +59,12 @@ export const systemRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/dashboard/workplace/index.vue'),
         meta: { title: '工作台', icon: 'desktop', hidden: false, affix: true },
       },
-      {
-        path: '/dashboard/analysis',
-        name: 'Analysis',
-        component: () => import('@/views/dashboard/analysis/index.vue'),
-        meta: { title: '分析页', icon: 'insert-chart', hidden: false },
-      },
+      // {
+      //   path: '/dashboard/analysis',
+      //   name: 'Analysis',
+      //   component: () => import('@/views/dashboard/analysis/index.vue'),
+      //   meta: { title: '分析页', icon: 'insert-chart', hidden: false },
+      // },
     ],
   },
   {
@@ -113,30 +115,34 @@ export const systemRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/about/document/api/index.vue'),
         meta: { title: '接口文档', icon: 'swagger', hidden: false, keepAlive: true },
       },
-      {
-        path: '/about/document/changelog',
-        component: () => import('@/views/about/document/changelog/index.vue'),
-        meta: { title: '更新日志', icon: 'continew', hidden: false, keepAlive: true },
-      },
-      {
-        path: 'https://arco.design/vue/component/button',
-        meta: { title: 'Arco Design文档', icon: 'arco', hidden: false },
-      },
+      // {
+      //   path: '/about/document/changelog',
+      //   component: () => import('@/views/about/document/changelog/index.vue'),
+      //   meta: { title: '更新日志', icon: 'continew', hidden: false, keepAlive: true },
+      // },
+      // {
+      //   path: 'https://arco.design/vue/component/button',
+      //   meta: { title: 'Arco Design文档', icon: 'arco', hidden: false },
+      // },
+      // {
+      //   path: 'https://tdesign.tencent.com/mobile-vue/overview',
+      //   meta: { title: 'tdesign-mobile-vue文档', icon: 'tdesign', hidden: false },
+      // },
       {
         path: '/about/source',
         name: 'AboutSource',
         meta: { title: '开源地址', icon: 'github', hidden: false },
         children: [
+          // {
+          //   path: 'https://gitee.com/continew/kuromi-bookkeeping-backend',
+          //   meta: { title: 'Gitee', icon: 'gitee', hidden: false },
+          // },
+          // {
+          //   path: 'https://gitcode.com/continew/kuromi-bookkeeping-backend',
+          //   meta: { title: 'GitCode', icon: 'gitcode', hidden: false },
+          // },
           {
-            path: 'https://gitee.com/continew/continew-admin',
-            meta: { title: 'Gitee', icon: 'gitee', hidden: false },
-          },
-          {
-            path: 'https://gitcode.com/continew/continew-admin',
-            meta: { title: 'GitCode', icon: 'gitcode', hidden: false },
-          },
-          {
-            path: 'https://github.com/continew-org/continew-admin',
+            path: 'https://github.com/xiaowiba/kuromi-bookkeeping-frontend',
             meta: { title: 'GitHub', icon: 'github', hidden: false },
           },
         ],

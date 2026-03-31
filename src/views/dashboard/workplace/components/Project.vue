@@ -74,12 +74,12 @@
 <script setup lang="ts">
 const list = [
   {
-    alias: 'ContiNew Admin',
-    name: 'continew-admin',
-    owner: 'continew-org',
-    desc: '🔥Almost最佳后端规范🔥持续迭代优化的前后端分离中后台管理系统框架，开箱即用，持续提供舒适的开发体验。',
+    alias: 'Kuromi Bookkeeping Backend',
+    name: 'kuromi-bookkeeping-backend',
+    owner: 'xiaowiba',
+    desc: '基于 ContiNew Admin 二次开发的酷洛米记账系统后端项目，承载系统管理、认证授权与记账业务能力。',
     logo: 'https://continew.top/logo.svg',
-    url: 'https://gitee.com/continew/continew-admin/stargazers',
+    url: 'https://github.com/xiaowiba/kuromi-bookkeeping-backend/stargazers',
     status: '迭代',
     statusColor: 'rgb(var(--primary-6))',
   },
@@ -109,13 +109,13 @@ const list = [
     owner: 'continew-org',
     desc: '2.5 版本，基于 Arco Design Pro 前端模板开发的 ContiNew Admin 前端适配项目。',
     logo: 'https://continew.top/logo.svg',
-    url: 'https://gitee.com/continew/continew-admin/stargazers',
+    url: 'https://gitee.com/continew/continew-admin-ui/stargazers',
     status: '归档',
     statusColor: 'rgb(var(--warning-6))',
   },
   {
     alias: 'ContiNew Cloud',
-    name: 'continew-admin',
+    name: 'continew-cloud',
     owner: 'continew',
     desc: 'ContiNew Admin 微服务版本。基于 SpringBoot 3.x、Spring Cloud 2023 & Alibaba。',
     logo: 'https://continew.top/logo.svg',

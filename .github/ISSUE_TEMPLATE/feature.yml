@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        感谢您使用 ContiNew Admin！请您花些时间填写这份 Feature 调查。后端项目 Feature 请提交至 [ContiNew Admin](https://github.com/continew-org/continew-admin/issues/new/choose)。<br>
+        感谢您使用 ContiNew Admin！请您花些时间填写这份 Feature 调查。后端项目 Feature 请提交至 [ContiNew Admin](https://github.com/xiaowiba/kuromi-bookkeeping-backend/issues/new/choose)。<br>
         **温馨提示：我们利用业余时间维护开源项目，没有额外精力及人员开发特定业务功能，如业务仅为小众需求，请确认是否有必要提交！**
   - type: checkboxes
     id: checkboxes

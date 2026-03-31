@@ -132,22 +132,25 @@ const handlePresetClick = (preset: string) => {
 
 <style scoped lang="scss">
 .report-filter-bar {
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at top right, rgba(251, 191, 36, 0.18) 0%, transparent 32%),
-    linear-gradient(180deg, rgba(255, 252, 245, 0.98) 0%, rgba(255, 248, 236, 0.96) 100%);
-  box-shadow: 0 16px 30px rgba(130, 90, 22, 0.08);
+  border: 1px solid rgba(229, 230, 235, 0.9);
+  border-radius: 16px;
+  background: var(--color-bg-1);
+  box-shadow: none;
+}
+
+.report-filter-bar :deep(.arco-card-body) {
+  padding: 18px;
 }
 
 .report-filter-bar__section + .report-filter-bar__grid {
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .report-filter-bar__section-label,
 .report-filter-bar__field-label {
   display: block;
   margin-bottom: 10px;
-  color: #775d2c;
+  color: var(--color-text-2);
   font-size: 13px;
   font-weight: 700;
 }
@@ -166,20 +169,38 @@ const handlePresetClick = (preset: string) => {
   justify-content: center;
   min-height: 34px;
   padding: 0 14px;
-  border: 1px solid rgba(202, 138, 4, 0.12);
+  border: 1px solid rgba(229, 230, 235, 0.9);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #6f5b37;
+  background: var(--color-fill-1);
+  color: var(--color-text-2);
   font-size: 13px;
   font-weight: 600;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.report-filter-bar__preset:hover,
+.report-filter-bar__scope:hover {
+  border-color: rgba(var(--primary-4), 0.35);
+  background: rgba(var(--primary-6), 0.06);
+  color: rgb(var(--primary-6));
+}
+
+.report-filter-bar__preset:disabled,
+.report-filter-bar__scope:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .report-filter-bar__preset.is-active,
 .report-filter-bar__scope.is-active {
-  border-color: rgba(202, 138, 4, 0.32);
-  background: linear-gradient(135deg, rgba(254, 243, 199, 0.96) 0%, rgba(252, 211, 77, 0.26) 100%);
-  color: #7c5200;
-  box-shadow: 0 10px 18px rgba(202, 138, 4, 0.12);
+  border-color: rgba(var(--primary-6), 0.26);
+  background: rgba(var(--primary-6), 0.1);
+  color: rgb(var(--primary-6));
+  box-shadow: inset 0 0 0 1px rgba(var(--primary-3), 0.16);
 }
 
 .report-filter-bar__range {
@@ -197,7 +218,7 @@ const handlePresetClick = (preset: string) => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 @media (max-width: 1440px) {
@@ -207,8 +228,20 @@ const handlePresetClick = (preset: string) => {
 }
 
 @media (max-width: 768px) {
+  .report-filter-bar :deep(.arco-card-body) {
+    padding: 14px;
+  }
+
   .report-filter-bar__grid {
     grid-template-columns: 1fr;
+  }
+
+  .report-filter-bar__actions {
+    justify-content: flex-start;
+  }
+
+  .report-filter-bar__actions :deep(.arco-btn) {
+    flex: 1;
   }
 }
 </style>

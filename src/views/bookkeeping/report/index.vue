@@ -12,8 +12,8 @@
         :category-options="dashboardCategoryOptions"
         :subject-options="dashboardSubjectOptions"
         :payment-method-options="dashboardPaymentMethodOptions"
-        :user-scope-options="userScopeOptions"
-        :user-select-options="dashboardUserOptions"
+        :user-query-options="dashboardUserQueryOptions"
+        :on-select-user="setDashboardSelectedUser"
         :loading="dashboardLoading"
         @search="handleSearch"
         @reset="handleReset"
@@ -62,8 +62,8 @@
           :category-options="rankingCategoryOptions"
           :subject-options="rankingSubjectOptions"
           :payment-method-options="rankingPaymentMethodOptions"
-          :user-scope-options="userScopeOptions"
-          :user-select-options="rankingUserOptions"
+          :user-query-options="rankingUserQueryOptions"
+          :on-select-user="setRankingSelectedUser"
           :loading="tableLoading"
           @search="handleRankingSearch"
           @reset="handleRankingReset"
@@ -106,7 +106,6 @@ import { getReportDashboard, listReportRankingTable } from '@/apis/bookkeeping/r
 import type * as T from '@/apis/bookkeeping/type'
 import {
   REPORT_DATE_PRESET_OPTIONS,
-  REPORT_USER_SCOPE_OPTIONS,
   createEmptyReportDashboard,
 } from './shared/reportConstants'
 import { resolveReportPaymentMethodLabel } from './shared/reportFormat'
@@ -156,25 +155,27 @@ const rankingSort = ref('amount-desc')
 const {
   filterForm: dashboardFilterForm,
   allSubjects: dashboardSubjects,
-  userSelectOptions: dashboardUserOptions,
+  userQueryOptions: dashboardUserQueryOptions,
   categoryOptions: dashboardCategoryOptions,
   paymentMethodOptions: dashboardPaymentMethodOptions,
   subjectOptions: dashboardSubjectOptions,
   loadFilterOptions: loadDashboardFilterOptions,
   resetFilters: resetDashboardFilters,
+  setSelectedUser: setDashboardSelectedUser,
   buildDashboardQuery,
 } = useReportFilters()
 
 const {
   filterForm: rankingFilterForm,
   rankingPage,
-  userSelectOptions: rankingUserOptions,
+  userQueryOptions: rankingUserQueryOptions,
   categoryOptions: rankingCategoryOptions,
   paymentMethodOptions: rankingPaymentMethodOptions,
   subjectOptions: rankingSubjectOptions,
   loadFilterOptions: loadRankingFilterOptions,
   resetFilters: resetRankingFilters,
   resetRankingPage: resetRankingTablePage,
+  setSelectedUser: setRankingSelectedUser,
   buildRankingQuery,
 } = useReportFilters()
 
@@ -188,7 +189,6 @@ const { trendOption, categoryOption, subjectRankOption, paymentMethodOption, use
 /** 时间预设按钮选项，例如本月、上月、近 3 个月等 */
 const datePresetOptions = REPORT_DATE_PRESET_OPTIONS
 /** 用户范围选项，例如当前用户、全部用户、指定用户 */
-const userScopeOptions = REPORT_USER_SCOPE_OPTIONS
 
 /** 是否展示“多用户对比”图表。只有多用户数据时才有展示意义 */
 const showUserCompare = computed(() => dashboard.value.userCompare.length > 1)

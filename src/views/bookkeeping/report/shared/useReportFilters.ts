@@ -52,6 +52,11 @@ export const useReportFilters = () => {
     return Array.from(uniqueMap.values())
   })
 
+  const userQueryOptions = computed<LabelValueState[]>(() => [
+    createReportAllOption('全部'),
+    ...userSelectOptions.value,
+  ])
+
   const categoryOptions = computed<LabelValueState[]>(() => [
     createReportAllOption(),
     ...((bk_subject_category.value ?? []).map(normalizeLabelValue)),
@@ -101,6 +106,18 @@ export const useReportFilters = () => {
       return
     }
     filterForm.userId = String(userSelectOptions.value[0]?.value ?? currentUserId.value)
+  }
+
+  const setSelectedUser = (value?: string | number | null) => {
+    const normalizedValue = String(value ?? '')
+    if (!normalizedValue) {
+      filterForm.userScope = 'all'
+      filterForm.userId = ''
+      return
+    }
+
+    filterForm.userId = normalizedValue
+    filterForm.userScope = normalizedValue === currentUserId.value ? 'current' : 'specific'
   }
 
   const ensureAdminDefaultScope = () => {
@@ -199,6 +216,7 @@ export const useReportFilters = () => {
     filterForm,
     rankingPage,
     allSubjects,
+    userQueryOptions,
     userSelectOptions,
     categoryOptions,
     paymentMethodOptions,
@@ -207,6 +225,7 @@ export const useReportFilters = () => {
     loadFilterOptions,
     resetFilters,
     resetRankingPage,
+    setSelectedUser,
     buildDashboardQuery,
     buildRankingQuery,
   }

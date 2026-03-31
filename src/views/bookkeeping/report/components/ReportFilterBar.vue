@@ -26,67 +26,93 @@
     </div>
 
     <div class="report-filter-bar__grid">
+
+      <div class="report-filter-bar__field">
+        <span class="report-filter-bar__field-label">所属用户</span>
+        <a-select
+            v-if="isMobileView"
+            v-model="selectedUserId"
+            :options="userQueryOptions"
+            placeholder="请选择所属用户"
+            allow-clear
+            allow-search
+            :disabled="loading"
+            @change="handleUserChange"
+        />
+        <div v-else class="report-filter-bar__radio-scroll">
+          <a-radio-group
+              v-model="selectedUserId"
+              :options="userQueryOptions"
+              :disabled="loading"
+              @change="handleUserChange"
+          />
+        </div>
+      </div>
+
       <div class="report-filter-bar__field">
         <span class="report-filter-bar__field-label">分类</span>
         <a-select
+          v-if="isMobileView"
           v-model="filterForm.category"
           :options="categoryOptions"
-          placeholder="全部分类"
+          placeholder="请选择分类"
           allow-clear
           :disabled="loading"
+          @change="handleCategoryChange"
         />
+        <div v-else class="report-filter-bar__radio-scroll">
+          <a-radio-group
+            v-model="filterForm.category"
+            :options="categoryOptions"
+            :disabled="loading"
+            @change="handleCategoryChange"
+          />
+        </div>
       </div>
 
       <div class="report-filter-bar__field">
         <span class="report-filter-bar__field-label">科目</span>
         <a-select
+          v-if="isMobileView"
           v-model="filterForm.subjectId"
           :options="subjectOptions"
-          placeholder="全部科目"
+          placeholder="请选择科目"
           allow-clear
           allow-search
           :disabled="loading"
+          @change="handleSubjectChange"
         />
+        <div v-else class="report-filter-bar__radio-scroll">
+          <a-radio-group
+            v-model="filterForm.subjectId"
+            :options="subjectOptions"
+            :disabled="loading"
+            @change="handleSubjectChange"
+          />
+        </div>
       </div>
 
       <div class="report-filter-bar__field">
         <span class="report-filter-bar__field-label">支付方式</span>
         <a-select
+          v-if="isMobileView"
           v-model="filterForm.paymentMethod"
           :options="paymentMethodOptions"
-          placeholder="全部支付方式"
+          placeholder="请选择支付方式"
           allow-clear
           :disabled="loading"
+          @change="handlePaymentMethodChange"
         />
-      </div>
-
-      <div class="report-filter-bar__field">
-        <span class="report-filter-bar__field-label">用户范围</span>
-        <div class="report-filter-bar__scope-group">
-          <button
-            v-for="item in userScopeOptions"
-            :key="String(item.value)"
-            type="button"
-            class="report-filter-bar__scope"
-            :class="{ 'is-active': filterForm.userScope === item.value }"
+        <div v-else class="report-filter-bar__radio-scroll">
+          <a-radio-group
+            v-model="filterForm.paymentMethod"
+            :options="paymentMethodOptions"
             :disabled="loading"
-            @click="filterForm.userScope = item.value as any"
-          >
-            {{ item.label }}
-          </button>
+            @change="handlePaymentMethodChange"
+          />
         </div>
       </div>
 
-      <div v-if="filterForm.userScope === 'specific'" class="report-filter-bar__field">
-        <span class="report-filter-bar__field-label">指定用户</span>
-        <a-select
-          v-model="filterForm.userId"
-          :options="userSelectOptions"
-          placeholder="请选择用户"
-          allow-clear
-          :disabled="loading"
-        />
-      </div>
     </div>
 
     <div class="report-filter-bar__actions">
@@ -97,8 +123,10 @@
 </template>
 
 <script setup lang="ts">
+import { computed, nextTick } from 'vue'
 import type * as T from '@/apis/bookkeeping/type'
 import type { LabelValueState } from '@/types/global'
+import { isMobile } from '@/utils'
 
 interface Props {
   filterForm: T.ReportFilterForm
@@ -106,8 +134,8 @@ interface Props {
   categoryOptions: LabelValueState[]
   subjectOptions: LabelValueState[]
   paymentMethodOptions: LabelValueState[]
-  userScopeOptions: LabelValueState[]
-  userSelectOptions: LabelValueState[]
+  userQueryOptions: LabelValueState[]
+  onSelectUser: (value?: string | number | null) => void
   loading?: boolean
 }
 
@@ -121,12 +149,43 @@ const emit = defineEmits<{
   (e: 'preset-change'): void
 }>()
 
+const isMobileView = isMobile()
+
+const selectedUserId = computed({
+  get: () => (props.filterForm.userScope === 'all' ? '' : props.filterForm.userId),
+  set: (value) => {
+    props.onSelectUser(value)
+  },
+})
+
 const handlePresetClick = (preset: string) => {
   if (props.filterForm.datePreset === preset) {
     return
   }
   props.filterForm.datePreset = preset as T.ReportDatePreset
   emit('preset-change')
+}
+
+const triggerSearch = () => {
+  nextTick(() => {
+    emit('search')
+  })
+}
+
+const handleCategoryChange = () => {
+  triggerSearch()
+}
+
+const handleSubjectChange = () => {
+  triggerSearch()
+}
+
+const handlePaymentMethodChange = () => {
+  triggerSearch()
+}
+
+const handleUserChange = () => {
+  triggerSearch()
 }
 </script>
 
@@ -155,15 +214,13 @@ const handlePresetClick = (preset: string) => {
   font-weight: 700;
 }
 
-.report-filter-bar__preset-group,
-.report-filter-bar__scope-group {
+.report-filter-bar__preset-group {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.report-filter-bar__preset,
-.report-filter-bar__scope {
+.report-filter-bar__preset {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -182,21 +239,18 @@ const handlePresetClick = (preset: string) => {
     box-shadow 0.2s ease;
 }
 
-.report-filter-bar__preset:hover,
-.report-filter-bar__scope:hover {
+.report-filter-bar__preset:hover {
   border-color: rgba(var(--primary-4), 0.35);
   background: rgba(var(--primary-6), 0.06);
   color: rgb(var(--primary-6));
 }
 
-.report-filter-bar__preset:disabled,
-.report-filter-bar__scope:disabled {
+.report-filter-bar__preset:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-.report-filter-bar__preset.is-active,
-.report-filter-bar__scope.is-active {
+.report-filter-bar__preset.is-active {
   border-color: rgba(var(--primary-6), 0.26);
   background: rgba(var(--primary-6), 0.1);
   color: rgb(var(--primary-6));
@@ -209,9 +263,39 @@ const handlePresetClick = (preset: string) => {
 }
 
 .report-filter-bar__grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+}
+
+.report-filter-bar__field {
+  width: 100%;
+}
+
+.report-filter-bar__radio-scroll {
+  width: 100%;
+  overflow: visible;
+}
+
+.report-filter-bar__radio-scroll :deep(.arco-radio-group) {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.report-filter-bar__radio-scroll :deep(.arco-radio) {
+  flex: 0 0 auto;
+  margin-right: 16px;
+  margin-bottom: 8px;
+  white-space: nowrap;
+}
+
+.report-filter-bar__radio-scroll :deep(.arco-radio-label) {
+  white-space: nowrap;
+}
+
+.report-filter-bar__field :deep(.arco-select) {
+  width: 100%;
 }
 
 .report-filter-bar__actions {
@@ -221,19 +305,9 @@ const handlePresetClick = (preset: string) => {
   margin-top: 16px;
 }
 
-@media (max-width: 1440px) {
-  .report-filter-bar__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 768px) {
   .report-filter-bar :deep(.arco-card-body) {
     padding: 14px;
-  }
-
-  .report-filter-bar__grid {
-    grid-template-columns: 1fr;
   }
 
   .report-filter-bar__actions {

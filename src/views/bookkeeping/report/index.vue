@@ -53,36 +53,6 @@
         <!-- 报表洞察面板：基于当前报表结果输出简要结论，帮助快速读数 -->
         <ReportInsightPanel :insight="dashboard.insight" :overview="dashboard.overview" :loading="dashboardLoading" />
       </div>
-
-      <!-- 排行明细表格：展示组成报表结果的原始明细排行，支持分页和排序 -->
-      <div class="report-ranking-section">
-        <ReportFilterBar
-          :filter-form="rankingFilterForm"
-          :date-preset-options="datePresetOptions"
-          :category-options="rankingCategoryOptions"
-          :subject-options="rankingSubjectOptions"
-          :payment-method-options="rankingPaymentMethodOptions"
-          :user-query-options="rankingUserQueryOptions"
-          :on-select-user="setRankingSelectedUser"
-          :loading="tableLoading"
-          @search="handleRankingSearch"
-          @reset="handleRankingReset"
-          @preset-change="handleRankingPresetChange"
-        />
-
-        <ReportRankingTable
-          :list="rankingList"
-          :total="rankingTotal"
-          :page="rankingPage.page"
-          :page-size="rankingPage.size"
-          :sort-value="rankingSort"
-          :loading="tableLoading"
-          @page-change="handlePageChange"
-          @page-size-change="handlePageSizeChange"
-          @sort-change="handleSortChange"
-          @refresh="handleRankingRefresh"
-        />
-      </div>
     </div>
   </GiPageLayout>
 </template>
@@ -94,16 +64,17 @@
  * 页面职责：
  * 1. 管理报表筛选条件
  * 2. 拉取报表看板数据（图表 + 概览 + 洞察）
- * 3. 拉取排行表格数据
- * 4. 负责组件之间的筛选联动，例如分类占比点击后回填科目筛选
+ * 3. 负责组件之间的筛选联动，例如分类占比点击后回填科目筛选
+ *
+ * 说明：
+ * 底部“明细排行表”区域已按当前迭代要求临时隐藏，
+ * 对应组件和接口仍然保留，后续需要恢复时可以直接接回。
  *
  * 你可以把这个页面理解为“报表模块总控台”：
- * 子组件只负责展示，真正的数据请求、状态管理、交互串联都在这里完成。
+ * 当前保留的子组件只负责展示，真正的数据请求、状态管理、交互串联都在这里完成。
  */
 import { Message } from '@arco-design/web-vue'
-import { computed, onMounted, ref } from 'vue'
-import { getReportDashboard, listReportRankingTable } from '@/apis/bookkeeping/report'
-import type * as T from '@/apis/bookkeeping/type'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   REPORT_DATE_PRESET_OPTIONS,
   createEmptyReportDashboard,
@@ -115,37 +86,22 @@ import ReportCategoryShareCard from './components/ReportCategoryShareCard.vue'
 import ReportFilterBar from './components/ReportFilterBar.vue'
 import ReportInsightPanel from './components/ReportInsightPanel.vue'
 import ReportPaymentMethodCard from './components/ReportPaymentMethodCard.vue'
-import ReportRankingTable from './components/ReportRankingTable.vue'
 import ReportSubjectRankCard from './components/ReportSubjectRankCard.vue'
 import ReportSummaryCards from './components/ReportSummaryCards.vue'
 import ReportTrendChartCard from './components/ReportTrendChartCard.vue'
 import ReportUserCompareCard from './components/ReportUserCompareCard.vue'
+import type * as T from '@/apis/bookkeeping/type'
+import { getReportDashboard } from '@/apis/bookkeeping/report'
+import { usePrivacyStore } from '@/stores'
 
 defineOptions({ name: 'BookkeepingReport' })
 
-/**
- * 表格排序映射：
- * UI 上选择的排序值，会在这里转换成后端分页接口需要的 sort 数组。
- */
-const rankingSortMap: Record<string, string[]> = {
-  'amount-desc': ['amount,desc', 'detailDate,desc', 'detailId,desc'],
-  'amount-asc': ['amount,asc', 'detailDate,desc', 'detailId,desc'],
-  'date-desc': ['detailDate,desc', 'detailId,desc'],
-  'date-asc': ['detailDate,asc', 'detailId,asc'],
-}
+const privacyStore = usePrivacyStore()
 
 /** 看板区域加载状态：控制汇总卡、图表、洞察等模块的 loading */
 const dashboardLoading = ref(false)
-/** 表格区域加载状态：单独控制底部排行表格的 loading */
-const tableLoading = ref(false)
 /** 当前报表看板数据，所有图表和汇总卡都从这里取值 */
 const dashboard = ref<T.ReportDashboardResp>(createEmptyReportDashboard())
-/** 排行表格当前页数据 */
-const rankingList = ref<T.ReportRankingTableResp[]>([])
-/** 排行表格总条数 */
-const rankingTotal = ref(0)
-/** 当前表格排序值，和 rankingSortMap 配合使用 */
-const rankingSort = ref('amount-desc')
 
 /**
  * 共享筛选逻辑：
@@ -163,20 +119,6 @@ const {
   resetFilters: resetDashboardFilters,
   setSelectedUser: setDashboardSelectedUser,
   buildDashboardQuery,
-} = useReportFilters()
-
-const {
-  filterForm: rankingFilterForm,
-  rankingPage,
-  userQueryOptions: rankingUserQueryOptions,
-  categoryOptions: rankingCategoryOptions,
-  paymentMethodOptions: rankingPaymentMethodOptions,
-  subjectOptions: rankingSubjectOptions,
-  loadFilterOptions: loadRankingFilterOptions,
-  resetFilters: resetRankingFilters,
-  resetRankingPage: resetRankingTablePage,
-  setSelectedUser: setRankingSelectedUser,
-  buildRankingQuery,
 } = useReportFilters()
 
 /**
@@ -201,7 +143,7 @@ const loadDashboard = async () => {
     dashboard.value = data
       ? {
           ...data,
-          paymentMethodShare: (data.paymentMethodShare ?? []).map(item => ({
+          paymentMethodShare: (data.paymentMethodShare ?? []).map((item) => ({
             ...item,
             label: resolveReportPaymentMethodLabel(item.key, item.label, dashboardPaymentMethodOptions.value),
           })),
@@ -212,22 +154,6 @@ const loadDashboard = async () => {
     Message.error('加载报表看板失败')
   } finally {
     dashboardLoading.value = false
-  }
-}
-
-/** 拉取底部排行表格数据 */
-const loadRankingTable = async () => {
-  tableLoading.value = true
-  try {
-    const { data } = await listReportRankingTable(buildRankingQuery())
-    rankingList.value = data.list ?? []
-    rankingTotal.value = data.total ?? 0
-  } catch {
-    rankingList.value = []
-    rankingTotal.value = 0
-    Message.error('加载报表表格失败')
-  } finally {
-    tableLoading.value = false
   }
 }
 
@@ -247,58 +173,13 @@ const handlePresetChange = async () => {
   await loadDashboard()
 }
 
-/** 明细排行查询：重置页码后只刷新表格 */
-const handleRankingSearch = async () => {
-  resetRankingTablePage()
-  await loadRankingTable()
-}
-
-/** 明细排行重置：恢复独立筛选条件、排序和页码 */
-const handleRankingReset = async () => {
-  resetRankingFilters()
-  rankingSort.value = 'amount-desc'
-  await loadRankingTable()
-}
-
-/** 明细排行时间预设切换：仅刷新表格 */
-const handleRankingPresetChange = async () => {
-  resetRankingTablePage()
-  await loadRankingTable()
-}
-
-/** 明细排行手动刷新：保持当前筛选、排序和分页，仅重新请求表格 */
-const handleRankingRefresh = async () => {
-  await loadRankingTable()
-}
-
-/** 表格翻页：仅刷新表格，不重复请求上方看板 */
-const handlePageChange = async (page: number) => {
-  rankingPage.page = page
-  await loadRankingTable()
-}
-
-/** 表格每页条数切换：切换后回到第一页，避免当前页越界 */
-const handlePageSizeChange = async (size: number) => {
-  rankingPage.size = size
-  rankingPage.page = 1
-  await loadRankingTable()
-}
-
-/** 表格排序切换：同步更新后端 sort 参数，并重置到第一页 */
-const handleSortChange = async (value: string) => {
-  rankingSort.value = value
-  rankingPage.sort = [...(rankingSortMap[value] ?? rankingSortMap['amount-desc'])]
-  rankingPage.page = 1
-  await loadRankingTable()
-}
-
 /**
  * 分类占比钻取：
  * 当用户点击“分类占比”列表项时，尝试找到对应科目，
  * 然后自动把该科目回填到筛选项里，再触发一次查询。
  */
 const handleCategoryDrilldown = async (subjectName: string) => {
-  const matchedSubject = dashboardSubjects.value.find(item => item.name === subjectName && (!dashboardFilterForm.category || item.category === dashboardFilterForm.category))
+  const matchedSubject = dashboardSubjects.value.find((item) => item.name === subjectName && (!dashboardFilterForm.category || item.category === dashboardFilterForm.category))
   if (!matchedSubject) {
     return
   }
@@ -306,10 +187,22 @@ const handleCategoryDrilldown = async (subjectName: string) => {
   await loadDashboard()
 }
 
+/**
+ * 隐私模式切换或自动过期后，立即按最新口径刷新图表和汇总卡。
+ *
+ * 否则页面会继续展示上一次查询得到的隐藏数据统计结果。
+ */
+watch(
+  () => privacyStore.isPrivacyMode,
+  () => {
+    void loadDashboard()
+  },
+)
+
 /** 页面初始化：先加载筛选项，再拉取首屏报表数据 */
 onMounted(async () => {
-  await Promise.all([loadDashboardFilterOptions(), loadRankingFilterOptions()])
-  await Promise.all([loadDashboard(), loadRankingTable()])
+  await loadDashboardFilterOptions()
+  await loadDashboard()
 })
 </script>
 
@@ -332,12 +225,6 @@ onMounted(async () => {
 
 .report-grid--bottom {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.report-ranking-section {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
 }
 
 @media (max-width: 1440px) {

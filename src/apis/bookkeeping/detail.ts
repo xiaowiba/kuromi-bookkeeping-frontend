@@ -18,6 +18,11 @@ export function listDetail(query: T.DetailPageQuery) {
   return http.get<PageRes<T.DetailResp[]>>(`${BASE_URL}`, query)
 }
 
+/** @desc 查询明细列表当前是否需要分页 */
+export function getDetailQueryMode(query: T.DetailQuery) {
+  return http.get<T.DetailQueryModeResp>(`${BASE_URL}/query-mode`, query)
+}
+
 /** @desc 查询移动端明细列表 */
 export function listMobileDetail(query: T.DetailQuery) {
   return http.get<T.DetailResp[]>(`${BASE_URL}/mobile/list`, query)
@@ -49,6 +54,6 @@ export function deleteDetail(id: string) {
  * @author Wangsongsong
  * @date 2026-03-19
  */
-export function getDetailStatistics(query: T.DetailPageQuery) {
+export function getDetailStatistics(query: T.DetailQuery) {
   return http.get<T.DetailStatisticsResp>(`${BASE_URL}/statistics`, query)
 }

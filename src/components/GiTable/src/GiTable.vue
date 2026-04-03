@@ -16,13 +16,13 @@
       </a-space>
       <a-space wrap class="gi-table__toolbar-right" :size="[8, 8]">
         <slot name="toolbar-right"></slot>
-        <a-tooltip content="刷新">
+        <a-tooltip content="鍒锋柊">
           <a-button v-if="showRefreshBtn" @click="handleRefresh">
             <template #icon><icon-refresh /></template>
           </a-button>
         </a-tooltip>
         <a-dropdown v-if="showSizeBtn" @select="handleSizeChange">
-          <a-tooltip content="尺寸">
+          <a-tooltip content="灏哄">
             <a-button>
               <template #icon><icon-table-size style="width: 14px; height: 14px" /></template>
             </a-button>
@@ -41,7 +41,7 @@
           :table-id="tableId"
           @visible-columns-change="handleVisibleColumnsChange"
         />
-        <a-tooltip content="全屏">
+        <a-tooltip content="鍏ㄥ睆">
           <a-button v-if="showFullscreenBtn" @click="toggleFullscreen">
             <template #icon>
               <icon-fullscreen v-if="!isFullscreen" />
@@ -86,7 +86,7 @@ import ColumnSetting from './components/ColumnSetting.vue'
 
 defineOptions({ name: 'GiTable' })
 
-// Props 默认值
+// Props 榛樿鍊?
 const props = withDefaults(defineProps<Props>(), {
   title: '',
   disabledColumnKeys: () => [],
@@ -94,14 +94,14 @@ const props = withDefaults(defineProps<Props>(), {
   data: () => [],
 })
 
-/** Emits 类型定义 */
+/** Emits 绫诲瀷瀹氫箟 */
 const emit = defineEmits<{
   (e: 'refresh'): void
   (e: 'update:columns', columns: TableColumnData[]): void
   (e: 'change', ...args: any[]): void
 }>()
 
-/** Slots 类型定义 */
+/** Slots 绫诲瀷瀹氫箟 */
 defineSlots<{
   'th': (props: { column: TableColumnData }) => void
   'thead': () => void
@@ -125,24 +125,24 @@ defineSlots<{
   [propsName: string]: (props: { key: string, record: T, column: TableColumnData, rowIndex: number }) => void
 }>()
 
-/** Props 类型定义 */
+/** Props 绫诲瀷瀹氫箟 */
 interface Props extends TableProps {
-  /** 表格标题 */
+  /** 琛ㄦ牸鏍囬 */
   title?: string
-  /** 禁止控制显示隐藏的列 */
+  /** 绂佹鎺у埗鏄剧ず闅愯棌鐨勫垪 */
   disabledColumnKeys?: string[]
-  /** 禁止显示的工具 */
+  /** 绂佹鏄剧ず鐨勫伐鍏?*/
   disabledTools?: string[]
-  /** 表格数据 */
+  /** 琛ㄦ牸鏁版嵁 */
   data: T[]
-  /** 表格标识，用于存储列设置 */
+  /** 琛ㄦ牸鏍囪瘑锛岀敤浜庡瓨鍌ㄥ垪璁剧疆 */
   tableId?: string
 }
 
 const slots = useSlots()
 const attrs = useAttrs()
 
-/** 组件状态 */
+/** 缁勪欢鐘舵€?*/
 const tableRef = useTemplateRef('tableRef')
 const columnSettingRef = ref<InstanceType<typeof ColumnSetting> | null>(null)
 const stripe = ref(false)
@@ -150,27 +150,27 @@ const size = ref<TableInstance['size']>('large')
 const isBordered = ref(false)
 const isFullscreen = ref(false)
 
-/** 表格尺寸选项 */
+/** 琛ㄦ牸灏哄閫夐」 */
 const TABLE_SIZE_OPTIONS = [
-  { label: '迷你', value: 'mini' },
-  { label: '小型', value: 'small' },
-  { label: '中等', value: 'medium' },
-  { label: '大型', value: 'large' },
+  { label: '杩蜂綘', value: 'mini' },
+  { label: '灏忓瀷', value: 'small' },
+  { label: '涓瓑', value: 'medium' },
+  { label: '澶у瀷', value: 'large' },
 ] as const
 
-/** 处理表格尺寸变更 */
+/** 澶勭悊琛ㄦ牸灏哄鍙樻洿 */
 const handleSizeChange: DropdownInstance['onSelect'] = (value) => {
   if (value) {
     size.value = value as TableInstance['size']
   }
 }
 
-/** 处理表格刷新 */
+/** 澶勭悊琛ㄦ牸鍒锋柊 */
 const handleRefresh = () => {
   emit('refresh')
 }
 
-/** 切换全屏状态 */
+/** 鍒囨崲鍏ㄥ睆鐘舵€?*/
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value
 }
@@ -178,50 +178,89 @@ const toggleFullscreen = () => {
 const showRefreshBtn = computed(() => !props.disabledTools?.includes('refresh'))
 const showSizeBtn = computed(() => !props.disabledTools?.includes('size'))
 const showFullscreenBtn = computed(() => !props.disabledTools?.includes('fullscreen'))
-/** 列设置相关逻辑 */
+/** 鍒楄缃浉鍏抽€昏緫 */
 const showSettingColumnBtn = computed(() => {
   const columns = props.columns as TableColumnData[] | undefined
   return !props.disabledTools?.includes('setting') && Boolean(columns?.length)
 })
 
-/** 内部维护列数据 */
+/** 鍐呴儴缁存姢鍒楁暟鎹?*/
 const innerColumns = ref<TableColumnData[]>([])
 
-/** 监听 props.columns 变化 */
+/** 鐩戝惉 props.columns 鍙樺寲 */
 watch(() => props.columns, (newColumns) => {
   if (newColumns && innerColumns.value.length === 0) {
     innerColumns.value = [...newColumns]
   }
 }, { immediate: true })
 
-/** 实际显示的列（由ColumnSetting组件计算） */
+/** 瀹為檯鏄剧ず鐨勫垪锛堢敱 ColumnSetting 缁勪欢璁＄畻锛?*/
 const tableColumns = ref<TableColumnData[]>([])
 
-/** 处理列设置组件的可见列变化 */
+/** 澶勭悊鍒楄缃粍浠剁殑鍙鍒楀彉鍖?*/
 const handleVisibleColumnsChange = (columns: TableColumnData[]) => {
   tableColumns.value = columns
 }
 
-/** 表格属性计算 */
+/** 琛ㄦ牸灞炴€ц绠?*/
 const tableProps = computed(() => ({
   ...omit(props, ['title', 'disabledColumnKeys', 'disabledTools']),
   ...attrs,
 }))
 
-/** 计算显示的列 */
+/**
+ * 鍒楀悎骞跺叧閿€笺€?
+ *
+ * 琛ㄦ牸鏀寔鍒楄缃€佹帓搴忕瓑鍔ㄦ€佸睍绀恒€傚綋鐖剁粍浠剁殑 columns 鍙戠敓鍙樺寲鏃讹紝
+ * 闇€瑕佺敤鏈€鏂扮殑鍒楀畾涔夎鐩栨湰鍦板彲瑙佸垪锛屼絾淇濈暀鐢ㄦ埛宸插湪鍒楄缃腑璋冩暣鐨勯『搴忋€佸浐瀹氬拰瀹藉害銆? */
+const resolveColumnKey = (column: TableColumnData) => {
+  if (column.dataIndex) {
+    return String(column.dataIndex)
+  }
+  if (column.slotName) {
+    return `slot:${column.slotName}`
+  }
+  if (typeof column.title === 'string') {
+    return `title:${column.title}`
+  }
+  return ''
+}
+
+/** 鐢ㄦ渶鏂扮殑鍒楀畾涔夊悓姝ユ湰鍦板凡閫夊垪锛岄伩鍏嶆帓搴忕姸鎬佺瓑鍔ㄦ€佸睘鎬у仠鐣欏湪鏃ц涓娿€? */
+const mergeVisibleColumns = (latestColumns: TableColumnData[], currentColumns: TableColumnData[]) => {
+  const latestColumnMap = new Map(
+    latestColumns.map(column => [resolveColumnKey(column), column]),
+  )
+
+  return currentColumns
+    .map((column) => {
+      const latestColumn = latestColumnMap.get(resolveColumnKey(column))
+      if (!latestColumn) {
+        return column
+      }
+      return {
+        ...latestColumn,
+        fixed: column.fixed ?? latestColumn.fixed,
+        width: column.width ?? latestColumn.width,
+        show: column.show ?? latestColumn.show,
+      }
+    })
+    .filter(column => column.show !== false)
+}
+
+/** 璁＄畻鏄剧ず鐨勫垪 */
 const visibleColumns = computed(() => {
-  // 如果tableColumns有值，使用tableColumns
-  if (tableColumns.value && tableColumns.value.length > 0) {
-    return tableColumns.value
+  const latestColumns = props.columns ?? []
+  if (tableColumns.value.length > 0) {
+    return mergeVisibleColumns(latestColumns, tableColumns.value)
   }
 
-  // 否则使用原始的columns
-  return props.columns?.filter((col) => col.show !== false) || []
+  return latestColumns.filter(col => col.show !== false)
 })
 
-// 处理表格变化的函数
+// 澶勭悊琛ㄦ牸鍙樺寲鐨勫嚱鏁?
 const handleTableChange = (...args: any[]) => {
-  // 将接收到的参数传递给父组件
+  // 灏嗘帴鏀跺埌鐨勫弬鏁颁紶閫掔粰鐖剁粍浠?
   emit('change', ...args)
 }
 
@@ -258,165 +297,61 @@ defineExpose({
     overflow: hidden;
     flex: 1;
 
-    // 控制table高度占满
-    :deep(.arco-table-border:not(.arco-table-border-cell) .arco-table-container) {
+    :deep(.arco-table) {
       height: 100%;
+      display: flex;
+      flex-direction: column;
     }
 
     :deep(.arco-table-container) {
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
 
-    :deep(.arco-table-body) {
-      height: 100%;
-    }
-
-    // 控制表格最后一行的下边框显示
-    :deep(.arco-table-border .arco-table-scroll-y .arco-table-body .arco-table-tr:last-of-type .arco-table-td,
-      .arco-table-border .arco-table-scroll-y tfoot .arco-table-tr:last-of-type .arco-table-td) {
-      border-bottom: 1px solid var(--color-border-table);
-    }
-  }
-
-  &__body {
-
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    overflow: auto;
-
-    //如果为空时，将表格铺满
-    :deep(.arco-table-element):has(tbody .arco-table-tr-empty) {
-      height: 100%;
-    }
-
-    // 分页默认位置
-    :deep(.arco-pagination) {
-      margin-top: 10px;
-      justify-content: end;
-    }
-
-    &-pagination-top {
-      flex-direction: column-reverse;
-
-      :deep(.arco-pagination) {
-        margin-bottom: 10px;
-        justify-content: center;
-      }
-    }
-
-    // 上
-    &-pagination-t {
-      &l {
-        flex-direction: column-reverse;
-
-        :deep(.arco-pagination) {
-          margin-bottom: 10px;
-          justify-content: start;
-        }
-      }
-
-      &r {
-        flex-direction: column-reverse;
-
-        :deep(.arco-pagination) {
-          margin-bottom: 10px;
-          justify-content: end;
-        }
-      }
-    }
-
-    //下
-    &-pagination-bottom {
-      :deep(.arco-pagination) {
-        margin-top: 10px;
-        justify-content: center;
-      }
-    }
-
-    &-pagination-b {
-      &l {
-        :deep(.arco-pagination) {
-          margin-top: 10px;
-          justify-content: start;
-        }
-      }
-
-      &r {
-        :deep(.arco-pagination) {
-          margin-top: 10px;
-          justify-content: end;
-        }
-      }
-    }
-
-    :deep(.link-text.arco-typography) {
-      color: rgb(var(--link-6));
+    :deep(.arco-table-content) {
+      flex: 1;
+      min-height: 0;
     }
   }
 
   &__header {
-    padding: 0 0 10px;
+    margin-bottom: $margin;
+  }
 
-    &-title {
-      color: var(--color-text-1);
-      font-size: 18px;
-      font-weight: 500;
-      line-height: 1.5;
-    }
+  &__header-title {
+    font-size: 18px;
+    font-weight: bold;
   }
 
   &__toolbar {
-    :deep(.arco-form-item-layout-inline) {
-      margin-right: 8px;
+    margin-bottom: $margin;
+  }
 
-      &:last-of-type {
-        margin-right: 0;
+  &__toolbar-left {
+    max-width: 100%;
+  }
+
+  &__toolbar-right {
+    max-width: 100%;
+  }
+
+  &__toolbar-bottom {
+    margin-bottom: $margin;
+  }
+
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    &-pagination-top,
+    &-pagination-both {
+      :deep(.arco-table-pagination) {
+        margin-top: $margin;
+        order: -1;
       }
-    }
-
-    :deep(.arco-form-layout-inline .arco-form-item) {
-      margin-bottom: 0;
-    }
-
-    &-bottom {
-      margin-bottom: 8px;
-    }
-  }
-
-  &__draggable {
-    padding: 1px 0; // 解决 max-height 和 overflow:auto 始终显示垂直滚动条问题
-    max-height: 250px;
-    box-sizing: border-box;
-    overflow: hidden;
-    overflow-y: auto;
-  }
-}
-
-.drag-item {
-  display: flex;
-  align-items: center;
-
-  cursor: pointer;
-
-  &:hover {
-    background-color: var(--color-fill-2);
-  }
-
-  &__move {
-    padding-left: 2px;
-    padding-right: 2px;
-    cursor: move;
-  }
-
-  :deep(.arco-checkbox) {
-    width: 100%;
-    font-size: 12px;
-
-    .arco-checkbox-icon {
-      width: 14px;
-      height: 14px;
     }
   }
 }

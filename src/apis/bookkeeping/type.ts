@@ -13,6 +13,8 @@
  * @desc 增加隐私配置修改请求类型 PrivacyConfigUpdateReq
  * @update 2026-03-23 @Wangsongsong
  * @desc 明细模型补充支付方式字段及查询条件，统一桌面端与移动端类型定义
+ * @update 2026-04-03 @Wangsongsong
+ * @desc 增加日历报表查询与响应类型，供 Web 端日历报表页面使用
  */
 
 /** 科目响应类型 */
@@ -62,6 +64,17 @@ export interface DetailResp {
   updateTime: string
 }
 
+/** 明细时间模式 */
+export type DetailTimeMode = 'preset' | 'week' | 'month' | 'quarter' | 'year' | 'range'
+
+/** 明细快捷范围预设 */
+export type DetailDatePreset =
+  | 'currentMonth'
+  | 'lastMonth'
+  | 'last3Months'
+  | 'last6Months'
+  | 'currentYear'
+
 /** 明细查询条件 */
 export interface DetailQuery {
   userId?: string
@@ -69,6 +82,10 @@ export interface DetailQuery {
   category?: string
   subjectId?: string
   paymentMethod?: string
+  timeMode?: DetailTimeMode
+  datePreset?: DetailDatePreset
+  startDate?: string
+  endDate?: string
   month?: string
   minAmount?: number
   maxAmount?: number
@@ -79,6 +96,13 @@ export interface DetailQuery {
 
 /** 明细分页查询条件 */
 export interface DetailPageQuery extends DetailQuery, PageQuery {}
+
+/** 明细查询模式响应 */
+export interface DetailQueryModeResp {
+  total: number
+  pageMode: boolean
+  threshold: number
+}
 
 /**
  * 明细统计响应类型
@@ -180,6 +204,9 @@ export type ReportDatePreset =
 /** 报表用户范围 */
 export type ReportUserScope = 'current' | 'all' | 'specific'
 
+/** 日历报表视图模式 */
+export type ReportCalendarViewMode = 'month' | 'year'
+
 /** 报表查询条件 */
 export interface ReportQuery {
   datePreset?: ReportDatePreset
@@ -205,6 +232,16 @@ export interface ReportFilterForm {
   subjectId: string
   paymentMethod: string
   userScope: ReportUserScope
+  userId: string
+}
+
+/** 日历报表筛选表单 */
+export interface ReportCalendarFilterForm {
+  viewMode: ReportCalendarViewMode
+  anchorDate: string
+  category: string
+  subjectId: string
+  paymentMethod: string
   userId: string
 }
 
@@ -294,4 +331,97 @@ export interface ReportRankingTableResp {
   amount: number
   ratio: number
   count: number
+}
+
+/** 日历报表查询条件 */
+export interface ReportCalendarQuery extends ReportQuery {
+  viewMode?: ReportCalendarViewMode
+  anchorDate?: string
+  date?: string
+}
+
+/** 日历报表汇总 */
+export interface ReportCalendarSummaryResp {
+  totalExpense: number
+  totalIncome: number
+  balance: number
+  recordCount: number
+}
+
+/** 日历格子内的预览明细 */
+export interface ReportCalendarPreviewItemResp {
+  detailId: string
+  subjectId: string
+  subjectName: string
+  subjectIcon?: string
+  detailName: string
+  category: string
+  amount: number
+  userId: string
+  userName: string
+}
+
+/** 日历按日统计项 */
+export interface ReportCalendarDayStatItemResp {
+  date: string
+  expense: number
+  income: number
+  balance: number
+  recordCount: number
+  previewItems: ReportCalendarPreviewItemResp[]
+  overflowCount: number
+}
+
+/** 日历按月统计项 */
+export interface ReportCalendarMonthStatItemResp {
+  month: string
+  expense: number
+  income: number
+  balance: number
+  recordCount: number
+  activeDayCount: number
+}
+
+/** 日历报表总览响应 */
+export interface ReportCalendarResp {
+  viewMode: ReportCalendarViewMode
+  anchorDate: string
+  rangeStart: string
+  rangeEnd: string
+  summary: ReportCalendarSummaryResp
+  defaultSelectedDate?: string
+  dayStats: ReportCalendarDayStatItemResp[]
+  monthStats: ReportCalendarMonthStatItemResp[]
+}
+
+/** 日历报表单日汇总 */
+export interface ReportCalendarDayDetailSummaryResp {
+  expense: number
+  income: number
+  balance: number
+  recordCount: number
+}
+
+/** 日历报表单日详情项 */
+export interface ReportCalendarDayDetailItemResp {
+  id: string
+  detailDate: string
+  subjectId: string
+  subjectName: string
+  subjectIcon?: string
+  detailName: string
+  category: string
+  paymentMethod: string
+  paymentMethodLabel: string
+  userId: string
+  userName: string
+  amount: number
+  remark: string
+}
+
+/** 日历报表单日详情响应 */
+export interface ReportCalendarDayDetailResp {
+  date: string
+  summary: ReportCalendarDayDetailSummaryResp
+  details: ReportCalendarDayDetailItemResp[]
 }

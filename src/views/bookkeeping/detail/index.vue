@@ -7,10 +7,11 @@
       :columns="columns"
       :loading="loading"
       :scroll="isMobile() ? { x: '100%', y: '100%' } : { x: '100%', y: '100%', minWidth: 900 }"
-      :pagination="pagination"
+      :pagination="tablePagination"
       :disabled-tools="['size']"
       :disabled-column-keys="['subjectDetail']"
       @refresh="searchMethod"
+      @change="handleTableChange"
     >
       <template #top>
         <GiForm
@@ -55,6 +56,98 @@
                 :options="paymentMethodQueryOptions"
                 @change="handlePaymentMethodQueryChange"
               />
+            </div>
+          </template>
+          <template #timeFilter>
+            <div class="detail-time-filter">
+              <a-radio-group
+                v-model="queryForm.timeMode"
+                type="button"
+                size="small"
+                class="detail-time-filter__mode"
+                @change="handleTimeModeChange"
+              >
+                <a-radio
+                  v-for="item in detailTimeModeOptions"
+                  :key="String(item.value)"
+                  :value="item.value"
+                >
+                  {{ item.label }}
+                </a-radio>
+              </a-radio-group>
+
+              <div class="detail-time-filter__panel">
+                <div v-if="queryForm.timeMode === 'preset'" class="detail-time-filter__preset-list">
+                  <a-radio-group
+                    v-model="queryForm.datePreset"
+                    type="button"
+                    size="small"
+                    @change="handleDatePresetChange"
+                  >
+                    <a-radio
+                      v-for="item in detailDatePresetOptions"
+                      :key="String(item.value)"
+                      :value="item.value"
+                    >
+                      {{ item.label }}
+                    </a-radio>
+                  </a-radio-group>
+                </div>
+
+                <a-date-picker
+                  v-else-if="queryForm.timeMode === 'week'"
+                  v-model="timePickerState.weekDate"
+                  class="detail-time-filter__picker"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  :allow-clear="false"
+                  @change="handleWeekPickerChange"
+                />
+
+                <a-month-picker
+                  v-else-if="queryForm.timeMode === 'month'"
+                  v-model="timePickerState.month"
+                  class="detail-time-filter__picker"
+                  format="YYYY-MM"
+                  value-format="YYYY-MM"
+                  :allow-clear="false"
+                  @change="handleMonthPickerChange"
+                />
+
+                <a-quarter-picker
+                  v-else-if="queryForm.timeMode === 'quarter'"
+                  v-model="timePickerState.quarter"
+                  class="detail-time-filter__picker"
+                  format="YYYY-[Q]Q"
+                  value-format="YYYY-[Q]Q"
+                  :allow-clear="false"
+                  @change="handleQuarterPickerChange"
+                />
+
+                <a-year-picker
+                  v-else-if="queryForm.timeMode === 'year'"
+                  v-model="timePickerState.year"
+                  class="detail-time-filter__picker"
+                  format="YYYY"
+                  value-format="YYYY"
+                  :allow-clear="false"
+                  @change="handleYearPickerChange"
+                />
+
+                <a-range-picker
+                  v-else
+                  v-model="timePickerState.range"
+                  class="detail-time-filter__picker"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  :allow-clear="false"
+                  @change="handleRangePickerChange"
+                />
+
+                <span class="detail-time-filter__range-text">
+                  {{ activeDateRangeText }}
+                </span>
+              </div>
             </div>
           </template>
         </GiForm>
@@ -114,17 +207,17 @@
           <!-- 最后一行：操作按钮 -->
           <div class="compact-row action-row">
             <a-space size="small">
-              <a-button 
-                v-permission="['bookkeeping:detail:update']" 
-                type="primary" 
+              <a-button
+                v-permission="['bookkeeping:detail:update']"
+                type="primary"
                 size="large"
                 @click="onUpdate(record)"
               >
                 <template #icon><icon-edit /></template>
                 <template #default>修改</template>
               </a-button>
-              <a-button 
-                v-permission="['bookkeeping:detail:delete']" 
+              <a-button
+                v-permission="['bookkeeping:detail:delete']"
                 status="danger"
                 size="large"
                 @click="onDelete(record)"
@@ -239,16 +332,40 @@
  * @desc 进入 web 端隐私模式前同步数据库中的有效时长配置，确保过期时间与隐藏配置页保持一致
  * @update 2026-03-23 @Wangsongsong
  * @desc 新增支付方式标签展示与 Web 端筛选，移动态不增加支付方式查询条件
+ * @update 2026-04-03 @Wangsongsong
+ * @desc 新增统一时间模型、自适应分页和表格排序联动，承接报表模块拆分后的明细查询职责
  */
-import type { TableInstance } from '@arco-design/web-vue'
+import type { TableChangeExtra, TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
-import { computed, h, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, h, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BookkeepingSubjectDetailCell from '../shared/components/BookkeepingSubjectDetailCell.vue'
 import BookkeepingWeekdayTag from '../shared/components/BookkeepingWeekdayTag.vue'
+import {
+  DETAIL_DATE_PRESET_OPTIONS,
+  DETAIL_DEFAULT_DATE_PRESET,
+  DETAIL_DEFAULT_SORT,
+  DETAIL_DEFAULT_TIME_MODE,
+  DETAIL_TIME_MODE_OPTIONS,
+  type DetailTimePickerState,
+  createDefaultDetailTimePickerState,
+  getDetailMonthRange,
+  getDetailPresetRange,
+  getDetailQuarterRange,
+  getDetailWeekRange,
+  getDetailYearRange,
+} from '../shared/detailTime'
 import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 import AddModal from './AddModal.vue'
-import { type DetailResp, deleteDetail, getDetailStatistics, listDetail } from '@/apis/bookkeeping/detail'
+import {
+  type DetailResp,
+  deleteDetail,
+  getDetailQueryMode,
+  getDetailStatistics,
+  listDetail,
+  listMobileDetail,
+} from '@/apis/bookkeeping/detail'
+import type { DetailDatePreset, DetailTimeMode } from '@/apis/bookkeeping/type'
 import { getPrivacyConfig, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
 import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
 import type { ColumnItem } from '@/components/GiForm'
@@ -271,28 +388,32 @@ const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
 const hasHidePermission = computed(() => has.hasPermOr(['bk:hide-target:manage']))
 
 /**
- * 获取当前月份字符串（yyyy-MM 格式）
+ * 创建明细列表默认查询条件。
  *
- * @author Wangsongsong
- * @date 2026-03-18
+ * 这里把“默认排序 + 默认时间范围”集中管理，避免重置、首屏加载和手动切换条件时口径不一致。
  */
-const getCurrentMonth = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  return `${year}-${month}`
+const createDefaultDetailQueryForm = () => {
+  const presetRange = getDetailPresetRange(DETAIL_DEFAULT_DATE_PRESET)
+  return {
+    sort: [...DETAIL_DEFAULT_SORT],
+    name: '',
+    category: '',
+    subjectId: '',
+    paymentMethod: '',
+    timeMode: DETAIL_DEFAULT_TIME_MODE as DetailTimeMode,
+    datePreset: DETAIL_DEFAULT_DATE_PRESET as DetailDatePreset,
+    startDate: presetRange.startDate,
+    endDate: presetRange.endDate,
+    hidden: '',
+    userId: String(userStore.userInfo.id ?? ''),
+  }
 }
 
-const [queryForm, resetForm] = useResetReactive({
-  sort: ['detailDate,desc', 'id,desc'],
-  name: '',
-  category: '',
-  subjectId: '',
-  paymentMethod: '',
-  month: getCurrentMonth(),
-  hidden: '',
-  userId: userStore.userInfo.id,
-})
+const [queryForm, resetForm] = useResetReactive(createDefaultDetailQueryForm)
+const timePickerState = reactive<DetailTimePickerState>(createDefaultDetailTimePickerState())
+
+const detailTimeModeOptions = DETAIL_TIME_MODE_OPTIONS
+const detailDatePresetOptions = DETAIL_DATE_PRESET_OPTIONS
 
 const allSubjects = ref<SubjectResp[]>([])
 const createAllOption = () => ({ label: '全部', value: '' })
@@ -314,19 +435,142 @@ const paymentMethodQueryOptions = computed(() => [
 
 const subjectOptions = computed(() => {
   const matchedSubjects = queryForm.category
-    ? allSubjects.value.filter(item => item.category === queryForm.category)
+    ? allSubjects.value.filter((item) => item.category === queryForm.category)
     : allSubjects.value
 
   return [
     createAllOption(),
-    ...matchedSubjects.map(item => ({ label: item.name, value: item.id })),
+    ...matchedSubjects.map((item) => ({ label: item.name, value: item.id })),
   ]
+})
+
+/** 当前时间范围的文案回显，方便用户确认筛选口径。 */
+const activeDateRangeText = computed(() => {
+  if (!queryForm.startDate || !queryForm.endDate) {
+    return '未选择时间范围'
+  }
+  return `${queryForm.startDate} 至 ${queryForm.endDate}`
+})
+
+/** 记录当前查询是否进入分页模式。 */
+const detailQueryMode = reactive({
+  total: 0,
+  threshold: 1000,
+  pageMode: false,
 })
 
 const triggerQuerySearch = () => {
   nextTick(() => {
     searchMethod()
   })
+}
+
+/**
+ * 统一更新明细时间查询条件。
+ *
+ * 真实查询只依赖 timeMode + startDate + endDate，datePreset 仅用于记住快捷范围选中项。
+ */
+const applyTimeRangeToQuery = (options: {
+  timeMode: DetailTimeMode
+  startDate: string
+  endDate: string
+  datePreset?: DetailDatePreset
+}) => {
+  queryForm.timeMode = options.timeMode
+  queryForm.startDate = options.startDate
+  queryForm.endDate = options.endDate
+  queryForm.datePreset = options.datePreset ?? queryForm.datePreset
+}
+
+const handleTimeModeChange = (value: string | number | boolean) => {
+  const nextMode = String(value) as DetailTimeMode
+  if (queryForm.startDate && queryForm.endDate) {
+    timePickerState.range = [queryForm.startDate, queryForm.endDate]
+  }
+
+  switch (nextMode) {
+    case 'preset': {
+      const preset = queryForm.datePreset || DETAIL_DEFAULT_DATE_PRESET
+      const range = getDetailPresetRange(preset)
+      applyTimeRangeToQuery({ timeMode: 'preset', datePreset: preset, ...range })
+      timePickerState.range = [range.startDate, range.endDate]
+      break
+    }
+    case 'week': {
+      const range = getDetailWeekRange(timePickerState.weekDate)
+      applyTimeRangeToQuery({ timeMode: 'week', ...range })
+      break
+    }
+    case 'month': {
+      const range = getDetailMonthRange(timePickerState.month)
+      applyTimeRangeToQuery({ timeMode: 'month', ...range })
+      break
+    }
+    case 'quarter': {
+      const range = getDetailQuarterRange(timePickerState.quarter)
+      applyTimeRangeToQuery({ timeMode: 'quarter', ...range })
+      break
+    }
+    case 'year': {
+      const range = getDetailYearRange(timePickerState.year)
+      applyTimeRangeToQuery({ timeMode: 'year', ...range })
+      break
+    }
+    case 'range': {
+      const [startDate, endDate] = timePickerState.range
+      if (startDate && endDate) {
+        applyTimeRangeToQuery({ timeMode: 'range', startDate, endDate })
+      }
+      break
+    }
+  }
+
+  triggerQuerySearch()
+}
+
+const handleDatePresetChange = (value: string | number | boolean) => {
+  const preset = String(value || DETAIL_DEFAULT_DATE_PRESET) as DetailDatePreset
+  const range = getDetailPresetRange(preset)
+  applyTimeRangeToQuery({ timeMode: 'preset', datePreset: preset, ...range })
+  timePickerState.range = [range.startDate, range.endDate]
+  triggerQuerySearch()
+}
+
+const handleWeekPickerChange = (value?: string) => {
+  timePickerState.weekDate = value || timePickerState.weekDate
+  const range = getDetailWeekRange(timePickerState.weekDate)
+  applyTimeRangeToQuery({ timeMode: 'week', ...range })
+  triggerQuerySearch()
+}
+
+const handleMonthPickerChange = (value?: string) => {
+  timePickerState.month = value || timePickerState.month
+  const range = getDetailMonthRange(timePickerState.month)
+  applyTimeRangeToQuery({ timeMode: 'month', ...range })
+  triggerQuerySearch()
+}
+
+const handleQuarterPickerChange = (value?: string) => {
+  timePickerState.quarter = value || timePickerState.quarter
+  const range = getDetailQuarterRange(timePickerState.quarter)
+  applyTimeRangeToQuery({ timeMode: 'quarter', ...range })
+  triggerQuerySearch()
+}
+
+const handleYearPickerChange = (value?: string) => {
+  timePickerState.year = value || timePickerState.year
+  const range = getDetailYearRange(timePickerState.year)
+  applyTimeRangeToQuery({ timeMode: 'year', ...range })
+  triggerQuerySearch()
+}
+
+const handleRangePickerChange = (value?: string[]) => {
+  if (!value || value.length !== 2 || !value[0] || !value[1]) {
+    return
+  }
+  timePickerState.range = [...value]
+  applyTimeRangeToQuery({ timeMode: 'range', startDate: value[0], endDate: value[1] })
+  triggerQuerySearch()
 }
 
 const handleCategoryQueryChange = () => {
@@ -356,22 +600,19 @@ const queryFormColumns: ColumnItem[] = reactive([
     props: {
       options: userQueryOptions,
       onChange: handleUserQueryChange,
-      ...(isMobile() ? {
-        placeholder: '请选择用户',
-        allowClear: true,
-        allowSearch: true,
-      } : {}),
+      ...(isMobile()
+        ? {
+            placeholder: '请选择用户',
+            allowClear: true,
+            allowSearch: true,
+          }
+        : {}),
     },
   },
   {
-    type: 'month-picker',
-    label: '月份',
-    field: 'month',
-    span: { xs: 24, sm: 4, xxl: 3 },
-    props: {
-      placeholder: '请选择月份',
-      allowClear: true,
-    },
+    label: '时间范围',
+    field: 'timeFilter',
+    span: { xs: 24, sm: 24, xxl: 24 },
   },
   {
     type: 'select',
@@ -448,9 +689,23 @@ const {
   search,
   handleDelete,
 } = useTable(
-  (page) => listDetail({ ...queryForm, ...page, privacyMode: privacyStore.isPrivacyMode }),
-  { immediate: false, paginationOption: isMobile() ? { defaultPageSize: 50 } : undefined },
+  (page) => {
+    const query = { ...queryForm, sort: [...queryForm.sort], privacyMode: privacyStore.isPrivacyMode }
+    if (detailQueryMode.pageMode) {
+      return listDetail({ ...query, ...page })
+    }
+    return listMobileDetail(query)
+  },
+  {
+    immediate: false,
+    paginationOption: isMobile()
+      ? { defaultPageSize: 50, defaultSizeOptions: [50, 100, 200, 500] }
+      : undefined,
+  },
 )
+
+const tablePagination = computed(() => (detailQueryMode.pageMode ? pagination : false))
+const currentTableOffset = computed(() => (detailQueryMode.pageMode ? (pagination.current - 1) * pagination.pageSize : 0))
 
 /**
  * 统计数据
@@ -464,6 +719,26 @@ const statistics = ref({
   netIncome: 0,
 })
 
+const amountSortOrder = computed(() => {
+  if (queryForm.sort[0] === 'amount,desc') {
+    return 'descend'
+  }
+  if (queryForm.sort[0] === 'amount,asc') {
+    return 'ascend'
+  }
+  return ''
+})
+
+const detailDateSortOrder = computed(() => {
+  if (queryForm.sort[0] === 'detailDate,desc') {
+    return 'descend'
+  }
+  if (queryForm.sort[0] === 'detailDate,asc') {
+    return 'ascend'
+  }
+  return ''
+})
+
 const loadSubjectOptions = async () => {
   try {
     const { data } = await listSubject({ sort: ['sort,asc', 'id,desc'], page: 1, size: 1000 } as any)
@@ -474,6 +749,45 @@ const loadSubjectOptions = async () => {
 }
 
 /**
+ * 把表格排序事件统一映射成后端识别的 sort 数组。
+ *
+ * 金额排序会追加日期和主键兜底，避免同金额场景下顺序飘动。
+ */
+const resolveTableSort = (sorter?: TableChangeExtra['sorter']) => {
+  if (!sorter?.field || !sorter.direction) {
+    return [...DETAIL_DEFAULT_SORT]
+  }
+  const order = sorter.direction === 'ascend' ? 'asc' : 'desc'
+  if (sorter.field === 'amount') {
+    return [`amount,${order}`, 'detailDate,desc', 'id,desc']
+  }
+  if (sorter.field === 'detailDate') {
+    return [`detailDate,${order}`, 'id,desc']
+  }
+  return [...DETAIL_DEFAULT_SORT]
+}
+
+const handleTableChange = (_data: unknown[], extra: TableChangeExtra) => {
+  if (extra.type !== 'sorter') {
+    return
+  }
+  queryForm.sort = resolveTableSort(extra.sorter)
+  searchMethod()
+}
+
+/**
+ * 查询当前筛选结果是否超过阈值。
+ *
+ * 小于等于阈值时前端直接改走全量接口，减少用户翻页成本。
+ */
+const loadDetailQueryMode = async () => {
+  const { data } = await getDetailQueryMode({ ...queryForm, sort: [...queryForm.sort], privacyMode: privacyStore.isPrivacyMode })
+  detailQueryMode.total = data.total
+  detailQueryMode.threshold = data.threshold
+  detailQueryMode.pageMode = data.pageMode
+}
+
+/**
  * 加载统计数据
  *
  * @author Wangsongsong
@@ -481,7 +795,7 @@ const loadSubjectOptions = async () => {
  */
 const loadStatistics = async () => {
   try {
-    const { data } = await getDetailStatistics({ ...queryForm, privacyMode: privacyStore.isPrivacyMode })
+    const { data } = await getDetailStatistics({ ...queryForm, sort: [...queryForm.sort], privacyMode: privacyStore.isPrivacyMode })
     statistics.value = data
   } catch {
     // 加载失败不影响列表展示
@@ -495,22 +809,22 @@ const loadStatistics = async () => {
  * @author Wangsongsong
  * @date 2026-03-19
  */
-const searchMethod = async () => {
+async function searchMethod() {
+  await loadDetailQueryMode()
   await Promise.all([search(), loadStatistics()])
 }
 
 /** 表格引用 */
 const tableRef = ref()
 
-const columns: TableInstance['columns'] = [
+const columns = computed<TableInstance['columns']>(() => [
   {
     title: '序号',
     width: 66,
     align: 'center',
-    render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + (pagination.current - 1) * pagination.pageSize),
+    render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + currentTableOffset.value),
     show: false,
   },
-  // 移动端：单列展示所有信息
   {
     title: '明细信息',
     dataIndex: 'mobileDetail',
@@ -518,15 +832,43 @@ const columns: TableInstance['columns'] = [
     width: 100,
     show: isMobile(),
   },
-  // PC端：保持原有列结构
   { title: '科目 / 明细', dataIndex: 'subjectDetail', slotName: 'subjectDetail', width: 240, show: !isMobile() },
   { title: '所属用户', dataIndex: 'userNickname', slotName: 'userNickname', width: 90, ellipsis: true, tooltip: true, show: !isMobile() },
   { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center', show: !isMobile() },
   { title: '支付方式', dataIndex: 'paymentMethod', slotName: 'paymentMethod', width: 90, align: 'center', show: !isMobile() },
-  { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 100, align: 'right', show: !isMobile() },
-  { title: '明细日期', dataIndex: 'detailDate', slotName: 'detailDate', width: 180, align: 'center', show: !isMobile() },
+  {
+    title: '金额',
+    dataIndex: 'amount',
+    slotName: 'amount',
+    width: 100,
+    align: 'right',
+    show: !isMobile(),
+    sortable: {
+      sortDirections: ['descend', 'ascend'],
+      sortOrder: amountSortOrder.value,
+    },
+  },
+  {
+    title: '明细日期',
+    dataIndex: 'detailDate',
+    slotName: 'detailDate',
+    width: 180,
+    align: 'center',
+    show: !isMobile(),
+    sortable: {
+      sortDirections: ['descend', 'ascend'],
+      sortOrder: detailDateSortOrder.value,
+    },
+  },
   { title: '备注', dataIndex: 'remark', width: 120, ellipsis: true, tooltip: true, show: !isMobile() },
-  { title: '隐藏', dataIndex: 'hidden', slotName: 'hidden', width: 60, align: 'center', show: ((has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value) && !isMobile() },
+  {
+    title: '隐藏',
+    dataIndex: 'hidden',
+    slotName: 'hidden',
+    width: 60,
+    align: 'center',
+    show: ((has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value) && !isMobile(),
+  },
   { title: '创建人', dataIndex: 'createUserString', width: 100, ellipsis: true, tooltip: true, show: false },
   { title: '创建时间', dataIndex: 'createTime', width: 160, show: false },
   { title: '修改人', dataIndex: 'updateUserString', width: 100, ellipsis: true, tooltip: true, show: false },
@@ -543,20 +885,34 @@ const columns: TableInstance['columns'] = [
       'bookkeeping:detail:delete',
     ]) && !isMobile(),
   },
-]
+])
 
 /** 重置查询条件 */
 const reset = () => {
   resetForm()
+  Object.assign(timePickerState, createDefaultDetailTimePickerState())
   searchMethod()
 }
 
-/** 删除明细 */
-const onDelete = (record: DetailResp) => {
-  return handleDelete(() => deleteDetail(record.id), {
+/**
+ * 删除明细。
+ *
+ * 删除成功后需要重新同步：
+ * 1. 列表数据
+ * 2. 统计卡片
+ * 3. 是否分页模式
+ *
+ * 否则当删除后总数跨过分页阈值时，界面状态会和真实数据不一致。
+ */
+const onDelete = async (record: DetailResp) => {
+  const success = await handleDelete(() => deleteDetail(record.id), {
     content: `是否确定删除明细「${record.name}」？`,
     showModal: true,
   })
+  if (success) {
+    await searchMethod()
+  }
+  return success
 }
 
 const AddModalRef = ref<InstanceType<typeof AddModal>>()
@@ -637,7 +993,6 @@ const onVerifyPassword = async () => {
       privacyStore.enterPrivacyMode(config.expireMinutes)
       Message.success('已进入隐私模式')
       verifyPassword.value = ''
-      searchMethod()
       return true
     } else {
       Message.error('密码错误')
@@ -674,7 +1029,6 @@ const onSetupPassword = async () => {
     privacyStore.syncExpireMinutes(data.expireMinutes)
     privacyStore.enterPrivacyMode(data.expireMinutes)
     Message.success('密码设置成功，已进入隐私模式')
-    searchMethod()
     return true
   } catch {
     Message.error('设置密码失败')
@@ -691,7 +1045,6 @@ const onSetupPassword = async () => {
 const onExitPrivacy = () => {
   privacyStore.exitPrivacyMode()
   Message.success('已退出隐私模式')
-  searchMethod()
 }
 
 /**
@@ -708,7 +1061,9 @@ const onFooterClick = () => {
   if (!hasHidePermission.value) return
   footerClickCount++
   if (footerClickTimer) clearTimeout(footerClickTimer)
-  footerClickTimer = setTimeout(() => { footerClickCount = 0 }, 2000)
+  footerClickTimer = setTimeout(() => {
+    footerClickCount = 0
+  }, 2000)
   if (footerClickCount >= 3) {
     footerClickCount = 0
     if (footerClickTimer) clearTimeout(footerClickTimer)
@@ -719,6 +1074,19 @@ const onFooterClick = () => {
     checkAndShowPasswordModal()
   }
 }
+
+/**
+ * 隐私模式状态变化后立即重刷列表和统计。
+ *
+ * 这样无论是手动进入 / 退出，还是停留超时后自动失效，
+ * 页面都不会继续残留旧口径下的隐藏数据。
+ */
+watch(
+  () => privacyStore.isPrivacyMode,
+  () => {
+    void searchMethod()
+  },
+)
 
 onMounted(async () => {
   mittBus.on('footer-click', onFooterClick)
@@ -743,6 +1111,41 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+.detail-time-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.detail-time-filter__mode {
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.detail-time-filter__panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.detail-time-filter__preset-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.detail-time-filter__picker {
+  min-width: 240px;
+}
+
+.detail-time-filter__range-text {
+  color: var(--color-text-3);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 // 统计数据样式
 .statistics-container {
   display: flex;
@@ -880,6 +1283,22 @@ onUnmounted(() => {
     &.action-row {
       padding-top: 4px;
     }
+  }
+}
+
+@media (max-width: 768px) {
+  .detail-time-filter__picker {
+    min-width: 100%;
+  }
+
+  .detail-time-filter__range-text {
+    width: 100%;
+  }
+
+  .statistics-container {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-right: 0;
   }
 }
 </style>

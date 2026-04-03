@@ -28,6 +28,17 @@ export function listMobileDetail(query: T.DetailQuery) {
   return http.get<T.DetailResp[]>(`${BASE_URL}/mobile/list`, query)
 }
 
+/**
+ * @desc 查询明细全量列表
+ *
+ * 说明：
+ * 当前后端沿用了 /mobile/list 路径来返回“不分页的全量结果”，
+ * 这里补一个中性命名，供 Web 端无分页模式复用，避免业务页面继续直接依赖 mobile 命名。
+ */
+export function listDetailAll(query: T.DetailQuery) {
+  return http.get<T.DetailResp[]>(`${BASE_URL}/mobile/list`, query)
+}
+
 /** @desc 查询明细详情 */
 export function getDetail(id: string) {
   return http.get<T.DetailResp>(`${BASE_URL}/${id}`)

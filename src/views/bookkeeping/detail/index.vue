@@ -6,34 +6,23 @@
       :data="dataList"
       :columns="columns"
       :loading="loading"
-      :scroll="isMobile() ? { x: '100%', y: '100%' } : { x: '100%', y: '100%', minWidth: 900 }"
+      :scroll="{ x: '100%', y: '100%', minWidth: 900 }"
       :pagination="tablePagination"
       :disabled-tools="['size']"
       :disabled-column-keys="['subjectDetail']"
       @refresh="searchMethod"
-      @change="handleTableChange"
     >
       <template #top>
         <GiForm
           v-model="queryForm"
           search
           :columns="queryFormColumns"
-          :default-collapsed="isMobile()"
           size="medium"
           @search="searchMethod"
           @reset="reset"
         >
           <template #subjectId>
-            <a-select
-              v-if="isMobile()"
-              v-model="queryForm.subjectId"
-              :options="subjectOptions"
-              placeholder="请选择科目"
-              allow-clear
-              allow-search
-              @change="handleSubjectQueryChange"
-            />
-            <div v-else class="subject-query-radio-scroll">
+            <div class="subject-query-radio-scroll">
               <a-radio-group
                 v-model="queryForm.subjectId"
                 :options="subjectOptions"
@@ -42,15 +31,7 @@
             </div>
           </template>
           <template #paymentMethod>
-            <a-select
-              v-if="isMobile()"
-              v-model="queryForm.paymentMethod"
-              :options="paymentMethodQueryOptions"
-              placeholder="请选择支付方式"
-              allow-clear
-              @change="handlePaymentMethodQueryChange"
-            />
-            <div v-else class="subject-query-radio-scroll">
+            <div class="subject-query-radio-scroll">
               <a-radio-group
                 v-model="queryForm.paymentMethod"
                 :options="paymentMethodQueryOptions"
@@ -137,7 +118,8 @@
                 <a-range-picker
                   v-else
                   v-model="timePickerState.range"
-                  class="detail-time-filter__picker"
+                  class="detail-time-filter__picker detail-time-filter__picker--range"
+                  :style="detailRangePickerStyle"
                   format="YYYY-MM-DD"
                   value-format="YYYY-MM-DD"
                   :allow-clear="false"
@@ -183,49 +165,9 @@
             <span class="label">结余：</span>
             <span class="value">{{ statistics.netIncome.toFixed(2) }}</span>
           </div>
-        </div>
-      </template>
-      <!-- 移动端紧凑布局 -->
-      <template #mobileDetail="{ record }">
-        <div class="mobile-detail-compact" :class="{ 'is-hidden': privacyStore.isPrivacyMode && record.hidden === 1 }">
-          <!-- 第一行：主要信息 -->
-          <div class="compact-row info-line">
-            <span class="user-name">{{ record.userNickname }}</span>
-            <span class="date-text">{{ record.detailDate }}</span>
-            <span class="subject-name">{{ record.subjectName }}</span>
-            <GiCellTag :value="record.subjectCategory" :dict="bk_subject_category" />
-            <GiCellTag :value="record.paymentMethod || 'default'" :dict="bk_payment_method" />
-            <span class="detail-name">{{ record.name }}</span>
-            <span class="amount" :style="{ color: record.amount < 0 ? '#f53f3f' : '#00b42a' }">
-              {{ record.amount < 0 ? record.amount.toFixed(2) : `+${record.amount.toFixed(2)}` }}
-            </span>
-          </div>
-          <!-- 第二行：备注信息（如果有） -->
-          <div v-if="record.remark" class="compact-row remark-line">
-            <span class="remark-text">{{ record.remark }}</span>
-          </div>
-          <!-- 最后一行：操作按钮 -->
-          <div class="compact-row action-row">
-            <a-space size="small">
-              <a-button
-                v-permission="['bookkeeping:detail:update']"
-                type="primary"
-                size="large"
-                @click="onUpdate(record)"
-              >
-                <template #icon><icon-edit /></template>
-                <template #default>修改</template>
-              </a-button>
-              <a-button
-                v-permission="['bookkeeping:detail:delete']"
-                status="danger"
-                size="large"
-                @click="onDelete(record)"
-              >
-                <template #icon><icon-delete /></template>
-                <template #default>删除</template>
-              </a-button>
-            </a-space>
+          <div class="statistics-item count">
+            <span class="label">条数：</span>
+            <span class="value">{{ detailRecordCount }}</span>
           </div>
         </div>
       </template>
@@ -333,9 +275,11 @@
  * @update 2026-03-23 @Wangsongsong
  * @desc 新增支付方式标签展示与 Web 端筛选，移动态不增加支付方式查询条件
  * @update 2026-04-03 @Wangsongsong
- * @desc 新增统一时间模型、自适应分页和表格排序联动，承接报表模块拆分后的明细查询职责
+ * @desc 新增统一时间模型、自适应分页和搜索区排序条件，承接报表模块拆分后的明细查询职责
+ * @update 2026-04-03 @Wangsongsong
+ * @desc Web 端统计区补充当前查询条数，便于无分页模式下确认命中结果规模
  */
-import type { TableChangeExtra, TableInstance } from '@arco-design/web-vue'
+import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
 import { computed, h, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -355,7 +299,7 @@ import {
   getDetailWeekRange,
   getDetailYearRange,
 } from '../shared/detailTime'
-import { useDetailUserOptions } from '../shared/useDetailUserOptions'
+import { useBookkeepingCommonFilters } from '../shared/useBookkeepingCommonFilters'
 import AddModal from './AddModal.vue'
 import {
   type DetailResp,
@@ -363,16 +307,14 @@ import {
   getDetailQueryMode,
   getDetailStatistics,
   listDetail,
-  listMobileDetail,
+  listDetailAll,
 } from '@/apis/bookkeeping/detail'
 import type { DetailDatePreset, DetailTimeMode } from '@/apis/bookkeeping/type'
 import { getPrivacyConfig, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
-import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive, useTable } from '@/hooks'
 import { useDict } from '@/hooks/app'
 import { usePrivacyStore, useUserStore } from '@/stores'
-import { isMobile } from '@/utils'
 import has from '@/utils/has'
 import mittBus from '@/utils/mitt'
 
@@ -382,10 +324,26 @@ const router = useRouter()
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
 const { bk_subject_category, bk_payment_method } = useDict('bk_subject_category', 'bk_payment_method')
-const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
 
 /** 是否拥有隐藏权限 */
 const hasHidePermission = computed(() => has.hasPermOr(['bk:hide-target:manage']))
+
+const detailSortModeOptions = [
+  { label: '日期最新', value: 'date-desc' },
+  { label: '日期最早', value: 'date-asc' },
+  { label: '金额从高到低', value: 'amount-desc' },
+  { label: '金额从低到高', value: 'amount-asc' },
+]
+
+const DETAIL_SORT_QUERY_MAP = {
+  'date-desc': [...DETAIL_DEFAULT_SORT],
+  'date-asc': ['detailDate,asc', 'id,desc'],
+  'amount-desc': ['amount,desc', 'detailDate,desc', 'id,desc'],
+  'amount-asc': ['amount,asc', 'detailDate,desc', 'id,desc'],
+} as const
+
+type DetailSortMode = keyof typeof DETAIL_SORT_QUERY_MAP
+const DETAIL_DEFAULT_SORT_MODE: DetailSortMode = 'date-desc'
 
 /**
  * 创建明细列表默认查询条件。
@@ -396,6 +354,7 @@ const createDefaultDetailQueryForm = () => {
   const presetRange = getDetailPresetRange(DETAIL_DEFAULT_DATE_PRESET)
   return {
     sort: [...DETAIL_DEFAULT_SORT],
+    sortMode: DETAIL_DEFAULT_SORT_MODE as DetailSortMode,
     name: '',
     category: '',
     subjectId: '',
@@ -415,33 +374,30 @@ const timePickerState = reactive<DetailTimePickerState>(createDefaultDetailTimeP
 const detailTimeModeOptions = DETAIL_TIME_MODE_OPTIONS
 const detailDatePresetOptions = DETAIL_DATE_PRESET_OPTIONS
 
-const allSubjects = ref<SubjectResp[]>([])
-const createAllOption = () => ({ label: '全部', value: '' })
+/** 自定义范围选择器在 Web 端限制为更短的固定宽度，避免横向占用过大。 */
+const detailRangePickerStyle = {
+  flex: '0 0 320px',
+  width: '320px',
+  minWidth: '320px',
+  maxWidth: '320px',
+}
 
-const userQueryOptions = computed(() => [
-  createAllOption(),
-  ...(userOptions.value ?? []),
-])
-
-const categoryQueryOptions = computed(() => [
-  createAllOption(),
-  ...(bk_subject_category.value ?? []),
-])
-
-const paymentMethodQueryOptions = computed(() => [
-  createAllOption(),
-  ...(bk_payment_method.value ?? []),
-])
-
-const subjectOptions = computed(() => {
-  const matchedSubjects = queryForm.category
-    ? allSubjects.value.filter((item) => item.category === queryForm.category)
-    : allSubjects.value
-
-  return [
-    createAllOption(),
-    ...matchedSubjects.map((item) => ({ label: item.name, value: item.id })),
-  ]
+/** 通用筛选项下沉到 shared，明细页只保留自身特有的时间、排序、名称和隐藏条件。 */
+const {
+  isAdmin,
+  paymentMethodQueryOptions,
+  subjectQueryOptions: subjectOptions,
+  clearSubjectSelection,
+  loadCommonFilterOptions,
+  createCommonQueryColumns,
+} = useBookkeepingCommonFilters({
+  form: queryForm,
+  labels: {
+    userAll: '全部',
+    categoryAll: '全部',
+    subjectAll: '全部',
+    paymentAll: '全部',
+  },
 })
 
 /** 当前时间范围的文案回显，方便用户确认筛选口径。 */
@@ -574,7 +530,7 @@ const handleRangePickerChange = (value?: string[]) => {
 }
 
 const handleCategoryQueryChange = () => {
-  queryForm.subjectId = ''
+  clearSubjectSelection()
   triggerQuerySearch()
 }
 
@@ -590,25 +546,54 @@ const handleUserQueryChange = () => {
   triggerQuerySearch()
 }
 
-const queryFormColumns: ColumnItem[] = reactive([
-  {
-    type: 'select',
-    label: '所属用户',
-    field: 'userId',
-    span: { xs: 24, sm: 12, xxl: 9 },
-    ...(!isMobile() ? { type: 'radio-group' as const } : {}),
-    props: {
-      options: userQueryOptions,
-      onChange: handleUserQueryChange,
-      ...(isMobile()
-        ? {
-            placeholder: '请选择用户',
-            allowClear: true,
-            allowSearch: true,
-          }
-        : {}),
-    },
+/**
+ * 表头排序已移除，统一改为搜索区排序条件，避免排序入口分散。
+ */
+const handleSortModeChange = (value: string | number | boolean) => {
+  const nextSortMode = String(value || DETAIL_DEFAULT_SORT_MODE) as DetailSortMode
+  queryForm.sortMode = nextSortMode
+  queryForm.sort = [...DETAIL_SORT_QUERY_MAP[nextSortMode]]
+  triggerQuerySearch()
+}
+
+/**
+ * 统一复用“所属用户 / 分类 / 科目 / 支付方式”列定义，避免明细页和日历页各维护一套。
+ *
+ * 当前明细页查询区布局：
+ * 1. 第一行：时间范围
+ * 2. 第二行：排序方式
+ * 3. 第三行：所属用户 + 分类
+ * 4. 第四行：科目
+ * 5. 第五行：支付方式
+ * 6. 第六行：明细名称
+ * 7. 第七行：是否隐藏（仅管理员可见）
+ */
+const commonQueryColumns = createCommonQueryColumns({
+  user: {
+    span: { xs: 24, sm: 12, xxl: 12 },
+    useRadioGroup: true,
+    placeholder: '请选择用户',
+    allowSearch: true,
+    onChange: handleUserQueryChange,
   },
+  category: {
+    span: { xs: 24, sm: 12, xxl: 12 },
+    useRadioGroup: true,
+    onChange: handleCategoryQueryChange,
+  },
+  subject: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    onChange: handleSubjectQueryChange,
+  },
+  paymentMethod: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    onChange: handlePaymentMethodQueryChange,
+  },
+})
+
+const queryFormColumns: ColumnItem[] = reactive([
   {
     label: '时间范围',
     field: 'timeFilter',
@@ -616,49 +601,26 @@ const queryFormColumns: ColumnItem[] = reactive([
   },
   {
     type: 'select',
-    label: '分类',
-    field: 'category',
-    span: { xs: 24, sm: 8, xxl: 6 },
-    ...(!isMobile() ? { type: 'radio-group' as const } : {}),
-    props: {
-      options: categoryQueryOptions,
-      placeholder: '请选择分类',
-      allowClear: true,
-      onChange: handleCategoryQueryChange,
-    },
-  },
-  {
-    type: 'select',
-    label: '科目',
-    field: 'subjectId',
+    label: '排序方式',
+    field: 'sortMode',
     span: { xs: 24, sm: 24, xxl: 24 },
-    ...(!isMobile() ? { type: 'radio-group' as const } : {}),
+    type: 'radio-group',
     props: {
-      options: subjectOptions,
-      placeholder: '请选择科目',
-      allowClear: true,
-      allowSearch: true,
-      onChange: handleSubjectQueryChange,
+      options: detailSortModeOptions,
+      placeholder: '请选择排序方式',
+      allowClear: false,
+      onChange: handleSortModeChange,
     },
   },
-  {
-    type: 'select',
-    label: '支付方式',
-    field: 'paymentMethod',
-    span: { xs: 24, sm: 24, xxl: 24 },
-    ...(!isMobile() ? { type: 'radio-group' as const } : {}),
-    props: {
-      options: paymentMethodQueryOptions,
-      placeholder: '请选择支付方式',
-      allowClear: true,
-      onChange: handlePaymentMethodQueryChange,
-    },
-  },
+  commonQueryColumns.userColumn,
+  commonQueryColumns.categoryColumn,
+  commonQueryColumns.subjectColumn,
+  commonQueryColumns.paymentMethodColumn,
   {
     type: 'input',
     label: '明细名称',
     field: 'name',
-    span: { xs: 24, sm: 8, xxl: 6 },
+    span: { xs: 24, sm: 24, xxl: 24 },
     props: {
       placeholder: '请输入明细名称',
     },
@@ -667,9 +629,9 @@ const queryFormColumns: ColumnItem[] = reactive([
     type: 'select',
     label: '是否隐藏',
     field: 'hidden',
-    span: { xs: 24, sm: 8, xxl: 6 },
+    span: { xs: 24, sm: 24, xxl: 24 },
     show: () => isAdmin.value,
-    ...(!isMobile() ? { type: 'radio-group' as const } : {}),
+    type: 'radio-group',
     props: {
       options: [
         { label: '全部', value: '' },
@@ -682,6 +644,19 @@ const queryFormColumns: ColumnItem[] = reactive([
   },
 ])
 
+/**
+ * 搜索区会带上仅供前端展示的 sortMode 字段，这里统一在请求前剔除。
+ */
+const buildDetailQuery = () => {
+  const query = {
+    ...queryForm,
+    sort: [...queryForm.sort],
+    privacyMode: privacyStore.isPrivacyMode,
+  }
+  delete (query as typeof query & { sortMode?: DetailSortMode }).sortMode
+  return query
+}
+
 const {
   tableData: dataList,
   loading,
@@ -690,19 +665,22 @@ const {
   handleDelete,
 } = useTable(
   (page) => {
-    const query = { ...queryForm, sort: [...queryForm.sort], privacyMode: privacyStore.isPrivacyMode }
+    const query = buildDetailQuery()
     if (detailQueryMode.pageMode) {
       return listDetail({ ...query, ...page })
     }
-    return listMobileDetail(query)
+    return listDetailAll(query)
   },
-  {
-    immediate: false,
-    paginationOption: isMobile()
-      ? { defaultPageSize: 50, defaultSizeOptions: [50, 100, 200, 500] }
-      : undefined,
-  },
+  { immediate: false },
 )
+
+/** 当前查询结果条数，优先展示后端统计总数，兜底使用当前列表长度。 */
+const detailRecordCount = computed(() => {
+  if (detailQueryMode.total > 0) {
+    return detailQueryMode.total
+  }
+  return dataList.value.length
+})
 
 const tablePagination = computed(() => (detailQueryMode.pageMode ? pagination : false))
 const currentTableOffset = computed(() => (detailQueryMode.pageMode ? (pagination.current - 1) * pagination.pageSize : 0))
@@ -719,69 +697,13 @@ const statistics = ref({
   netIncome: 0,
 })
 
-const amountSortOrder = computed(() => {
-  if (queryForm.sort[0] === 'amount,desc') {
-    return 'descend'
-  }
-  if (queryForm.sort[0] === 'amount,asc') {
-    return 'ascend'
-  }
-  return ''
-})
-
-const detailDateSortOrder = computed(() => {
-  if (queryForm.sort[0] === 'detailDate,desc') {
-    return 'descend'
-  }
-  if (queryForm.sort[0] === 'detailDate,asc') {
-    return 'ascend'
-  }
-  return ''
-})
-
-const loadSubjectOptions = async () => {
-  try {
-    const { data } = await listSubject({ sort: ['sort,asc', 'id,desc'], page: 1, size: 1000 } as any)
-    allSubjects.value = data.list ?? []
-  } catch {
-    allSubjects.value = []
-  }
-}
-
-/**
- * 把表格排序事件统一映射成后端识别的 sort 数组。
- *
- * 金额排序会追加日期和主键兜底，避免同金额场景下顺序飘动。
- */
-const resolveTableSort = (sorter?: TableChangeExtra['sorter']) => {
-  if (!sorter?.field || !sorter.direction) {
-    return [...DETAIL_DEFAULT_SORT]
-  }
-  const order = sorter.direction === 'ascend' ? 'asc' : 'desc'
-  if (sorter.field === 'amount') {
-    return [`amount,${order}`, 'detailDate,desc', 'id,desc']
-  }
-  if (sorter.field === 'detailDate') {
-    return [`detailDate,${order}`, 'id,desc']
-  }
-  return [...DETAIL_DEFAULT_SORT]
-}
-
-const handleTableChange = (_data: unknown[], extra: TableChangeExtra) => {
-  if (extra.type !== 'sorter') {
-    return
-  }
-  queryForm.sort = resolveTableSort(extra.sorter)
-  searchMethod()
-}
-
 /**
  * 查询当前筛选结果是否超过阈值。
  *
  * 小于等于阈值时前端直接改走全量接口，减少用户翻页成本。
  */
 const loadDetailQueryMode = async () => {
-  const { data } = await getDetailQueryMode({ ...queryForm, sort: [...queryForm.sort], privacyMode: privacyStore.isPrivacyMode })
+  const { data } = await getDetailQueryMode(buildDetailQuery())
   detailQueryMode.total = data.total
   detailQueryMode.threshold = data.threshold
   detailQueryMode.pageMode = data.pageMode
@@ -795,7 +717,7 @@ const loadDetailQueryMode = async () => {
  */
 const loadStatistics = async () => {
   try {
-    const { data } = await getDetailStatistics({ ...queryForm, sort: [...queryForm.sort], privacyMode: privacyStore.isPrivacyMode })
+    const { data } = await getDetailStatistics(buildDetailQuery())
     statistics.value = data
   } catch {
     // 加载失败不影响列表展示
@@ -825,28 +747,17 @@ const columns = computed<TableInstance['columns']>(() => [
     render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + currentTableOffset.value),
     show: false,
   },
-  {
-    title: '明细信息',
-    dataIndex: 'mobileDetail',
-    slotName: 'mobileDetail',
-    width: 100,
-    show: isMobile(),
-  },
-  { title: '科目 / 明细', dataIndex: 'subjectDetail', slotName: 'subjectDetail', width: 240, show: !isMobile() },
-  { title: '所属用户', dataIndex: 'userNickname', slotName: 'userNickname', width: 90, ellipsis: true, tooltip: true, show: !isMobile() },
-  { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center', show: !isMobile() },
-  { title: '支付方式', dataIndex: 'paymentMethod', slotName: 'paymentMethod', width: 90, align: 'center', show: !isMobile() },
+  { title: '科目 / 明细', dataIndex: 'subjectDetail', slotName: 'subjectDetail', width: 240, show: true },
+  { title: '所属用户', dataIndex: 'userNickname', slotName: 'userNickname', width: 90, ellipsis: true, tooltip: true, show: true },
+  { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center', show: true },
+  { title: '支付方式', dataIndex: 'paymentMethod', slotName: 'paymentMethod', width: 90, align: 'center', show: true },
   {
     title: '金额',
     dataIndex: 'amount',
     slotName: 'amount',
     width: 100,
     align: 'right',
-    show: !isMobile(),
-    sortable: {
-      sortDirections: ['descend', 'ascend'],
-      sortOrder: amountSortOrder.value,
-    },
+    show: true,
   },
   {
     title: '明细日期',
@@ -854,20 +765,16 @@ const columns = computed<TableInstance['columns']>(() => [
     slotName: 'detailDate',
     width: 180,
     align: 'center',
-    show: !isMobile(),
-    sortable: {
-      sortDirections: ['descend', 'ascend'],
-      sortOrder: detailDateSortOrder.value,
-    },
+    show: true,
   },
-  { title: '备注', dataIndex: 'remark', width: 120, ellipsis: true, tooltip: true, show: !isMobile() },
+  { title: '备注', dataIndex: 'remark', width: 120, ellipsis: true, tooltip: true, show: true },
   {
     title: '隐藏',
     dataIndex: 'hidden',
     slotName: 'hidden',
     width: 60,
     align: 'center',
-    show: ((has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value) && !isMobile(),
+    show: ((has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value),
   },
   { title: '创建人', dataIndex: 'createUserString', width: 100, ellipsis: true, tooltip: true, show: false },
   { title: '创建时间', dataIndex: 'createTime', width: 160, show: false },
@@ -879,11 +786,11 @@ const columns = computed<TableInstance['columns']>(() => [
     slotName: 'action',
     width: 120,
     align: 'center',
-    fixed: !isMobile() ? 'right' : undefined,
+    fixed: 'right',
     show: has.hasPermOr([
       'bookkeeping:detail:update',
       'bookkeeping:detail:delete',
-    ]) && !isMobile(),
+    ]),
   },
 ])
 
@@ -1090,19 +997,9 @@ watch(
 
 onMounted(async () => {
   mittBus.on('footer-click', onFooterClick)
-  await Promise.allSettled([loadUserOptions(), loadSubjectOptions()])
+  await loadCommonFilterOptions()
   // 初始加载数据和统计
   searchMethod()
-  // 移动端默认进入全屏模式
-  if (isMobile() && tableRef.value) {
-    // 延迟执行，确保组件已完全挂载
-    setTimeout(() => {
-      const giTable = tableRef.value as any
-      if (giTable && typeof giTable.toggleFullscreen === 'function') {
-        giTable.toggleFullscreen()
-      }
-    }, 100)
-  }
 })
 
 onUnmounted(() => {
@@ -1113,37 +1010,53 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .detail-time-filter {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
   width: 100%;
 }
 
 .detail-time-filter__mode {
-  width: 100%;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+
+  :deep(.arco-radio-group) {
+    flex-wrap: nowrap;
+  }
 }
 
 .detail-time-filter__panel {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .detail-time-filter__preset-list {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
 }
 
 .detail-time-filter__picker {
-  min-width: 240px;
+  flex: 0 0 220px;
+  min-width: 220px;
+}
+
+/** 自定义范围选择器比默认全宽更短，避免在桌面端挤占过多横向空间。 */
+.detail-time-filter__picker--range {
+  flex-basis: 320px;
+  min-width: 320px;
+  max-width: 320px;
 }
 
 .detail-time-filter__range-text {
+  flex: 0 1 auto;
   color: var(--color-text-3);
   font-size: 13px;
   line-height: 1.6;
+  white-space: nowrap;
 }
 
 // 统计数据样式
@@ -1175,6 +1088,10 @@ onUnmounted(() => {
 
     &.income .value {
       color: #00b42a;
+    }
+
+    &.count .value {
+      color: var(--color-text-1);
     }
   }
 }
@@ -1214,85 +1131,36 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-// 移动端紧凑布局样式
-.mobile-detail-compact {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 4px 0;
-
-  // 隐藏数据的背景色
-  &.is-hidden {
-    background-color: rgba(255, 125, 0, 0.08);
-    border-radius: 4px;
-    padding: 8px;
-    margin: -4px 0;
-  }
-
-  .compact-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    line-height: 1.6;
-
-    // 第一行：主要信息
-    &.info-line {
-      font-size: 17px;
-
-      .user-name {
-        color: var(--color-text-1);
-        font-weight: 600;
-        font-size: 18px;
-      }
-
-      .date-text {
-        color: var(--color-text-3);
-        font-size: 16px;
-      }
-
-      .subject-name {
-        color: var(--color-text-2);
-        font-size: 16px;
-      }
-
-      .detail-name {
-        color: var(--color-text-1);
-        font-weight: 600;
-        font-size: 18px;
-      }
-
-      .amount {
-        font-weight: bold;
-        font-size: 19px;
-        white-space: nowrap;
-      }
-    }
-
-    // 第二行：备注信息
-    &.remark-line {
-      .remark-text {
-        color: var(--color-text-3);
-        font-size: 15px;
-        font-style: italic;
-        word-break: break-all;
-      }
-    }
-
-    // 最后一行：操作按钮
-    &.action-row {
-      padding-top: 4px;
-    }
-  }
-}
-
 @media (max-width: 768px) {
+  .detail-time-filter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .detail-time-filter__mode {
+    width: 100%;
+
+    :deep(.arco-radio-group) {
+      flex-wrap: wrap;
+    }
+  }
+
+  .detail-time-filter__panel {
+    flex-wrap: wrap;
+  }
+
+  .detail-time-filter__preset-list {
+    flex-wrap: wrap;
+  }
+
   .detail-time-filter__picker {
     min-width: 100%;
   }
 
   .detail-time-filter__range-text {
     width: 100%;
+    white-space: normal;
   }
 
   .statistics-container {

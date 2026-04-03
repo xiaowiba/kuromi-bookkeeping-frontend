@@ -10,6 +10,24 @@
           @search="handleSearch"
           @reset="handleReset"
         >
+          <template #subjectId>
+            <div class="subject-query-radio-scroll">
+              <a-radio-group
+                v-model="queryForm.subjectId"
+                :options="subjectQueryOptions"
+              />
+            </div>
+          </template>
+
+          <template #paymentMethod>
+            <div class="subject-query-radio-scroll">
+              <a-radio-group
+                v-model="queryForm.paymentMethod"
+                :options="paymentMethodQueryOptions"
+              />
+            </div>
+          </template>
+
           <template #viewMode>
             <a-radio-group
               v-model="queryForm.viewMode"
@@ -28,6 +46,7 @@
               <a-month-picker
                 v-if="queryForm.viewMode === 'month'"
                 :model-value="anchorPickerValue"
+                class="report-calendar-filter__picker"
                 format="YYYY-MM"
                 value-format="YYYY-MM"
                 :allow-clear="false"
@@ -36,6 +55,7 @@
               <a-year-picker
                 v-else
                 :model-value="anchorPickerValue"
+                class="report-calendar-filter__picker"
                 format="YYYY"
                 value-format="YYYY"
                 :allow-clear="false"
@@ -53,7 +73,7 @@
         <div
           v-for="item in summaryCards"
           :key="item.label"
-          class="report-calendar-summary__card"
+          class="report-calendar-summary__item"
           :class="item.tone"
         >
           <span class="report-calendar-summary__label">{{ item.label }}</span>
@@ -100,38 +120,35 @@
                   'report-calendar-cell--selected': cell.isSelected,
                   'report-calendar-cell--today': cell.isToday,
                   'report-calendar-cell--active': !!cell.stat,
+                  [getMonthCellToneClass(cell)]: !!cell.stat,
                 }"
                 @click="handleCalendarCellClick(cell)"
               >
                 <div class="report-calendar-cell__head">
                   <span class="report-calendar-cell__date">{{ cell.dayText }}</span>
-                  <span v-if="cell.stat" class="report-calendar-cell__count">{{ cell.stat.recordCount }}笔</span>
+                  <span v-if="cell.isSelected" class="report-calendar-cell__selected-badge">已选</span>
                 </div>
 
-                <div v-if="cell.stat" class="report-calendar-cell__amounts">
-                  <span class="expense">支 {{ formatReportCurrency(cell.stat.expense, { compact: true }) }}</span>
-                  <span class="income">收 {{ formatReportCurrency(cell.stat.income, { compact: true }) }}</span>
-                </div>
-
-                <div v-if="cell.stat?.previewItems?.length" class="report-calendar-cell__preview">
-                  <div
-                    v-for="item in cell.stat.previewItems"
-                    :key="`${cell.date}-${item.detailId}`"
-                    class="report-calendar-cell__preview-item"
+                <div v-if="cell.stat" class="report-calendar-cell__metrics">
+                  <span class="report-calendar-metric-chip expense">
+                    <span class="label">支出</span>
+                    <span class="value">{{ formatReportCurrency(cell.stat.expense, { compact: true }) }}</span>
+                  </span>
+                  <span class="report-calendar-metric-chip income">
+                    <span class="label">收入</span>
+                    <span class="value">{{ formatReportCurrency(cell.stat.income, { compact: true }) }}</span>
+                  </span>
+                  <span
+                    class="report-calendar-metric-chip balance"
+                    :class="getBalanceToneClass(cell.stat.balance)"
                   >
-                    <span class="name" :title="item.detailName || item.subjectName">
-                      {{ item.detailName || item.subjectName }}
-                    </span>
-                    <span
-                      class="amount"
-                      :class="item.category === 'income' ? 'income' : 'expense'"
-                    >
-                      {{ formatReportSignedAmount(item.amount, item.category, { compact: true }) }}
-                    </span>
-                  </div>
-                  <div v-if="cell.stat.overflowCount > 0" class="report-calendar-cell__overflow">
-                    +{{ cell.stat.overflowCount }}
-                  </div>
+                    <span class="label">结余</span>
+                    <span class="value">{{ formatBalanceCurrency(cell.stat.balance, true) }}</span>
+                  </span>
+                  <span class="report-calendar-metric-chip neutral">
+                    <span class="label">笔数</span>
+                    <span class="value">{{ cell.stat.recordCount }}</span>
+                  </span>
                 </div>
               </button>
             </div>
@@ -148,7 +165,13 @@
                 <div class="report-calendar-mini-month__meta">
                   <span class="expense">支 {{ formatReportCurrency(panel.stat?.expense ?? 0, { compact: true }) }}</span>
                   <span class="income">收 {{ formatReportCurrency(panel.stat?.income ?? 0, { compact: true }) }}</span>
-                  <span class="count">{{ panel.stat?.recordCount ?? 0 }}笔</span>
+                  <span
+                    class="balance"
+                    :class="getBalanceToneClass(panel.stat?.balance ?? 0)"
+                  >
+                    余 {{ formatBalanceCurrency(panel.stat?.balance ?? 0, true) }}
+                  </span>
+                  <span class="count">笔 {{ panel.stat?.recordCount ?? 0 }}</span>
                 </div>
               </div>
 
@@ -173,6 +196,7 @@
                     'report-calendar-mini-cell--selected': cell.isSelected,
                     'report-calendar-mini-cell--today': cell.isToday,
                     'report-calendar-mini-cell--active': !!cell.stat,
+                    [getYearCellToneClass(cell)]: !!cell.stat,
                   }"
                   @click="handleCalendarCellClick(cell)"
                 >
@@ -190,24 +214,24 @@
         >
           <div v-if="selectedDate" class="report-calendar-detail">
             <div class="report-calendar-detail__summary">
-              <div class="summary-item expense">
-                <span>支出</span>
-                <strong>{{ formatReportCurrency(dayDetail.summary.expense) }}</strong>
+              <div class="report-calendar-detail__summary-item expense">
+                <span class="label">支出</span>
+                <strong class="value">{{ formatReportCurrency(dayDetail.summary.expense) }}</strong>
               </div>
-              <div class="summary-item income">
-                <span>收入</span>
-                <strong>{{ formatReportCurrency(dayDetail.summary.income) }}</strong>
+              <div class="report-calendar-detail__summary-item income">
+                <span class="label">收入</span>
+                <strong class="value">{{ formatReportCurrency(dayDetail.summary.income) }}</strong>
               </div>
               <div
-                class="summary-item"
-                :class="dayDetail.summary.balance >= 0 ? 'income' : 'expense'"
+                class="report-calendar-detail__summary-item balance"
+                :class="getBalanceToneClass(dayDetail.summary.balance)"
               >
-                <span>结余</span>
-                <strong>{{ formatReportCurrency(dayDetail.summary.balance, { signed: dayDetail.summary.balance > 0 }) }}</strong>
+                <span class="label">结余</span>
+                <strong class="value">{{ formatBalanceCurrency(dayDetail.summary.balance) }}</strong>
               </div>
-              <div class="summary-item neutral">
-                <span>记录数</span>
-                <strong>{{ dayDetail.summary.recordCount }}</strong>
+              <div class="report-calendar-detail__summary-item neutral">
+                <span class="label">记录数</span>
+                <strong class="value">{{ dayDetail.summary.recordCount }}</strong>
               </div>
             </div>
 
@@ -264,14 +288,9 @@
  * Web 端日历报表页面。
  *
  * 页面职责：
- * 1. 提供按用户、分类、科目、支付方式筛选的日历报表入口
- * 2. 支持月视图 / 年视图切换和周期跳转
- * 3. 左侧展示日历聚合，右侧展示选中日期的完整明细
- *
- * 设计约束：
- * 1. 查询口径必须和明细列表、报表中心保持一致
- * 2. 页面风格尽量贴近现有明细页，使用 GiPageLayout + GiForm + 卡片分区
- * 3. 复杂日期推导下沉到 shared 工具文件，避免页面脚本失控
+ * 1. 提供按用户、分类、科目、支付方式筛选的日历报表入口。
+ * 2. 支持月视图、年视图切换和周期跳转。
+ * 3. 左侧展示日历聚合，右侧展示选中日期的完整明细。
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
@@ -298,118 +317,89 @@ import {
   resolveReportPaymentMethodLabel,
 } from '@/views/bookkeeping/report/shared/reportFormat'
 import { getReportCalendar, getReportCalendarDayDetail } from '@/apis/bookkeeping/report-calendar'
-import { listSubject } from '@/apis/bookkeeping/subject'
 import type * as T from '@/apis/bookkeeping/type'
 import type { ColumnItem } from '@/components/GiForm'
 import { useDict } from '@/hooks/app'
 import { usePrivacyStore } from '@/stores'
-import type { LabelValueState } from '@/types/global'
-import { useDetailUserOptions } from '@/views/bookkeeping/shared/useDetailUserOptions'
+import { useBookkeepingCommonFilters } from '@/views/bookkeeping/shared/useBookkeepingCommonFilters'
 
 defineOptions({ name: 'BookkeepingReportCalendar' })
 
 const privacyStore = usePrivacyStore()
 const { bk_subject_category, bk_payment_method } = useDict('bk_subject_category', 'bk_payment_method')
-const { userOptions, loadUserOptions } = useDetailUserOptions()
 
 const queryForm = reactive<T.ReportCalendarFilterForm>(createDefaultReportCalendarForm())
-const allSubjects = ref<T.SubjectResp[]>([])
 const calendarLoading = ref(false)
 const dayDetailLoading = ref(false)
 const calendarData = ref<T.ReportCalendarResp>(createEmptyReportCalendar())
 const dayDetail = ref<T.ReportCalendarDayDetailResp>(createEmptyReportCalendarDayDetail())
 const selectedDate = ref('')
 
-const normalizeOption = (item: LabelValueState): LabelValueState => ({
-  label: item.label,
-  value: String(item.value ?? ''),
-  extra: item.extra,
+/** 复用明细页的通用筛选项，只保留日历页自己的视图模式与统计周期。 */
+const {
+  subjectQueryOptions,
+  paymentMethodQueryOptions,
+  loadCommonFilterOptions,
+  createCommonQueryColumns,
+} = useBookkeepingCommonFilters({
+  form: queryForm,
+  labels: {
+    userAll: '全部用户',
+    categoryAll: '全部',
+    subjectAll: '全部科目',
+    paymentAll: '全部',
+  },
 })
 
-const createAllOption = (label = '全部') => ({ label, value: '' })
-
-const userQueryOptions = computed<LabelValueState[]>(() => [
-  { label: '全部用户', value: '' },
-  ...((userOptions.value ?? []).map(normalizeOption)),
-])
-
-const categoryQueryOptions = computed<LabelValueState[]>(() => [
-  createAllOption(),
-  ...((bk_subject_category.value ?? []).map(normalizeOption)),
-])
-
-const paymentMethodQueryOptions = computed<LabelValueState[]>(() => [
-  createAllOption(),
-  ...((bk_payment_method.value ?? []).map(normalizeOption)),
-])
-
-const subjectQueryOptions = computed<LabelValueState[]>(() => {
-  const matchedSubjects = queryForm.category
-    ? allSubjects.value.filter((item) => item.category === queryForm.category)
-    : allSubjects.value
-  return [
-    { label: '全部科目', value: '' },
-    ...matchedSubjects.map((item) => ({ label: item.name, value: String(item.id) })),
-  ]
+/**
+ * 日历页在共享筛选基础上插入“日历视图”和“统计周期”两个专属条件。
+ *
+ * 布局规则：
+ * 1. 第一行：日历视图 + 统计周期
+ * 2. 第二行：所属用户 + 分类
+ * 3. 第三行：科目
+ * 4. 第四行：支付方式
+ */
+const commonQueryColumns = createCommonQueryColumns({
+  user: {
+    span: { xs: 24, sm: 12, xxl: 12 },
+    useRadioGroup: true,
+    placeholder: '请选择所属用户',
+    allowSearch: true,
+  },
+  category: {
+    span: { xs: 24, sm: 12, xxl: 12 },
+    useRadioGroup: true,
+    placeholder: '请选择分类',
+  },
+  subject: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    placeholder: '请选择科目',
+    allowSearch: true,
+  },
+  paymentMethod: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    placeholder: '请选择支付方式',
+  },
 })
 
 const queryFormColumns: ColumnItem[] = reactive([
   {
-    type: 'select',
-    label: '所属用户',
-    field: 'userId',
-    span: { xs: 24, sm: 12, xxl: 6 },
-    props: {
-      options: userQueryOptions,
-      placeholder: '请选择所属用户',
-      allowClear: true,
-      allowSearch: true,
-    },
-  },
-  {
     label: '日历视图',
     field: 'viewMode',
-    span: { xs: 24, sm: 12, xxl: 6 },
+    span: { xs: 24, sm: 6, xxl: 6 },
   },
   {
     label: '统计周期',
     field: 'anchorDate',
-    span: { xs: 24, sm: 24, xxl: 12 },
+    span: { xs: 24, sm: 18, xxl: 18 },
   },
-  {
-    type: 'select',
-    label: '分类',
-    field: 'category',
-    span: { xs: 24, sm: 8, xxl: 6 },
-    props: {
-      options: categoryQueryOptions,
-      placeholder: '请选择分类',
-      allowClear: true,
-    },
-  },
-  {
-    type: 'select',
-    label: '科目',
-    field: 'subjectId',
-    span: { xs: 24, sm: 8, xxl: 6 },
-    props: {
-      options: subjectQueryOptions,
-      placeholder: '请选择科目',
-      allowClear: true,
-      allowSearch: true,
-    },
-  },
-  {
-    type: 'select',
-    label: '支付方式',
-    field: 'paymentMethod',
-    span: { xs: 24, sm: 8, xxl: 6 },
-    props: {
-      options: paymentMethodQueryOptions,
-      placeholder: '请选择支付方式',
-      allowClear: true,
-    },
-  },
+  commonQueryColumns.userColumn,
+  commonQueryColumns.categoryColumn,
+  commonQueryColumns.subjectColumn,
+  commonQueryColumns.paymentMethodColumn,
 ])
 
 const calendarWeekdays = CALENDAR_WEEKDAY_LABELS
@@ -429,6 +419,44 @@ const rangeText = computed(() => {
   return `${formatReportDate(calendarData.value.rangeStart)} 至 ${formatReportDate(calendarData.value.rangeEnd)}`
 })
 
+type BalanceTone = 'positive' | 'negative' | 'neutral'
+
+/** 统一结余正负口径，方便月格子、年格子和右侧汇总区复用同一套样式语义。 */
+const getBalanceTone = (value: number | string | undefined | null): BalanceTone => {
+  const numericValue = Number(value ?? 0)
+  if (numericValue > 0) {
+    return 'positive'
+  }
+  if (numericValue < 0) {
+    return 'negative'
+  }
+  return 'neutral'
+}
+
+/** 结余为正时补充加号，保证盈亏方向在视觉上更直观。 */
+const formatBalanceCurrency = (value: number | string | undefined | null, compact = false) => {
+  const numericValue = Number(value ?? 0)
+  return formatReportCurrency(numericValue, { signed: numericValue > 0, compact })
+}
+
+const getBalanceToneClass = (value: number | string | undefined | null) => {
+  return `is-${getBalanceTone(value)}`
+}
+
+const getMonthCellToneClass = (cell: CalendarCellItem) => {
+  if (!cell.stat) {
+    return ''
+  }
+  return `report-calendar-cell--${getBalanceTone(cell.stat.balance)}`
+}
+
+const getYearCellToneClass = (cell: CalendarCellItem) => {
+  if (!cell.stat) {
+    return ''
+  }
+  return `report-calendar-mini-cell--${getBalanceTone(cell.stat.balance)}`
+}
+
 const summaryCards = computed(() => {
   const summary = calendarData.value.summary
   return [
@@ -444,8 +472,8 @@ const summaryCards = computed(() => {
     },
     {
       label: '结余',
-      value: formatReportCurrency(summary.balance, { signed: summary.balance > 0 }),
-      tone: summary.balance >= 0 ? 'income' : 'expense',
+      value: formatBalanceCurrency(summary.balance),
+      tone: getBalanceTone(summary.balance),
     },
     {
       label: '记录数',
@@ -490,7 +518,7 @@ const resolvedDayDetailItems = computed(() => {
 /**
  * 组装日历报表查询参数。
  *
- * 这里统一负责把空值剔除，避免把无意义的空字符串传给后端，
+ * 这里统一负责裁剪空值，避免把无意义的空字符串传给后端，
  * 同时固定带上隐私模式状态，确保口径和其他记账页面一致。
  */
 const buildCalendarQuery = (overrides: Partial<T.ReportCalendarQuery> = {}): T.ReportCalendarQuery => {
@@ -524,15 +552,6 @@ const clearDayDetail = () => {
   dayDetail.value = createEmptyReportCalendarDayDetail()
 }
 
-const loadSubjectOptions = async () => {
-  try {
-    const { data } = await listSubject({ sort: ['sort,asc', 'id,desc'], page: 1, size: 1000 } as any)
-    allSubjects.value = data.list ?? []
-  } catch {
-    allSubjects.value = []
-  }
-}
-
 const loadCalendar = async (preferredDate?: string) => {
   calendarLoading.value = true
   try {
@@ -552,7 +571,7 @@ const loadCalendar = async (preferredDate?: string) => {
  * 加载某一天的完整明细。
  *
  * 右侧详情区单独 loading，这样用户在切换日期时，
- * 左侧整个月历不会反复闪烁。
+ * 左侧整个日历不会反复闪烁。
  */
 const loadDayDetail = async (date: string) => {
   if (!date) {
@@ -577,8 +596,8 @@ const loadDayDetail = async (date: string) => {
 /**
  * 统一执行查询。
  *
- * 先拉左侧总览，再根据后端返回的 defaultSelectedDate
- * 决定右侧应该展示哪一天，确保月切换和筛选切换后的默认选中口径一致。
+ * 先加载左侧总览，再根据后端返回的默认日期决定右侧详情区展示哪一天，
+ * 保证月份切换和筛选切换后的默认选中口径一致。
  */
 const searchMethod = async (preferredDate?: string) => {
   await loadCalendar(preferredDate)
@@ -624,8 +643,8 @@ const handleBackToToday = async () => {
 
 /**
  * 点击日历格子后的处理规则：
- * 1. 月视图点击前后月的占位日期时，直接跳转到对应月份
- * 2. 点击当前周期内日期时，只刷新右侧详情区
+ * 1. 月视图点击前后月的占位日期时，直接跳转到对应月份。
+ * 2. 点击当前周期内日期时，只刷新右侧详情区。
  */
 const handleCalendarCellClick = async (cell: CalendarCellItem) => {
   if (!cell.inCurrentView) {
@@ -637,21 +656,6 @@ const handleCalendarCellClick = async (cell: CalendarCellItem) => {
   }
   await loadDayDetail(cell.date)
 }
-
-/**
- * 分类变化后，如果当前选中的科目不再属于该分类，自动清空科目。
- *
- * 这样可以避免继续带着无效 subjectId 去查，导致用户以为数据被过滤没了。
- */
-watch(
-  () => queryForm.category,
-  () => {
-    const exists = allSubjects.value.some((item) => String(item.id) === queryForm.subjectId && (!queryForm.category || item.category === queryForm.category))
-    if (!exists) {
-      queryForm.subjectId = ''
-    }
-  },
-)
 
 /**
  * 隐私模式切换或自动过期后，重新按最新口径加载总览与详情。
@@ -667,7 +671,7 @@ watch(
 )
 
 onMounted(async () => {
-  await Promise.allSettled([loadUserOptions(), loadSubjectOptions()])
+  await loadCommonFilterOptions()
   await searchMethod()
 })
 </script>
@@ -696,53 +700,92 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+.report-calendar-filter__picker {
+  flex: 0 0 240px;
+  width: 240px;
 }
 
 .report-calendar-filter__range {
+  flex: 0 1 auto;
   color: var(--color-text-3);
   font-size: 13px;
   line-height: 1.6;
+  white-space: nowrap;
+}
+
+.subject-query-radio-scroll {
+  width: 100%;
+  overflow: visible;
+
+  :deep(.arco-radio-group) {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  :deep(.arco-radio) {
+    flex: 0 0 auto;
+    margin-right: 16px;
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
+
+  :deep(.arco-radio-label) {
+    white-space: nowrap;
+  }
 }
 
 .report-calendar-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.report-calendar-summary__card {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 96px;
-  padding: 18px;
-  border-radius: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
   border: 1px solid rgba(229, 230, 235, 0.9);
+  border-radius: 16px;
   background: var(--color-bg-1);
 }
 
-.report-calendar-summary__card.expense {
+.report-calendar-summary__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1 1 220px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(229, 230, 235, 0.7);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.report-calendar-summary__item.expense,
+.report-calendar-summary__item.negative {
   background: linear-gradient(135deg, rgba(255, 236, 232, 0.9), rgba(255, 255, 255, 0.98));
 }
 
-.report-calendar-summary__card.income {
+.report-calendar-summary__item.income,
+.report-calendar-summary__item.positive {
   background: linear-gradient(135deg, rgba(232, 255, 237, 0.92), rgba(255, 255, 255, 0.98));
 }
 
-.report-calendar-summary__card.neutral {
+.report-calendar-summary__item.neutral {
   background: linear-gradient(135deg, rgba(242, 243, 245, 0.92), rgba(255, 255, 255, 0.98));
 }
 
 .report-calendar-summary__label {
   color: var(--color-text-2);
   font-size: 13px;
+  white-space: nowrap;
 }
 
 .report-calendar-summary__value {
   color: var(--color-text-1);
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .report-calendar-layout {
@@ -792,7 +835,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 152px;
+  min-height: 154px;
   padding: 12px;
   text-align: left;
   border: 1px solid rgba(229, 230, 235, 0.9);
@@ -825,6 +868,20 @@ onMounted(async () => {
   background: linear-gradient(180deg, rgba(247, 249, 255, 0.98), rgba(255, 255, 255, 1));
 }
 
+.report-calendar-cell--positive {
+  background: linear-gradient(180deg, rgba(232, 255, 237, 0.96), rgba(255, 255, 255, 1));
+  border-color: rgba(0, 180, 42, 0.2);
+}
+
+.report-calendar-cell--negative {
+  background: linear-gradient(180deg, rgba(255, 236, 232, 0.96), rgba(255, 255, 255, 1));
+  border-color: rgba(245, 63, 63, 0.2);
+}
+
+.report-calendar-cell--neutral {
+  background: linear-gradient(180deg, rgba(247, 249, 255, 0.98), rgba(255, 255, 255, 1));
+}
+
 .report-calendar-cell__head {
   display: flex;
   align-items: center;
@@ -838,64 +895,92 @@ onMounted(async () => {
   font-weight: 700;
 }
 
-.report-calendar-cell__count {
-  color: var(--color-text-3);
-  font-size: 12px;
+.report-calendar-cell__selected-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(var(--primary-6), 0.92);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 10px rgba(var(--primary-6), 0.2);
 }
 
-.report-calendar-cell__amounts {
+.report-calendar-cell__metrics {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
+  gap: 6px;
+  margin-top: auto;
 }
 
-.report-calendar-cell__amounts .expense,
-.report-calendar-mini-month__meta .expense {
-  color: #f53f3f;
-}
-
-.report-calendar-cell__amounts .income,
-.report-calendar-mini-month__meta .income {
-  color: #00b42a;
-}
-
-.report-calendar-cell__preview {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-height: 0;
-}
-
-.report-calendar-cell__preview-item {
+.report-calendar-metric-chip {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 12px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(247, 248, 250, 0.92);
+  color: var(--color-text-2);
+  overflow: hidden;
 }
 
-.report-calendar-cell__preview-item .name {
-  flex: 1;
+.report-calendar-metric-chip .label,
+.report-calendar-metric-chip .value {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-text-2);
 }
 
-.report-calendar-cell__preview-item .amount.expense {
+.report-calendar-metric-chip .label {
+  flex: 0 0 auto;
+}
+
+.report-calendar-metric-chip .value {
+  flex: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-calendar-metric-chip.expense,
+.report-calendar-mini-month__meta .expense,
+.report-calendar-detail__summary-item.expense .value {
   color: #f53f3f;
 }
 
-.report-calendar-cell__preview-item .amount.income {
+.report-calendar-metric-chip.income,
+.report-calendar-mini-month__meta .income,
+.report-calendar-detail__summary-item.income .value {
   color: #00b42a;
 }
 
-.report-calendar-cell__overflow {
-  color: rgb(var(--primary-6));
-  font-size: 12px;
-  font-weight: 600;
+.report-calendar-metric-chip.balance.is-positive,
+.report-calendar-mini-month__meta .balance.is-positive,
+.report-calendar-detail__summary-item.balance.is-positive {
+  color: #00b42a;
+  background: rgba(232, 255, 237, 0.95);
+}
+
+.report-calendar-metric-chip.balance.is-negative,
+.report-calendar-mini-month__meta .balance.is-negative,
+.report-calendar-detail__summary-item.balance.is-negative {
+  color: #f53f3f;
+  background: rgba(255, 236, 232, 0.95);
+}
+
+.report-calendar-metric-chip.balance.is-neutral,
+.report-calendar-mini-month__meta .balance.is-neutral,
+.report-calendar-detail__summary-item.balance.is-neutral {
+  color: var(--color-text-2);
+  background: rgba(242, 243, 245, 0.95);
 }
 
 .report-calendar-year {
@@ -929,6 +1014,15 @@ onMounted(async () => {
   gap: 8px;
   color: var(--color-text-3);
   font-size: 11px;
+}
+
+.report-calendar-mini-month__meta .balance {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
 }
 
 .report-calendar-mini-month__weekdays,
@@ -972,13 +1066,32 @@ onMounted(async () => {
   background: rgba(var(--primary-1), 0.8);
 }
 
+.report-calendar-mini-cell--positive {
+  color: #0f7b1d;
+  background: rgba(0, 180, 42, 0.16);
+}
+
+.report-calendar-mini-cell--negative {
+  color: #b71d18;
+  background: rgba(245, 63, 63, 0.16);
+}
+
+.report-calendar-mini-cell--neutral {
+  color: var(--color-text-2);
+  background: rgba(247, 248, 250, 0.96);
+}
+
 .report-calendar-mini-cell--today {
   border-color: rgba(var(--primary-5), 0.55);
 }
 
 .report-calendar-mini-cell--selected {
-  color: #fff;
-  background: rgb(var(--primary-6));
+  font-weight: 700;
+  border-color: rgba(var(--primary-6), 0.65);
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--primary-6), 0.28),
+    0 6px 14px rgba(var(--primary-6), 0.18);
+  transform: translateY(-1px);
 }
 
 .report-calendar-detail {
@@ -988,40 +1101,34 @@ onMounted(async () => {
 }
 
 .report-calendar-detail__summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
-.report-calendar-detail__summary .summary-item {
+.report-calendar-detail__summary-item {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 14px;
-  border-radius: 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1 1 160px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
   background: rgba(247, 248, 250, 0.9);
 }
 
-.report-calendar-detail__summary .summary-item span {
+.report-calendar-detail__summary-item .label {
   color: var(--color-text-3);
   font-size: 12px;
+  white-space: nowrap;
 }
 
-.report-calendar-detail__summary .summary-item strong {
-  font-size: 18px;
+.report-calendar-detail__summary-item .value {
+  font-size: 16px;
   font-weight: 700;
-}
-
-.report-calendar-detail__summary .summary-item.expense strong {
-  color: #f53f3f;
-}
-
-.report-calendar-detail__summary .summary-item.income strong {
-  color: #00b42a;
-}
-
-.report-calendar-detail__summary .summary-item.neutral strong {
   color: var(--color-text-1);
+  white-space: nowrap;
 }
 
 .report-calendar-detail__list {
@@ -1111,10 +1218,6 @@ onMounted(async () => {
 }
 
 @media (max-width: 1200px) {
-  .report-calendar-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .report-calendar-year {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1126,7 +1229,7 @@ onMounted(async () => {
   }
 
   .report-calendar-summary {
-    grid-template-columns: 1fr;
+    padding: 10px 12px;
   }
 
   .report-calendar-grid {
@@ -1134,7 +1237,7 @@ onMounted(async () => {
   }
 
   .report-calendar-cell {
-    min-height: 136px;
+    min-height: 148px;
     padding: 10px;
   }
 
@@ -1143,7 +1246,7 @@ onMounted(async () => {
   }
 
   .report-calendar-detail__summary {
-    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .report-calendar-detail__item {

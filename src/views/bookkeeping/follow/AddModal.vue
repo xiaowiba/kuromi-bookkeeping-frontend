@@ -84,7 +84,6 @@ const form = ref<{
 
 const rules = {
   userId: [{ required: true, message: '请选择用户' }],
-  followUserIds: [{ required: true, message: '请选择关注对象' }],
 }
 
 /**

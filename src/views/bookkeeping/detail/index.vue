@@ -237,45 +237,22 @@
 
 <script setup lang="ts">
 /**
- * 明细管理列表页面
+ * Web 端明细管理列表页面
+ *
+ * 当前职责：
+ * 1. 提供按时间、排序、用户、分类、科目、支付方式、名称等条件查询明细
+ * 2. 支持分页查询与全量查询两种模式切换
+ * 3. 展示总支出、总收入、结余、条数等统计信息
+ * 4. 集成隐私模式入口、验证、过期同步与隐藏数据展示
+ *
+ * 说明：
+ * 1. 当前页面只服务 Web 端展示
+ * 2. 移动端明细能力由独立页面维护，不再在本页保留移动端展示分支
  *
  * @author Wangsongsong
  * @date 2026-03-18
- * @update 2026-03-18 @Wangsongsong
- * @desc 查询条件增加用户下拉选择（仅管理员可见）
- * @update 2026-03-18 @Wangsongsong
- * @desc 非超管用户通过关注列表构建用户下拉选项，可查看关注的人的明细
- * @update 2026-03-19 @Wangsongsong
- * @desc 集成隐私模式：隐蔽入口、密码验证/设置、隐私模式查询参数、退出按钮
- * @update 2026-03-19 @Wangsongsong
- * @desc 超管增加"是否隐藏"筛选条件，默认展示全部
- * @update 2026-03-19 @Wangsongsong
- * @desc 移动端优化：默认全屏模式、默认收起搜索条件、分页页码最大化
- * @update 2026-03-19 @Wangsongsong
- * @desc 移动端列表优化：
- *       第一行：主要数据信息（用户、日期、科目、分类、名称、金额）
- *       第二行：备注信息（如果有备注）
- *       最后一行：大尺寸操作按钮
- *       字体加大，便于移动端阅读
- * @update 2026-03-19 @Wangsongsong
- * @desc 修复移动端表格横向滚动问题：移动端不设置 minWidth，避免不必要的横向滚动
- * @update 2026-03-19 @Wangsongsong
- * @desc 移动端隐藏数据优化：不显示"隐"标签，改用橙色背景色区分隐藏数据
- * @update 2026-03-19 @Wangsongsong
- * @desc 增加明细统计功能：
- *       在刷新按钮左边显示总支出和总收入统计数据
- *       统计数据通过后端接口获取，统计所有符合查询条件的明细
- *       不区分PC端和移动端，统一显示
- * @update 2026-03-21 @Wangsongsong
- * @desc 复用共享的明细用户选项加载逻辑，统一桌面端与移动端口径
- * @update 2026-03-22 @Wangsongsong
- * @desc Web 端统计区补充结余展示，保持与移动端统计口径一致
- * @update 2026-03-22 @Wangsongsong
- * @desc 进入 web 端隐私模式前同步数据库中的有效时长配置，确保过期时间与隐藏配置页保持一致
- * @update 2026-03-23 @Wangsongsong
- * @desc 新增支付方式标签展示与 Web 端筛选，移动态不增加支付方式查询条件
  * @update 2026-04-03 @Wangsongsong
- * @desc 新增统一时间模型、自适应分页和搜索区排序条件，承接报表模块拆分后的明细查询职责
+ * @desc 查询区重构为 Web 专用布局，统一时间模型、排序方式与共享筛选项
  * @update 2026-04-03 @Wangsongsong
  * @desc Web 端统计区补充当前查询条数，便于无分页模式下确认命中结果规模
  */
@@ -597,7 +574,16 @@ const queryFormColumns: ColumnItem[] = reactive([
   {
     label: '时间范围',
     field: 'timeFilter',
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 24, xl: 18, xxl: 18 },
+  },
+  {
+    type: 'input',
+    label: '明细名称',
+    field: 'name',
+    span: { xs: 24, sm: 24, xl: 6, xxl: 6 },
+    props: {
+      placeholder: '请输入明细名称',
+    },
   },
   {
     type: 'select',
@@ -616,15 +602,6 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.categoryColumn,
   commonQueryColumns.subjectColumn,
   commonQueryColumns.paymentMethodColumn,
-  {
-    type: 'input',
-    label: '明细名称',
-    field: 'name',
-    span: { xs: 24, sm: 24, xxl: 24 },
-    props: {
-      placeholder: '请输入明细名称',
-    },
-  },
   {
     type: 'select',
     label: '是否隐藏',

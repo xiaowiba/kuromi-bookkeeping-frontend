@@ -132,12 +132,13 @@ const cards = computed<SummaryCard[]>(() => [
 .report-summary-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .report-summary-card {
   overflow: hidden;
-  padding: 18px 18px 16px;
+  min-width: 0;
+  padding: 14px 14px 12px;
   border: 1px solid rgba(229, 230, 235, 0.9);
   border-radius: 16px;
   background: var(--color-bg-1);
@@ -147,17 +148,18 @@ const cards = computed<SummaryCard[]>(() => [
 .report-summary-card__head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .report-summary-card__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 12px;
-  font-size: 16px;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  font-size: 14px;
 }
 
 .report-summary-card__icon.is-expense,
@@ -183,16 +185,19 @@ const cards = computed<SummaryCard[]>(() => [
 .report-summary-card__label {
   margin: 0;
   color: var(--color-text-2);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .report-summary-card__value {
   display: block;
-  margin-top: 10px;
+  margin-top: 8px;
   color: var(--color-text-1);
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 800;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .report-summary-card__value.is-negative {
@@ -204,13 +209,14 @@ const cards = computed<SummaryCard[]>(() => [
 }
 
 .report-summary-card__meta {
-  margin: 10px 0 0;
+  margin: 6px 0 0;
   color: var(--color-text-3);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11px;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
-@media (max-width: 1600px) {
+@media (max-width: 1200px) {
   .report-summary-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -219,6 +225,10 @@ const cards = computed<SummaryCard[]>(() => [
 @media (max-width: 900px) {
   .report-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .report-summary-card {
+    padding: 12px;
   }
 }
 </style>

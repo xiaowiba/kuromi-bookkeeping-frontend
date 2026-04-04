@@ -4,7 +4,6 @@ import type { MaybeRefOrGetter } from 'vue'
 import type * as T from '@/apis/bookkeeping/type'
 import {
   REPORT_MOBILE_RANK_LIMIT,
-  REPORT_WEB_RANK_LIMIT,
 } from './reportConstants'
 import {
   formatReportAmount,
@@ -326,9 +325,7 @@ export const buildSubjectRankOption = (
   list: T.ReportSubjectRankItemResp[] | undefined,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
-  const limit = mode.compact ? REPORT_MOBILE_RANK_LIMIT : REPORT_WEB_RANK_LIMIT
-  const source = (list ?? [])
-    .slice(0, limit)
+  const source = (mode.compact ? (list ?? []).slice(0, REPORT_MOBILE_RANK_LIMIT) : (list ?? []))
     .reverse()
     .map(item => ({
       name: item.subjectName,
@@ -343,8 +340,7 @@ export const buildPaymentMethodOption = (
   list: T.ReportPaymentMethodShareItemResp[] | undefined,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
-  const source = (list ?? [])
-    .slice(0, mode.compact ? REPORT_MOBILE_RANK_LIMIT : REPORT_WEB_RANK_LIMIT)
+  const source = (mode.compact ? (list ?? []).slice(0, REPORT_MOBILE_RANK_LIMIT) : (list ?? []))
     .reverse()
     .map(item => ({
       name: resolveReportPaymentMethodLabel(item.key, item.label),

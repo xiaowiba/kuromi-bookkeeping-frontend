@@ -1,5 +1,10 @@
 import type * as T from '@/apis/bookkeeping/type'
 import type { LabelValueState } from '@/types/global'
+import {
+  DETAIL_DEFAULT_DATE_PRESET,
+  DETAIL_DEFAULT_TIME_MODE,
+  getDetailPresetRange,
+} from '@/views/bookkeeping/shared/detailTime'
 
 export const REPORT_DEFAULT_SORT = ['amount,desc', 'detailDate,desc', 'detailId,desc']
 export const REPORT_DEFAULT_PAGE_SIZE = 10
@@ -50,12 +55,19 @@ export const createEmptyReportDashboard = (): T.ReportDashboardResp => ({
 export const createReportFilterForm = (
   currentUserId = '',
   userScope: T.ReportUserScope = 'current',
-): T.ReportFilterForm => ({
-  datePreset: 'currentMonth',
-  dateRange: [],
-  category: '',
-  subjectId: '',
-  paymentMethod: '',
-  userScope,
-  userId: userScope === 'all' ? '' : currentUserId,
-})
+): T.ReportFilterForm => {
+  const presetRange = getDetailPresetRange(DETAIL_DEFAULT_DATE_PRESET)
+  return {
+    datePreset: 'currentMonth',
+    dateRange: [presetRange.startDate, presetRange.endDate],
+    timeMode: DETAIL_DEFAULT_TIME_MODE,
+    startDate: presetRange.startDate,
+    endDate: presetRange.endDate,
+    category: '',
+    subjectId: '',
+    paymentMethod: '',
+    userScope,
+    userId: userScope === 'all' ? '' : currentUserId,
+    hidden: '',
+  }
+}

@@ -3,12 +3,13 @@
     <div class="report-page">
       <!--
         报表筛选栏：
+        展示形式对齐明细管理查询区，
         负责统一承接时间范围、分类、科目、支付方式、用户范围等查询条件，
-        并向当前页面抛出 查询 / 重置 / 预设时间切换 事件。
+        并向当前页面抛出 查询 / 重置 事件。
       -->
       <ReportFilterBar
         :filter-form="dashboardFilterForm"
-        :date-preset-options="datePresetOptions"
+        :is-admin="isAdmin"
         :category-options="dashboardCategoryOptions"
         :subject-options="dashboardSubjectOptions"
         :payment-method-options="dashboardPaymentMethodOptions"
@@ -17,11 +18,11 @@
         :loading="dashboardLoading"
         @search="handleSearch"
         @reset="handleReset"
-        @preset-change="handlePresetChange"
       />
 
       <!-- 报表顶部汇总卡：展示总支出、总收入、结余、记录数等核心概览指标 -->
       <ReportSummaryCards :overview="dashboard.overview" :loading="dashboardLoading" />
+      <ReportInsightPanel :insight="dashboard.insight" :loading="dashboardLoading" />
 
       <div class="report-grid report-grid--top">
         <!-- 收支趋势图：按日 / 月展示当前筛选条件下的收入、支出变化趋势 -->
@@ -51,7 +52,6 @@
         <ReportUserCompareCard v-if="showUserCompare" :option="userCompareOption" :loading="dashboardLoading" />
 
         <!-- 报表洞察面板：基于当前报表结果输出简要结论，帮助快速读数 -->
-        <ReportInsightPanel :insight="dashboard.insight" :overview="dashboard.overview" :loading="dashboardLoading" />
       </div>
     </div>
   </GiPageLayout>
@@ -75,10 +75,7 @@
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, ref, watch } from 'vue'
-import {
-  REPORT_DATE_PRESET_OPTIONS,
-  createEmptyReportDashboard,
-} from './shared/reportConstants'
+import { createEmptyReportDashboard } from './shared/reportConstants'
 import { resolveReportPaymentMethodLabel } from './shared/reportFormat'
 import { useReportFilters } from './shared/useReportFilters'
 import { useReportOptions } from './shared/useReportOptions'
@@ -109,6 +106,7 @@ const dashboard = ref<T.ReportDashboardResp>(createEmptyReportDashboard())
  * 让 Web 端和移动端复用同一套报表筛选规则。
  */
 const {
+  isAdmin,
   filterForm: dashboardFilterForm,
   allSubjects: dashboardSubjects,
   userQueryOptions: dashboardUserQueryOptions,
@@ -127,10 +125,6 @@ const {
  * 页面本身不手写 option，交给共享 hooks 统一维护。
  */
 const { trendOption, categoryOption, subjectRankOption, paymentMethodOption, userCompareOption } = useReportOptions(() => dashboard.value)
-
-/** 时间预设按钮选项，例如本月、上月、近 3 个月等 */
-const datePresetOptions = REPORT_DATE_PRESET_OPTIONS
-/** 用户范围选项，例如当前用户、全部用户、指定用户 */
 
 /** 是否展示“多用户对比”图表。只有多用户数据时才有展示意义 */
 const showUserCompare = computed(() => dashboard.value.userCompare.length > 1)
@@ -157,19 +151,14 @@ const loadDashboard = async () => {
   }
 }
 
-/** 点击“查询”按钮：重置表格页码后重新加载全部数据 */
+/** 点击“查询”按钮：按当前筛选条件重新加载整页报表数据。 */
 const handleSearch = async () => {
   await loadDashboard()
 }
 
-/** 点击“重置”按钮：恢复默认筛选条件和默认排序 */
+/** 点击“重置”按钮：恢复默认筛选条件后重新加载报表。 */
 const handleReset = async () => {
   resetDashboardFilters()
-  await loadDashboard()
-}
-
-/** 点击时间预设按钮：切换预设后重置页码并刷新全部数据 */
-const handlePresetChange = async () => {
   await loadDashboard()
 }
 

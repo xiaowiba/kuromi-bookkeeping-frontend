@@ -1,7 +1,7 @@
 import dayjs from 'dayjs'
+import { REPORT_DATE_PRESET_OPTIONS } from './reportConstants'
 import type * as T from '@/apis/bookkeeping/type'
 import type { LabelValueState } from '@/types/global'
-import { REPORT_DATE_PRESET_OPTIONS } from './reportConstants'
 
 const DEFAULT_AMOUNT_DIGITS = 2
 const REPORT_WEEKDAY_TEXT = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
@@ -46,12 +46,12 @@ export const getReportDateRangeByPreset = (preset: T.ReportDatePreset): string[]
 }
 
 export const getReportPresetLabel = (preset: T.ReportDatePreset) => {
-  return REPORT_DATE_PRESET_OPTIONS.find(item => item.value === preset)?.label ?? '本月'
+  return REPORT_DATE_PRESET_OPTIONS.find((item) => item.value === preset)?.label ?? '本月'
 }
 
 export const formatReportAmount = (
   value: number | string | undefined | null,
-  options?: { signed?: boolean; compact?: boolean },
+  options?: { signed?: boolean, compact?: boolean },
 ) => {
   const amount = toFiniteNumber(value)
   const formatter = new Intl.NumberFormat('zh-CN', {
@@ -64,13 +64,13 @@ export const formatReportAmount = (
 
 export const formatReportCurrency = (
   value: number | string | undefined | null,
-  options?: { signed?: boolean; compact?: boolean },
+  options?: { signed?: boolean, compact?: boolean },
 ) => `￥${formatReportAmount(value, options)}`
 
 export const formatReportSignedAmount = (
   value: number | string | undefined | null,
   category: string | undefined | null,
-  options?: { compact?: boolean; currency?: boolean },
+  options?: { compact?: boolean, currency?: boolean },
 ) => {
   const amount = Math.abs(toFiniteNumber(value))
   const sign = category === 'income' ? '+' : category === 'expense' ? '-' : ''
@@ -109,7 +109,7 @@ export const resolveReportPaymentMethodLabel = (
   if (label && label !== normalizedValue) {
     return label
   }
-  const matchedOption = options?.find(item => String(item.value ?? '') === normalizedValue)
+  const matchedOption = options?.find((item) => String(item.value ?? '') === normalizedValue)
   if (matchedOption?.label) {
     return matchedOption.label
   }
@@ -131,16 +131,21 @@ export const buildReportQuery = (
   privacyMode = false,
 ): T.ReportQuery => {
   const query: T.ReportQuery = {
-    datePreset: form.datePreset,
     privacyMode,
   }
 
-  if (form.datePreset === 'custom') {
-    const [startDate, endDate] = form.dateRange
-    if (startDate && endDate) {
-      query.startDate = startDate
-      query.endDate = endDate
+  const rangeStartDate = form.startDate || form.dateRange?.[0]
+  const rangeEndDate = form.endDate || form.dateRange?.[1]
+  const useCustomRange = form.timeMode !== 'preset' || form.datePreset === 'custom'
+
+  if (useCustomRange) {
+    query.datePreset = 'custom'
+    if (rangeStartDate && rangeEndDate) {
+      query.startDate = rangeStartDate
+      query.endDate = rangeEndDate
     }
+  } else {
+    query.datePreset = form.datePreset
   }
 
   if (form.category) {
@@ -151,6 +156,9 @@ export const buildReportQuery = (
   }
   if (form.paymentMethod) {
     query.paymentMethod = form.paymentMethod
+  }
+  if (form.hidden !== '' && form.hidden !== null && form.hidden !== undefined) {
+    query.hidden = Number(form.hidden)
   }
   if (form.userScope !== 'all' && form.userId) {
     query.userId = form.userId

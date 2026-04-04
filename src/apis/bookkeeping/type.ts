@@ -216,6 +216,7 @@ export interface ReportQuery {
   subjectId?: string
   paymentMethod?: string
   userId?: string
+  hidden?: number | string
   privacyMode?: boolean
 }
 
@@ -228,11 +229,15 @@ export interface ReportPageQuery extends ReportQuery, PageQuery {
 export interface ReportFilterForm {
   datePreset: ReportDatePreset
   dateRange: string[]
+  timeMode: DetailTimeMode
+  startDate: string
+  endDate: string
   category: string
   subjectId: string
   paymentMethod: string
   userScope: ReportUserScope
   userId: string
+  hidden: number | string
 }
 
 /** 日历报表筛选表单 */

@@ -139,7 +139,7 @@
             class="mobile-input"
             type="text"
             maxlength="100"
-            placeholder="输入名称或备注关键词"
+            placeholder="输入明细名称关键词"
             @keydown.enter="loadData"
           />
         </div>
@@ -186,6 +186,14 @@
           <p class="mobile-detail-ledger__meta">{{ ledgerMetaText }}</p>
         </div>
         <div class="mobile-detail-ledger__actions">
+          <button
+            type="button"
+            class="mobile-detail-ledger__action"
+            :class="{ 'is-warning': filterVisible }"
+            @click="toggleFilterPanel"
+          >
+            {{ filterVisible ? '收起筛选' : '筛选' }}
+          </button>
           <button
             v-if="privacyStore.isPrivacyMode"
             type="button"
@@ -594,6 +602,8 @@ const loadData = async () => {
 
     details.value = detailRes.data
     statistics.value = statisticsRes.data
+  } catch (error) {
+    mobileToast.error(error instanceof Error && error.message ? error.message : '加载明细失败，请稍后重试')
   } finally {
     loading.value = false
   }

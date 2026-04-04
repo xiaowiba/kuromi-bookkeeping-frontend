@@ -27,15 +27,21 @@ export const useDetailUserOptions = () => {
       return userOptions.value
     }
 
+    const fallbackOptions: LabelValueState[] = [
+      { label: userStore.userInfo.nickname, value: userStore.userInfo.id },
+    ]
+
     if (isAdmin.value) {
-      const { data } = await listFollowUserOptions()
-      userOptions.value = normalizeOptions(data)
+      try {
+        const { data } = await listFollowUserOptions()
+        userOptions.value = normalizeOptions(data)
+      } catch {
+        userOptions.value = normalizeOptions(fallbackOptions)
+      }
       return userOptions.value
     }
 
-    const options: LabelValueState[] = [
-      { label: userStore.userInfo.nickname, value: userStore.userInfo.id },
-    ]
+    const options: LabelValueState[] = [...fallbackOptions]
 
     try {
       const { data } = await listMyFollow()

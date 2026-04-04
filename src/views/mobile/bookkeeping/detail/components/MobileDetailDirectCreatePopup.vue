@@ -68,7 +68,7 @@
               v-model="form.name"
               class="mobile-direct-create__td-control mobile-direct-create__name-input"
               placeholder="请输入明细名称"
-              :maxlength="20"
+              :maxlength="MAX_DETAIL_NAME_LENGTH"
               clearable
             />
           </div>
@@ -117,7 +117,7 @@
               v-model="form.remark"
               class="mobile-direct-create__td-control"
               placeholder="选填，补充这笔明细的说明"
-              :maxlength="20"
+              :maxlength="MAX_DETAIL_REMARK_LENGTH"
               :indicator="true"
               :autosize="{ minRows: 1, maxRows: 2 }"
             />
@@ -317,6 +317,8 @@ const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
 const { bk_subject_category: bkSubjectCategory, bk_payment_method: bkPaymentMethod } = useDict('bk_subject_category', 'bk_payment_method')
 
 const MAX_AMOUNT = 999999
+const MAX_DETAIL_NAME_LENGTH = 100
+const MAX_DETAIL_REMARK_LENGTH = 200
 const getToday = () => dayjs().format('YYYY-MM-DD')
 const SUBJECT_PICKER_POPUP_Z_INDEX = 1500
 const PAYMENT_PICKER_POPUP_Z_INDEX = 1500
@@ -553,8 +555,8 @@ const validateForm = () => {
     mobileToast.warning('请输入明细名称')
     return false
   }
-  if (name.length > 20) {
-    mobileToast.warning('明细名称最多 20 个字')
+  if (name.length > MAX_DETAIL_NAME_LENGTH) {
+    mobileToast.warning(`明细名称最多 ${MAX_DETAIL_NAME_LENGTH} 个字`)
     return false
   }
   if (!form.amount) {
@@ -577,8 +579,8 @@ const validateForm = () => {
     mobileToast.warning('请选择支付方式')
     return false
   }
-  if (remark.length > 20) {
-    mobileToast.warning('备注最多 20 个字')
+  if (remark.length > MAX_DETAIL_REMARK_LENGTH) {
+    mobileToast.warning(`备注最多 ${MAX_DETAIL_REMARK_LENGTH} 个字`)
     return false
   }
   return true

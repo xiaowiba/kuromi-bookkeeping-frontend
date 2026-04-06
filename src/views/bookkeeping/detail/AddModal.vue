@@ -42,8 +42,10 @@
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
 import { computed, reactive, ref, watch } from 'vue'
+import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { listSubject } from '@/apis/bookkeeping/subject'
+import { listSubjectTagAll } from '@/apis/bookkeeping/subject-tag'
 import { type ColumnItem, GiForm } from '@/components/GiForm'
 import { useResetReactive } from '@/hooks'
 import { useDict } from '@/hooks/app'
@@ -51,7 +53,6 @@ import { usePrivacyStore, useUserStore } from '@/stores'
 import type { LabelValueState } from '@/types/global'
 import has from '@/utils/has'
 import { isMobile } from '@/utils'
-import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 
 const emit = defineEmits<{
   (e: 'save-success'): void
@@ -79,13 +80,15 @@ const formRef = ref<InstanceType<typeof GiForm>>()
 const allSubjects = ref<any[]>([])
 /** 当前分类下的科目选项 */
 const subjectOptions = ref<LabelValueState[]>([])
-/** 上一次自动填充的名称（避免覆盖用户手动输入） */
-let lastAutoFillName = ''
-
+/** 当前科目下的标签选项，首项固定为“不选择标签” */
+const subjectTagOptions = ref<Array<LabelValueState & { disabled?: boolean }>>([
+  { label: '不选择标签', value: '' },
+])
 const [form, resetForm] = useResetReactive({
   detailDate: new Date().toISOString().slice(0, 10),
   category: '',
   paymentMethod: 'default',
+  tagId: '',
   hidden: 0,
 })
 
@@ -122,6 +125,16 @@ const columns: ColumnItem[] = reactive([
     props: {
       options: subjectOptions,
     },
+  },
+  {
+    label: '所属标签',
+    field: 'tagId',
+    type: 'radio-group',
+    span: 24,
+    props: {
+      options: subjectTagOptions,
+    },
+    disabled: () => !form.subjectId,
   },
   {
     label: '明细名称',
@@ -201,31 +214,10 @@ watch(() => form.category, (val) => {
   } else {
     subjectOptions.value = []
   }
-  // 切换分类时清空科目，名称仅在新增态由联动逻辑维护
+  // 切换分类时同时清空科目和标签，保证三级联动口径正确。
   form.subjectId = undefined
-  if (!isUpdate.value) {
-    form.name = ''
-    lastAutoFillName = ''
-  }
-})
-
-/**
- * 监听科目变化，自动填充明细名称
- *
- * @author Wangsongsong
- * @date 2026-03-18
- */
-watch(() => form.subjectId, (val) => {
-  if (isUpdate.value || !val) return
-  const selected = subjectOptions.value.find((item) => item.value === val)
-  if (selected) {
-    const label = selected.label as string
-    // 仅在名称为空或等于上次自动填充值时才覆盖
-    if (!form.name || form.name === lastAutoFillName) {
-      form.name = label
-      lastAutoFillName = label
-    }
-  }
+  form.tagId = ''
+  subjectTagOptions.value = [{ label: '不选择标签', value: '' }]
 })
 
 /**
@@ -240,11 +232,66 @@ const loadSubjectOptions = async () => {
   allSubjects.value = data.list
 }
 
+/**
+ * 加载当前科目下的标签选项。
+ *
+ * @param subjectId      科目 ID
+ * @param selectedTagId  当前已选标签。编辑态可能是停用标签，需要继续保留回显。
+ */
+const loadSubjectTagOptions = async (
+  subjectId: string | number,
+  selectedTagId?: string | number,
+) => {
+  const keepTagId = String(selectedTagId ?? form.tagId ?? '')
+  try {
+    const { data } = await listSubjectTagAll({ subjectId: String(subjectId) })
+    const tagOptions = (data ?? []).map((item) => {
+      const suffixList: string[] = []
+      if (item.isDefault) {
+        suffixList.push('默认')
+      }
+      if (item.status === 2) {
+        suffixList.push('停用')
+      }
+      return {
+        label: suffixList.length ? `${item.name}（${suffixList.join(' / ')}）` : item.name,
+        value: String(item.id),
+        disabled: item.status === 2 && String(item.id) !== keepTagId,
+      }
+    })
+    subjectTagOptions.value = [{ label: '不选择标签', value: '' }, ...tagOptions]
+    if (!keepTagId) {
+      form.tagId = ''
+      return
+    }
+    const exists = tagOptions.some((item) => String(item.value) === keepTagId)
+    form.tagId = exists ? keepTagId : ''
+  } catch {
+    subjectTagOptions.value = [{ label: '不选择标签', value: '' }]
+    form.tagId = ''
+  }
+}
+
+/**
+ * 监听科目变化并加载标签选项。
+ *
+ * 标签是“可选单选”，因此首项始终保留“不选择标签”；
+ * 若编辑态回显的是已停用标签，会保留该项但禁止新选中其他停用标签。
+ */
+watch(() => form.subjectId, async (subjectId) => {
+  if (!subjectId) {
+    form.tagId = ''
+    subjectTagOptions.value = [{ label: '不选择标签', value: '' }]
+    return
+  }
+  await loadSubjectTagOptions(subjectId, form.tagId)
+})
+
 /** 重置 */
 const reset = () => {
   formRef.value?.formRef?.resetFields()
   resetForm()
-  lastAutoFillName = ''
+  subjectTagOptions.value = [{ label: '不选择标签', value: '' }]
 }
 
 /** 保存 */
@@ -252,15 +299,19 @@ const save = async () => {
   try {
     const isInvalid = await formRef.value?.formRef?.validate()
     if (isInvalid) return false
+    const payload = {
+      ...form,
+      tagId: form.tagId ? form.tagId : undefined,
+    }
     // 非管理员自动设置当前用户 ID
     if (!isAdmin.value) {
-      form.userId = userStore.userInfo.id
+      payload.userId = userStore.userInfo.id
     }
     if (isUpdate.value) {
-      await updateDetail(form, dataId.value)
+      await updateDetail(payload, dataId.value)
       Message.success('修改成功')
     } else {
-      await addDetail(form)
+      await addDetail(payload)
       Message.success('新增成功')
     }
     emit('save-success')
@@ -274,7 +325,6 @@ const save = async () => {
 const onAdd = async () => {
   reset()
   dataId.value = ''
-  lastAutoFillName = ''
   const tasks: Promise<any>[] = [loadSubjectOptions()]
   if (isAdmin.value) {
     tasks.push(loadUserOptions())
@@ -291,7 +341,6 @@ const onAdd = async () => {
 const onUpdate = async (id: string) => {
   reset()
   dataId.value = id
-  lastAutoFillName = ''
   const tasks: Promise<any>[] = [loadSubjectOptions()]
   if (isAdmin.value) {
     tasks.push(loadUserOptions())
@@ -303,13 +352,15 @@ const onUpdate = async (id: string) => {
     data.amount = Math.abs(data.amount) as any
   }
   data.paymentMethod = data.paymentMethod || 'default'
+  data.tagId = data.tagId || ''
   // 回填分类（从详情的 subjectCategory 获取）
   form.category = data.subjectCategory || ''
   // 等分类 watch 触发后再赋值科目和名称
   await new Promise((resolve) => setTimeout(resolve, 0))
   Object.assign(form, data)
-  // 记录当前名称为自动填充值，避免编辑时被覆盖
-  lastAutoFillName = data.name || ''
+  if (form.subjectId) {
+    await loadSubjectTagOptions(form.subjectId, form.tagId)
+  }
   // 非管理员不显示用户选择
   if (!isAdmin.value) {
     form.userId = data.userId

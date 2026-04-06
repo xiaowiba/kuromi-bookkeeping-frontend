@@ -5,6 +5,7 @@
  * @date 2026-03-18
  */
 export * from './subject'
+export * from './subject-tag'
 export * from './detail'
 export * from './follow'
 export * from './hide-target'

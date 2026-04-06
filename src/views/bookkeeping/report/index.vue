@@ -12,6 +12,7 @@
         :is-admin="isAdmin"
         :category-options="dashboardCategoryOptions"
         :subject-options="dashboardSubjectOptions"
+        :tag-options="dashboardTagOptions"
         :payment-method-options="dashboardPaymentMethodOptions"
         :user-query-options="dashboardUserQueryOptions"
         :on-select-user="setDashboardSelectedUser"
@@ -43,10 +44,16 @@
 
       <div class="report-grid report-grid--bottom">
         <!-- 科目排行图：按金额倒序展示当前区间内消费 / 收入贡献最高的科目 -->
-        <ReportSubjectRankCard :option="subjectRankOption" :loading="dashboardLoading" />
+        <ReportSubjectRankCard
+          :list="dashboard.subjectRank"
+          :selected-category="dashboardFilterForm.category"
+          :loading="dashboardLoading"
+        />
+
+        <ReportTagRankCard v-if="showTagRank" :option="tagRankOption" :loading="dashboardLoading" />
 
         <!-- 支付方式分布图：展示微信、支付宝、银行卡等支付渠道的金额分布 -->
-        <ReportPaymentMethodCard :option="paymentMethodOption" :loading="dashboardLoading" />
+        <ReportPaymentMethodCard :list="dashboard.paymentMethodShare" :loading="dashboardLoading" />
 
         <!-- 多用户对比图：仅在存在多个用户数据时展示不同用户的收支对比 -->
         <ReportUserCompareCard v-if="showUserCompare" :option="userCompareOption" :loading="dashboardLoading" />
@@ -85,6 +92,7 @@ import ReportInsightPanel from './components/ReportInsightPanel.vue'
 import ReportPaymentMethodCard from './components/ReportPaymentMethodCard.vue'
 import ReportSubjectRankCard from './components/ReportSubjectRankCard.vue'
 import ReportSummaryCards from './components/ReportSummaryCards.vue'
+import ReportTagRankCard from './components/ReportTagRankCard.vue'
 import ReportTrendChartCard from './components/ReportTrendChartCard.vue'
 import ReportUserCompareCard from './components/ReportUserCompareCard.vue'
 import type * as T from '@/apis/bookkeeping/type'
@@ -108,11 +116,11 @@ const dashboard = ref<T.ReportDashboardResp>(createEmptyReportDashboard())
 const {
   isAdmin,
   filterForm: dashboardFilterForm,
-  allSubjects: dashboardSubjects,
   userQueryOptions: dashboardUserQueryOptions,
   categoryOptions: dashboardCategoryOptions,
   paymentMethodOptions: dashboardPaymentMethodOptions,
   subjectOptions: dashboardSubjectOptions,
+  tagQueryOptions: dashboardTagOptions,
   loadFilterOptions: loadDashboardFilterOptions,
   resetFilters: resetDashboardFilters,
   setSelectedUser: setDashboardSelectedUser,
@@ -124,10 +132,12 @@ const {
  * 根据 dashboard 响应式数据，实时生成 ECharts 所需配置。
  * 页面本身不手写 option，交给共享 hooks 统一维护。
  */
-const { trendOption, categoryOption, subjectRankOption, paymentMethodOption, userCompareOption } = useReportOptions(() => dashboard.value)
+const { trendOption, categoryOption, tagRankOption, userCompareOption } = useReportOptions(() => dashboard.value)
 
 /** 是否展示“多用户对比”图表。只有多用户数据时才有展示意义 */
 const showUserCompare = computed(() => dashboard.value.userCompare.length > 1)
+/** 只有当查询已经收敛到科目或标签时，才展示标签分析模块。 */
+const showTagRank = computed(() => !!dashboardFilterForm.subjectId || !!dashboardFilterForm.tagId)
 
 /** 拉取上半部分看板数据：汇总卡、图表、洞察都依赖这个接口 */
 const loadDashboard = async () => {
@@ -167,12 +177,13 @@ const handleReset = async () => {
  * 当用户点击“分类占比”列表项时，尝试找到对应科目，
  * 然后自动把该科目回填到筛选项里，再触发一次查询。
  */
-const handleCategoryDrilldown = async (subjectName: string) => {
-  const matchedSubject = dashboardSubjects.value.find((item) => item.name === subjectName && (!dashboardFilterForm.category || item.category === dashboardFilterForm.category))
-  if (!matchedSubject) {
+const handleCategoryDrilldown = async (categoryKey: string) => {
+  if (!categoryKey) {
     return
   }
-  dashboardFilterForm.subjectId = String(matchedSubject.id)
+  dashboardFilterForm.category = categoryKey
+  dashboardFilterForm.subjectId = ''
+  dashboardFilterForm.tagId = ''
   await loadDashboard()
 }
 

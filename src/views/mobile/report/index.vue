@@ -27,8 +27,9 @@
       <MobileReportSummaryCards :overview="dashboard.overview" />
       <MobileReportTrendChart :option="trendOption" />
       <MobileReportCategoryPie :option="categoryOption" :items="dashboard.categoryShare" @select="handleCategoryDrilldown" />
-      <MobileReportSubjectRank :option="subjectRankOption" />
-      <MobileReportPaymentMethod :option="paymentMethodOption" />
+      <MobileReportSubjectRank :option="subjectRankOption" :count="dashboard.subjectRank.length" />
+      <MobileReportTagRank v-if="showTagRank" :option="tagRankOption" :count="dashboard.tagRank.length" />
+      <MobileReportPaymentMethod :option="paymentMethodOption" :count="dashboard.paymentMethodShare.length" />
       <MobileReportUserCompare v-if="showUserCompare" :option="userCompareOption" />
       <MobileReportInsightPanel :insight="dashboard.insight" />
     </template>
@@ -39,6 +40,7 @@
       :date-preset-options="datePresetOptions"
       :category-options="categoryOptions"
       :subject-options="subjectOptions"
+      :tag-options="tagOptions"
       :payment-method-options="paymentMethodOptions"
       :user-scope-options="userScopeOptions"
       :user-select-options="userSelectOptions"
@@ -52,25 +54,26 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { getReportDashboard } from '@/apis/bookkeeping/report'
-import type * as T from '@/apis/bookkeeping/type'
-import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
-import { mobileToast } from '@/utils/mobile-toast'
-import {
-  REPORT_DATE_PRESET_OPTIONS,
-  REPORT_USER_SCOPE_OPTIONS,
-  createEmptyReportDashboard,
-} from '@/views/bookkeeping/report/shared/reportConstants'
-import { useReportFilters } from '@/views/bookkeeping/report/shared/useReportFilters'
-import { useReportOptions } from '@/views/bookkeeping/report/shared/useReportOptions'
 import MobileReportCategoryPie from './components/MobileReportCategoryPie.vue'
 import MobileReportFilterPopup from './components/MobileReportFilterPopup.vue'
 import MobileReportInsightPanel from './components/MobileReportInsightPanel.vue'
 import MobileReportPaymentMethod from './components/MobileReportPaymentMethod.vue'
 import MobileReportSubjectRank from './components/MobileReportSubjectRank.vue'
 import MobileReportSummaryCards from './components/MobileReportSummaryCards.vue'
+import MobileReportTagRank from './components/MobileReportTagRank.vue'
 import MobileReportTrendChart from './components/MobileReportTrendChart.vue'
 import MobileReportUserCompare from './components/MobileReportUserCompare.vue'
+import { useReportOptions } from '@/views/bookkeeping/report/shared/useReportOptions'
+import { useReportFilters } from '@/views/bookkeeping/report/shared/useReportFilters'
+import {
+  REPORT_DATE_PRESET_OPTIONS,
+  REPORT_USER_SCOPE_OPTIONS,
+  createEmptyReportDashboard,
+} from '@/views/bookkeeping/report/shared/reportConstants'
+import { mobileToast } from '@/utils/mobile-toast'
+import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
+import type * as T from '@/apis/bookkeeping/type'
+import { getReportDashboard } from '@/apis/bookkeeping/report'
 
 defineOptions({ name: 'MobileReport' })
 
@@ -86,6 +89,7 @@ const {
   categoryOptions,
   paymentMethodOptions,
   subjectOptions,
+  tagQueryOptions: tagOptions,
   loadFilterOptions,
   resetFilters,
   buildDashboardQuery,
@@ -94,25 +98,27 @@ const {
 const datePresetOptions = REPORT_DATE_PRESET_OPTIONS
 const userScopeOptions = REPORT_USER_SCOPE_OPTIONS
 const showUserCompare = computed(() => dashboard.value.userCompare.length > 1)
-const { trendOption, categoryOption, subjectRankOption, paymentMethodOption, userCompareOption } = useReportOptions(
+const showTagRank = computed(() => !!filterForm.subjectId || !!filterForm.tagId)
+const { trendOption, categoryOption, subjectRankOption, tagRankOption, paymentMethodOption, userCompareOption } = useReportOptions(
   () => dashboard.value,
-  () => ({ compact: true, dualAxis: true }),
+  () => ({ compact: true, dualAxis: true, rankLimit: false }),
 )
 
-const resolveOptionLabel = (options: Array<{ label: string; value: any }>, value: string) => {
-  return options.find(item => String(item.value) === String(value))?.label || '全部'
+const resolveOptionLabel = (options: Array<{ label: string, value: any }>, value: string) => {
+  return options.find((item) => String(item.value) === String(value))?.label || '全部'
 }
 
 const filterSummaryText = computed(() => {
   const categoryText = resolveOptionLabel(categoryOptions.value, filterForm.category)
   const subjectText = resolveOptionLabel(subjectOptions.value, filterForm.subjectId)
+  const tagText = resolveOptionLabel(tagOptions.value, filterForm.tagId)
   const paymentText = resolveOptionLabel(paymentMethodOptions.value, filterForm.paymentMethod)
   const userText = filterForm.userScope === 'all'
     ? '全部用户'
     : filterForm.userScope === 'specific'
       ? resolveOptionLabel(userSelectOptions.value, filterForm.userId)
       : '当前用户'
-  return `${userText} · ${categoryText} · ${subjectText} · ${paymentText}`
+  return `${userText} · ${categoryText} · ${subjectText} · ${tagText} · ${paymentText}`
 })
 
 const loadDashboard = async () => {
@@ -155,12 +161,13 @@ const handleResetFilters = async () => {
   await loadDashboard()
 }
 
-const handleCategoryDrilldown = async (subjectName: string) => {
-  const matchedSubject = allSubjects.value.find(item => item.name === subjectName && (!filterForm.category || item.category === filterForm.category))
-  if (!matchedSubject) {
+const handleCategoryDrilldown = async (categoryKey: string) => {
+  if (!categoryKey) {
     return
   }
-  filterForm.subjectId = String(matchedSubject.id)
+  filterForm.category = categoryKey
+  filterForm.subjectId = ''
+  filterForm.tagId = ''
   await loadDashboard()
 }
 

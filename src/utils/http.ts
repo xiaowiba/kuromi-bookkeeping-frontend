@@ -93,10 +93,14 @@ const handleAuthExpired = (msg: string) => {
     okText: '重新登录',
     async onOk() {
       try {
+        const expiredPath = router.currentRoute.value.fullPath || '/'
         const userStore = useUserStore()
         await userStore.logoutCallBack()
-        const currentPath = router.currentRoute.value.fullPath
-        await router.replace(`/login?redirect=${encodeURIComponent(currentPath)}`)
+        const loginTarget = router.resolve({
+          path: '/login',
+          query: { redirect: expiredPath },
+        }).fullPath
+        window.location.replace(loginTarget)
       } finally {
         authExpiredHandling = false
       }

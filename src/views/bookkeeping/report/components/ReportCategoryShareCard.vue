@@ -9,10 +9,10 @@
       <div class="report-category-card__list">
         <button
           v-for="item in items.slice(0, 6)"
-          :key="item.name"
+          :key="item.key || item.name"
           type="button"
           class="report-category-card__item"
-          @click="emit('select', item.name)"
+          @click="emit('select', item.key || item.name)"
         >
           <span class="report-category-card__name">{{ item.name }}</span>
           <strong class="report-category-card__amount">{{ formatReportCurrency(item.amount) }}</strong>
@@ -25,10 +25,10 @@
 
 <script setup lang="ts">
 import type { EChartsOption } from 'echarts'
-import type { ReportCategoryShareItemResp } from '@/apis/bookkeeping/type'
-import Chart from '@/components/Chart/index.vue'
 import { formatReportCurrency, formatReportRatio } from '../shared/reportFormat'
 import ReportPanelShell from './ReportPanelShell.vue'
+import type { ReportCategoryShareItemResp } from '@/apis/bookkeeping/type'
+import Chart from '@/components/Chart/index.vue'
 
 withDefaults(defineProps<{
   option: EChartsOption

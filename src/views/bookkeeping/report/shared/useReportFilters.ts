@@ -38,6 +38,7 @@ export const useReportFilters = () => {
     categoryQueryOptions: categoryOptions,
     paymentMethodQueryOptions: paymentMethodOptions,
     subjectQueryOptions: subjectOptions,
+    tagQueryOptions,
     loadCommonFilterOptions,
   } = useBookkeepingCommonFilters({
     form: filterForm,
@@ -194,6 +195,7 @@ export const useReportFilters = () => {
     categoryOptions,
     paymentMethodOptions,
     subjectOptions,
+    tagQueryOptions,
     loadFilterOptions,
     resetFilters,
     resetRankingPage,

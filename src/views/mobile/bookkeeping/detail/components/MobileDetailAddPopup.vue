@@ -55,6 +55,15 @@
           </div>
 
           <div class="mobile-field">
+            <label class="mobile-field__label">所属标签</label>
+            <select v-model="form.tagId" class="mobile-select" :disabled="!form.subjectId">
+              <option v-for="item in tagOptions" :key="String(item.value)" :value="item.value">
+                {{ item.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="mobile-field">
             <label class="mobile-field__label">明细名称</label>
             <input
               v-model.trim="form.name"
@@ -126,7 +135,9 @@
  */
 import { computed, reactive, ref, watch } from 'vue'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
-import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
+import { listSubject } from '@/apis/bookkeeping/subject'
+import { listSubjectTagAll } from '@/apis/bookkeeping/subject-tag'
+import type { SubjectResp, SubjectTagResp } from '@/apis/bookkeeping/type'
 import { useDict } from '@/hooks/app'
 import { usePrivacyStore, useUserStore } from '@/stores'
 import { mobileToast } from '@/utils/mobile-toast'
@@ -138,13 +149,12 @@ interface Props {
   detailId?: string
 }
 
+defineOptions({ name: 'MobileDetailAddPopup' })
 const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
   (e: 'save-success'): void
 }>()
-
-defineOptions({ name: 'MobileDetailAddPopup' })
 
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
@@ -164,12 +174,13 @@ const canManageHidden = computed(() => has.hasPermOr(['bk:hide-target:manage']) 
 const optionsLoading = ref(false)
 const submitting = ref(false)
 const allSubjects = ref<SubjectResp[]>([])
-const lastAutoFillName = ref('')
+const subjectTags = ref<SubjectTagResp[]>([])
 
 const createDefaultForm = () => ({
   userId: userStore.userInfo.id,
   category: '',
   subjectId: '',
+  tagId: '',
   name: '',
   amount: '',
   detailDate: new Date().toISOString().slice(0, 10),
@@ -188,16 +199,33 @@ const hiddenChecked = computed({
 
 const subjectOptions = computed(() =>
   allSubjects.value
-    .filter(item => !form.category || item.category === form.category)
-    .map(item => ({
+    .filter((item) => !form.category || item.category === form.category)
+    .map((item) => ({
       label: item.name,
       value: item.id,
     })),
 )
+const buildTagLabel = (tag: SubjectTagResp) => {
+  const suffixList: string[] = []
+  if (tag.isDefault) {
+    suffixList.push('默认')
+  }
+  if (tag.status === 2) {
+    suffixList.push('停用')
+  }
+  return suffixList.length ? `${tag.name}（${suffixList.join(' / ')}）` : tag.name
+}
+const tagOptions = computed(() => [
+  { label: '不选择标签', value: '' },
+  ...subjectTags.value.map((item) => ({
+    label: buildTagLabel(item),
+    value: String(item.id),
+  })),
+])
 
 const resetForm = () => {
   Object.assign(form, createDefaultForm())
-  lastAutoFillName.value = ''
+  subjectTags.value = []
 }
 
 const loadSubjectOptions = async () => {
@@ -214,23 +242,46 @@ const ensureOptionsLoaded = async () => {
   await Promise.all(tasks)
 }
 
+/**
+ * 旧版移动弹层虽然当前不是主入口，但仍补齐标签链路，
+ * 避免后续临时启用时出现“新增支持、编辑不支持”的断层。
+ */
+const loadSubjectTagOptions = async (subjectId?: string | number, selectedTagId?: string | number) => {
+  if (!subjectId) {
+    subjectTags.value = []
+    form.tagId = ''
+    return
+  }
+  const keepTagId = String(selectedTagId ?? form.tagId ?? '')
+  try {
+    const { data } = await listSubjectTagAll({ subjectId: String(subjectId) })
+    subjectTags.value = data ?? []
+    const exists = subjectTags.value.some((item) => String(item.id) === keepTagId)
+    form.tagId = keepTagId && exists ? keepTagId : ''
+  } catch {
+    subjectTags.value = []
+    form.tagId = ''
+  }
+}
+
 const fillFormByDetail = async (id: string) => {
   const { data } = await getDetail(id)
   Object.assign(form, createDefaultForm(), {
     ...data,
     category: data.subjectCategory || '',
+    tagId: data.tagId ? String(data.tagId) : '',
     amount: data.amount != null ? String(Math.abs(Number(data.amount))) : '',
     detailDate: data.detailDate || new Date().toISOString().slice(0, 10),
     hidden: data.hidden ?? 0,
   })
-  lastAutoFillName.value = data.name || ''
+  await loadSubjectTagOptions(form.subjectId, form.tagId)
 }
 
 const handleCategoryChange = (category: string) => {
   form.category = category
   form.subjectId = ''
-  form.name = ''
-  lastAutoFillName.value = ''
+  form.tagId = ''
+  subjectTags.value = []
 }
 
 const validateForm = () => {
@@ -268,6 +319,7 @@ const handleSubmit = async () => {
   try {
     const payload = {
       ...form,
+      tagId: form.tagId ? form.tagId : undefined,
       amount: Number(form.amount),
       userId: isAdmin.value ? form.userId : userStore.userInfo.id,
     }
@@ -305,17 +357,20 @@ watch([() => props.visible, currentDetailId], async ([visible]) => {
   }
 })
 
-watch(() => form.subjectId, (value) => {
-  if (!value) return
-
-  const current = subjectOptions.value.find(item => item.value === value)
-  if (!current) return
-
-  if (!form.name || form.name === lastAutoFillName.value) {
-    form.name = String(current.label)
-    lastAutoFillName.value = String(current.label)
-  }
-})
+watch(
+  () => form.subjectId,
+  async (value, oldValue) => {
+    if (!value) {
+      form.tagId = ''
+      subjectTags.value = []
+      return
+    }
+    if (value !== oldValue) {
+      form.tagId = ''
+    }
+    await loadSubjectTagOptions(value, form.tagId)
+  },
+)
 </script>
 
 <style scoped lang="scss">

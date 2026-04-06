@@ -143,6 +143,17 @@
         </div>
       </template>
 
+      <template #tagId>
+        <div class="subject-query-radio-scroll">
+          <a-radio-group
+            v-model="filterFormModel.tagId"
+            :options="tagOptions"
+            :disabled="loading || !filterFormModel.subjectId"
+            @change="handleTagChange"
+          />
+        </div>
+      </template>
+
       <template #paymentMethod>
         <div class="subject-query-radio-scroll">
           <a-radio-group
@@ -180,6 +191,7 @@ interface Props {
   filterForm: ReportFilterForm
   categoryOptions: LabelValueState[]
   subjectOptions: LabelValueState[]
+  tagOptions: LabelValueState[]
   paymentMethodOptions: LabelValueState[]
   userQueryOptions: LabelValueState[]
   onSelectUser: (value?: string | number | null) => void
@@ -253,6 +265,12 @@ const queryFormColumns: ColumnItem<ReportFilterForm>[] = reactive([
     type: 'radio-group',
     label: '科目',
     field: 'subjectId',
+    span: { xs: 24, sm: 24, xxl: 24 },
+  },
+  {
+    type: 'radio-group',
+    label: '标签',
+    field: 'tagId',
     span: { xs: 24, sm: 24, xxl: 24 },
   },
   {
@@ -411,10 +429,16 @@ const handleRangePickerChange = (value?: string[]) => {
 /** 分类切换后主动清空科目，避免继续带着旧分类下的无效科目查询。 */
 const handleCategoryChange = () => {
   filterFormModel.value.subjectId = ''
+  filterFormModel.value.tagId = ''
   triggerSearch()
 }
 
 const handleSubjectChange = () => {
+  filterFormModel.value.tagId = ''
+  triggerSearch()
+}
+
+const handleTagChange = () => {
   triggerSearch()
 }
 

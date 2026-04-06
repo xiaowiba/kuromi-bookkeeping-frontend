@@ -24,7 +24,7 @@
             :key="String(item.value)"
             type="button"
             class="mobile-chip"
-            :class="{ 'is-active': filterForm.datePreset === item.value }"
+            :class="{ 'is-active': filterFormModel.datePreset === item.value }"
             @click="handlePresetSelect(item.value as any)"
           >
             {{ item.label }}
@@ -32,7 +32,7 @@
         </div>
       </div>
 
-      <div v-if="filterForm.datePreset === 'custom'" class="mobile-field">
+      <div v-if="filterFormModel.datePreset === 'custom'" class="mobile-field">
         <label class="mobile-field__label">自定义日期</label>
         <t-button block size="large" variant="text" class="mobile-report-filter-popup__selector-field" @click="openCalendar">
           <span class="mobile-report-filter-popup__field-main">
@@ -52,8 +52,8 @@
             :key="String(item.value)"
             type="button"
             class="mobile-chip"
-            :class="{ 'is-active': filterForm.category === item.value }"
-            @click="filterForm.category = String(item.value)"
+            :class="{ 'is-active': filterFormModel.category === item.value }"
+            @click="handleCategorySelect(String(item.value))"
           >
             {{ item.label }}
           </button>
@@ -68,6 +68,27 @@
           </span>
           <template #suffix>
             <small class="mobile-report-filter-popup__field-side">点击选择</small>
+          </template>
+        </t-button>
+      </div>
+
+      <div class="mobile-field">
+        <label class="mobile-field__label">标签</label>
+        <t-button
+          block
+          size="large"
+          variant="text"
+          class="mobile-report-filter-popup__selector-field"
+          :class="{ 'is-disabled': !filterFormModel.subjectId }"
+          @click="openTagPicker"
+        >
+          <span class="mobile-report-filter-popup__field-main">
+            {{ selectedTagLabel }}
+          </span>
+          <template #suffix>
+            <small class="mobile-report-filter-popup__field-side">
+              {{ filterFormModel.subjectId ? '点击选择' : '请先选择科目' }}
+            </small>
           </template>
         </t-button>
       </div>
@@ -92,15 +113,15 @@
             :key="String(item.value)"
             type="button"
             class="mobile-chip"
-            :class="{ 'is-active': filterForm.userScope === item.value }"
-            @click="filterForm.userScope = item.value as any"
+            :class="{ 'is-active': filterFormModel.userScope === item.value }"
+            @click="filterFormModel.userScope = item.value as any"
           >
             {{ item.label }}
           </button>
         </div>
       </div>
 
-      <div v-if="filterForm.userScope === 'specific'" class="mobile-field">
+      <div v-if="filterFormModel.userScope === 'specific'" class="mobile-field">
         <label class="mobile-field__label">指定用户</label>
         <div class="mobile-report-filter-popup__user-chip-group">
           <button
@@ -108,8 +129,8 @@
             :key="String(item.value)"
             type="button"
             class="mobile-report-filter-popup__user-chip"
-            :class="{ 'is-active': String(filterForm.userId) === String(item.value) }"
-            @click="filterForm.userId = String(item.value)"
+            :class="{ 'is-active': String(filterFormModel.userId) === String(item.value) }"
+            @click="filterFormModel.userId = String(item.value)"
           >
             {{ item.label }}
           </button>
@@ -151,7 +172,7 @@
             size="large"
             variant="text"
             class="mobile-option-picker__subject-card"
-            :class="{ 'is-active': String(filterForm.subjectId) === String(item.id) }"
+            :class="{ 'is-active': String(filterFormModel.subjectId) === String(item.id) }"
             @click="handleSubjectSelect(item.id)"
           >
             <span class="mobile-option-picker__subject-card-content">
@@ -169,6 +190,44 @@
 
         <div v-else class="mobile-option-picker__empty">
           当前分类下暂无可用科目
+        </div>
+      </div>
+    </div>
+  </t-popup>
+
+  <t-popup
+    v-model:visible="tagPickerVisible"
+    placement="bottom"
+    :prevent-scroll-through="true"
+    :close-btn="true"
+    :destroy-on-close="true"
+    :z-index="TAG_PICKER_POPUP_Z_INDEX"
+    :show-overlay="true"
+    :overlay-props="tagPickerOverlayProps"
+    :close-on-overlay-click="true"
+  >
+    <div class="mobile-option-picker">
+      <div class="mobile-option-picker__header">
+        <div>
+          <p class="mobile-option-picker__eyebrow">{{ selectedSubjectLabel }}</p>
+          <h3 class="mobile-option-picker__title">选择标签</h3>
+        </div>
+      </div>
+
+      <div class="mobile-option-picker__body">
+        <div class="mobile-option-picker__tag-grid">
+          <t-button
+            v-for="item in tagPickerOptions"
+            :key="`tag-${String(item.value) || 'all'}`"
+            block
+            size="large"
+            variant="text"
+            class="mobile-option-picker__tag-chip"
+            :class="{ 'is-active': String(filterFormModel.tagId) === String(item.value ?? '') }"
+            @click="handleTagSelect(String(item.value ?? ''))"
+          >
+            <span class="mobile-option-picker__tag-chip-content">{{ item.label }}</span>
+          </t-button>
         </div>
       </div>
     </div>
@@ -202,7 +261,7 @@
             size="large"
             variant="text"
             class="mobile-option-picker__payment-option"
-            :class="{ 'is-active': String(filterForm.paymentMethod) === String(item.value) }"
+            :class="{ 'is-active': String(filterFormModel.paymentMethod) === String(item.value) }"
             @click="handlePaymentMethodSelect(String(item.value))"
           >
             <span class="mobile-option-picker__payment-option-content">
@@ -242,7 +301,7 @@
 
 <script setup lang="ts">
 import dayjs from 'dayjs'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import type { CalendarValue } from 'tdesign-mobile-vue/es/calendar'
 import type * as T from '@/apis/bookkeeping/type'
 import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
@@ -260,6 +319,7 @@ const props = withDefaults(defineProps<{
   datePresetOptions: Array<LabelValueState & { shortLabel?: string }>
   categoryOptions: LabelValueState[]
   subjectOptions: LabelValueState[]
+  tagOptions: LabelValueState[]
   paymentMethodOptions: LabelValueState[]
   userScopeOptions: LabelValueState[]
   userSelectOptions: LabelValueState[]
@@ -277,6 +337,7 @@ const emit = defineEmits<{
 
 const FILTER_POPUP_Z_INDEX = 1500
 const SUBJECT_PICKER_POPUP_Z_INDEX = 1550
+const TAG_PICKER_POPUP_Z_INDEX = 1550
 const PAYMENT_PICKER_POPUP_Z_INDEX = 1550
 const CALENDAR_POPUP_Z_INDEX = 1600
 const filterPopupOverlayProps = {
@@ -284,6 +345,9 @@ const filterPopupOverlayProps = {
 }
 const subjectPickerOverlayProps = {
   zIndex: SUBJECT_PICKER_POPUP_Z_INDEX - 1,
+}
+const tagPickerOverlayProps = {
+  zIndex: TAG_PICKER_POPUP_Z_INDEX - 1,
 }
 const paymentPickerOverlayProps = {
   zIndex: PAYMENT_PICKER_POPUP_Z_INDEX - 1,
@@ -293,31 +357,43 @@ const calendarPopupOverlayProps = {
 }
 
 const subjectPickerVisible = ref(false)
+const tagPickerVisible = ref(false)
 const paymentPickerVisible = ref(false)
 const calendarVisible = ref(false)
 const calendarValue = ref<Date[]>([])
+const filterFormModel = reactive(props.filterForm)
 
 const selectedCategoryLabel = computed(() => {
-  const current = props.categoryOptions.find(item => String(item.value) === String(props.filterForm.category))
+  const current = props.categoryOptions.find((item) => String(item.value) === String(filterFormModel.category))
   return current?.label || '全部分类'
 })
 
 const selectedSubjectLabel = computed(() => {
-  if (!props.filterForm.subjectId) {
+  if (!filterFormModel.subjectId) {
     return '全部科目'
   }
-  return props.allSubjects.find(item => String(item.id) === String(props.filterForm.subjectId))?.name || '全部科目'
+  return props.allSubjects.find((item) => String(item.id) === String(filterFormModel.subjectId))?.name || '全部科目'
+})
+
+const selectedTagLabel = computed(() => {
+  if (!filterFormModel.subjectId) {
+    return '请先选择科目'
+  }
+  if (!filterFormModel.tagId) {
+    return '全部标签'
+  }
+  return props.tagOptions.find((item) => String(item.value) === String(filterFormModel.tagId))?.label || '全部标签'
 })
 
 const selectedPaymentMethodLabel = computed(() => {
-  if (!props.filterForm.paymentMethod) {
+  if (!filterFormModel.paymentMethod) {
     return '全部支付方式'
   }
-  return props.paymentMethodOptions.find(item => String(item.value) === String(props.filterForm.paymentMethod))?.label || '全部支付方式'
+  return props.paymentMethodOptions.find((item) => String(item.value) === String(filterFormModel.paymentMethod))?.label || '全部支付方式'
 })
 
 const customDateRangeText = computed(() => {
-  const [startDate, endDate] = props.filterForm.dateRange || []
+  const [startDate, endDate] = filterFormModel.dateRange || []
   if (!startDate || !endDate) {
     return '请选择日期范围'
   }
@@ -326,18 +402,21 @@ const customDateRangeText = computed(() => {
 
 const subjectPickerOptions = computed<SubjectPickerOption[]>(() => {
   const source = props.allSubjects
-    .filter(item => item.status === 1)
-    .filter(item => !props.filterForm.category || item.category === props.filterForm.category)
+    .filter((item) => item.status === 1)
+    .filter((item) => !filterFormModel.category || item.category === filterFormModel.category)
 
   return [
     { id: '', name: '全部科目', icon: 'general' },
-    ...source.map(item => ({
+    ...source.map((item) => ({
       id: String(item.id),
       name: item.name,
       icon: item.icon,
     })),
   ]
 })
+
+/** 标签筛选复用桌面端的统一选项定义，移动端只负责选择交互。 */
+const tagPickerOptions = computed(() => props.tagOptions)
 
 const resolvePaymentMethodMarker = (label: string) => String(label || '').trim().slice(0, 1) || '?'
 
@@ -347,7 +426,7 @@ const createFallbackCalendarValue = () => {
 }
 
 const syncCalendarValue = () => {
-  const [startDate, endDate] = props.filterForm.dateRange || []
+  const [startDate, endDate] = filterFormModel.dateRange || []
   if (!startDate || !endDate) {
     calendarValue.value = createFallbackCalendarValue()
     return
@@ -363,8 +442,25 @@ const syncCalendarValue = () => {
   calendarValue.value = [start.toDate(), end.toDate()]
 }
 
+/** 分类变化后同步清空科目和标签，避免跨分类保留旧筛选值。 */
+const handleCategorySelect = (category: string) => {
+  const changed = filterFormModel.category !== category
+  filterFormModel.category = category
+  if (changed) {
+    filterFormModel.subjectId = ''
+    filterFormModel.tagId = ''
+  }
+}
+
 const openSubjectPicker = () => {
   subjectPickerVisible.value = true
+}
+
+const openTagPicker = () => {
+  if (!filterFormModel.subjectId) {
+    return
+  }
+  tagPickerVisible.value = true
 }
 
 const openPaymentPicker = () => {
@@ -378,13 +474,14 @@ const openCalendar = () => {
 
 const handlePopupClose = () => {
   subjectPickerVisible.value = false
+  tagPickerVisible.value = false
   paymentPickerVisible.value = false
   calendarVisible.value = false
   emit('update:visible', false)
 }
 
 const handlePresetSelect = async (preset: T.ReportDatePreset) => {
-  props.filterForm.datePreset = preset
+  filterFormModel.datePreset = preset
   if (preset !== 'custom') {
     return
   }
@@ -393,34 +490,68 @@ const handlePresetSelect = async (preset: T.ReportDatePreset) => {
 }
 
 const handleSubjectSelect = (subjectId: string) => {
-  props.filterForm.subjectId = String(subjectId || '')
+  const normalizedSubjectId = String(subjectId || '')
+  const changed = filterFormModel.subjectId !== normalizedSubjectId
+  filterFormModel.subjectId = normalizedSubjectId
+  if (changed) {
+    filterFormModel.tagId = ''
+  }
   subjectPickerVisible.value = false
 }
 
+const handleTagSelect = (tagId: string) => {
+  filterFormModel.tagId = String(tagId || '')
+  tagPickerVisible.value = false
+}
+
 const handlePaymentMethodSelect = (paymentMethod: string) => {
-  props.filterForm.paymentMethod = String(paymentMethod || '')
+  filterFormModel.paymentMethod = String(paymentMethod || '')
   paymentPickerVisible.value = false
 }
 
 const handleCalendarConfirm = (value: CalendarValue) => {
   const range = (Array.isArray(value) ? value : [value])
     .slice(0, 2)
-    .map(item => dayjs(item))
-    .filter(item => item.isValid())
+    .map((item) => dayjs(item))
+    .filter((item) => item.isValid())
     .sort((a, b) => a.valueOf() - b.valueOf())
 
   if (range.length === 2) {
-    props.filterForm.datePreset = 'custom'
-    props.filterForm.dateRange = [range[0].format('YYYY-MM-DD'), range[1].format('YYYY-MM-DD')]
+    filterFormModel.datePreset = 'custom'
+    filterFormModel.dateRange = [range[0].format('YYYY-MM-DD'), range[1].format('YYYY-MM-DD')]
     calendarValue.value = [range[0].toDate(), range[1].toDate()]
   }
   calendarVisible.value = false
 }
 
 watch(
+  () => filterFormModel.subjectId,
+  (value) => {
+    if (value) {
+      return
+    }
+    tagPickerVisible.value = false
+    filterFormModel.tagId = ''
+  },
+)
+
+watch(
+  () => props.visible,
+  (visible) => {
+    if (visible) {
+      return
+    }
+    subjectPickerVisible.value = false
+    tagPickerVisible.value = false
+    paymentPickerVisible.value = false
+    calendarVisible.value = false
+  },
+)
+
+watch(
   () => [props.visible, props.autoOpenCalendar] as const,
   async ([visible, autoOpenCalendar]) => {
-    if (!visible || !autoOpenCalendar || props.filterForm.datePreset !== 'custom') {
+    if (!visible || !autoOpenCalendar || filterFormModel.datePreset !== 'custom') {
       return
     }
     await nextTick()
@@ -483,6 +614,7 @@ watch(
 
 .mobile-report-filter-popup__selector-field,
 .mobile-option-picker__subject-card,
+.mobile-option-picker__tag-chip,
 .mobile-option-picker__payment-option {
   padding: 0;
   min-height: 0;
@@ -491,6 +623,7 @@ watch(
 
 .mobile-report-filter-popup__selector-field::after,
 .mobile-option-picker__subject-card::after,
+.mobile-option-picker__tag-chip::after,
 .mobile-option-picker__payment-option::after {
   display: none;
 }
@@ -506,6 +639,10 @@ watch(
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.94);
   text-align: left;
+}
+
+.mobile-report-filter-popup__selector-field.is-disabled {
+  opacity: 0.66;
 }
 
 .mobile-report-filter-popup__field-main,
@@ -700,6 +837,40 @@ watch(
   gap: 0.32rem 0.08rem;
   align-items: start;
   padding: 0.18rem 0.08rem 0.28rem;
+}
+
+.mobile-option-picker__tag-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.16rem;
+  padding: 0.08rem 0.02rem 0.24rem;
+}
+
+.mobile-option-picker__tag-chip {
+  min-height: 0.96rem;
+  border: 0.02rem solid rgba(146, 97, 0, 0.12);
+  border-radius: 999rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #6b4a0d;
+  padding: 0 0.24rem;
+}
+
+.mobile-option-picker__tag-chip.is-active {
+  border-color: rgba(239, 188, 46, 0.35);
+  background: linear-gradient(135deg, #f7cf4b 0%, #efbc2e 100%);
+  color: #5f4a00;
+  box-shadow: 0 0.08rem 0.18rem rgba(239, 188, 46, 0.16);
+}
+
+.mobile-option-picker__tag-chip-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0.92rem;
+  font-size: 0.3rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .mobile-option-picker__payment-option {

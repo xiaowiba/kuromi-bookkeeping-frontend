@@ -19,6 +19,16 @@
             </div>
           </template>
 
+          <template #tagId>
+            <div class="subject-query-radio-scroll">
+              <a-radio-group
+                v-model="queryForm.tagId"
+                :options="tagQueryOptions"
+                :disabled="!queryForm.subjectId"
+              />
+            </div>
+          </template>
+
           <template #paymentMethod>
             <div class="subject-query-radio-scroll">
               <a-radio-group
@@ -257,6 +267,7 @@
                     <div class="report-calendar-detail__item-tags">
                       <GiCellTag :value="item.category" :dict="bk_subject_category" />
                       <GiCellTag :value="item.paymentMethod || 'default'" :dict="bk_payment_method" />
+                      <a-tag v-if="item.tagName" size="small" color="arcoblue">{{ item.tagName }}</a-tag>
                       <a-tag size="small">{{ item.userName }}</a-tag>
                     </div>
                     <p v-if="item.remark" class="report-calendar-detail__remark">{{ item.remark }}</p>
@@ -288,7 +299,7 @@
  * Web 端日历报表页面。
  *
  * 页面职责：
- * 1. 提供按用户、分类、科目、支付方式筛选的日历报表入口。
+ * 1. 提供按用户、分类、科目、标签、支付方式筛选的日历报表入口。
  * 2. 支持月视图、年视图切换和周期跳转。
  * 3. 左侧展示日历聚合，右侧展示选中日期的完整明细。
  */
@@ -338,6 +349,7 @@ const selectedDate = ref('')
 /** 复用明细页的通用筛选项，只保留日历页自己的视图模式与统计周期。 */
 const {
   subjectQueryOptions,
+  tagQueryOptions,
   paymentMethodQueryOptions,
   loadCommonFilterOptions,
   createCommonQueryColumns,
@@ -358,7 +370,8 @@ const {
  * 1. 第一行：日历视图 + 统计周期
  * 2. 第二行：所属用户 + 分类
  * 3. 第三行：科目
- * 4. 第四行：支付方式
+ * 4. 第四行：标签
+ * 5. 第五行：支付方式
  */
 const commonQueryColumns = createCommonQueryColumns({
   user: {
@@ -376,6 +389,12 @@ const commonQueryColumns = createCommonQueryColumns({
     span: { xs: 24, sm: 24, xxl: 24 },
     useRadioGroup: true,
     placeholder: '请选择科目',
+    allowSearch: true,
+  },
+  tag: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    placeholder: '请选择标签',
     allowSearch: true,
   },
   paymentMethod: {
@@ -399,6 +418,7 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.userColumn,
   commonQueryColumns.categoryColumn,
   commonQueryColumns.subjectColumn,
+  commonQueryColumns.tagColumn,
   commonQueryColumns.paymentMethodColumn,
 ])
 
@@ -533,6 +553,9 @@ const buildCalendarQuery = (overrides: Partial<T.ReportCalendarQuery> = {}): T.R
   }
   if (queryForm.subjectId) {
     query.subjectId = queryForm.subjectId
+  }
+  if (queryForm.tagId) {
+    query.tagId = queryForm.tagId
   }
   if (queryForm.paymentMethod) {
     query.paymentMethod = queryForm.paymentMethod

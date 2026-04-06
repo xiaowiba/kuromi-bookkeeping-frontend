@@ -42,6 +42,55 @@ export interface SubjectQuery {
 
 /** 科目分页查询条件 */
 export interface SubjectPageQuery extends SubjectQuery, PageQuery {}
+/** 科目标签响应类型 */
+export interface SubjectTagResp {
+  id: string
+  subjectId: string
+  subjectName: string
+  subjectCategory: string
+  name: string
+  icon: string
+  isDefault: boolean
+  sort: number
+  status: 1 | 2
+  createUserString: string
+  createTime: string
+  updateUserString: string
+  updateTime: string
+}
+
+/** 科目标签查询条件 */
+export interface SubjectTagQuery {
+  subjectId?: string
+  name?: string
+  status?: number
+}
+
+/** 科目标签分页查询条件 */
+export interface SubjectTagPageQuery extends SubjectTagQuery, PageQuery {}
+
+/** 科目标签新增/修改参数 */
+export interface SubjectTagReq {
+  subjectId: string | number
+  name: string
+  icon: string
+  sort?: number
+  status: 1 | 2
+}
+
+/** 标签删除影响预检查响应 */
+export interface SubjectTagDeleteImpactResp {
+  tagId: string
+  tagName: string
+  subjectId: string
+  subjectName: string
+  isDefault: boolean
+  canDelete: boolean
+  defaultTagId: string
+  defaultTagName: string
+  affectedDetailCount: number
+  warningMessage: string
+}
 
 /** 明细响应类型 */
 export interface DetailResp {
@@ -52,6 +101,8 @@ export interface DetailResp {
   subjectName: string
   subjectCategory: string
   subjectIcon?: string
+  tagId?: string
+  tagName?: string
   name: string
   amount: number
   detailDate: string
@@ -81,6 +132,7 @@ export interface DetailQuery {
   name?: string
   category?: string
   subjectId?: string
+  tagId?: string
   paymentMethod?: string
   timeMode?: DetailTimeMode
   datePreset?: DetailDatePreset
@@ -214,6 +266,7 @@ export interface ReportQuery {
   endDate?: string
   category?: string
   subjectId?: string
+  tagId?: string
   paymentMethod?: string
   userId?: string
   hidden?: number | string
@@ -234,6 +287,7 @@ export interface ReportFilterForm {
   endDate: string
   category: string
   subjectId: string
+  tagId: string
   paymentMethod: string
   userScope: ReportUserScope
   userId: string
@@ -246,6 +300,7 @@ export interface ReportCalendarFilterForm {
   anchorDate: string
   category: string
   subjectId: string
+  tagId: string
   paymentMethod: string
   userId: string
 }
@@ -277,6 +332,7 @@ export interface ReportTrendResp {
 
 /** 报表分类占比项 */
 export interface ReportCategoryShareItemResp {
+  key?: string
   name: string
   amount: number
   ratio: number
@@ -287,6 +343,17 @@ export interface ReportSubjectRankItemResp {
   subjectId: string
   subjectName: string
   category: string
+  amount: number
+  ratio: number
+  count: number
+}
+
+/** 报表标签排行项 */
+export interface ReportTagRankItemResp {
+  tagId?: string
+  tagName: string
+  subjectId: string
+  subjectName: string
   amount: number
   ratio: number
   count: number
@@ -314,6 +381,7 @@ export interface ReportDashboardResp {
   trend: ReportTrendResp
   categoryShare: ReportCategoryShareItemResp[]
   subjectRank: ReportSubjectRankItemResp[]
+  tagRank: ReportTagRankItemResp[]
   paymentMethodShare: ReportPaymentMethodShareItemResp[]
   userCompare: ReportUserCompareItemResp[]
   insight: string[]
@@ -327,6 +395,8 @@ export interface ReportRankingTableResp {
   subjectId: string
   subjectName: string
   subjectIcon?: string
+  tagId?: string
+  tagName?: string
   dimensionName: string
   category: string
   paymentMethod: string
@@ -359,6 +429,8 @@ export interface ReportCalendarPreviewItemResp {
   subjectId: string
   subjectName: string
   subjectIcon?: string
+  tagId?: string
+  tagName?: string
   detailName: string
   category: string
   amount: number
@@ -414,6 +486,8 @@ export interface ReportCalendarDayDetailItemResp {
   subjectId: string
   subjectName: string
   subjectIcon?: string
+  tagId?: string
+  tagName?: string
   detailName: string
   category: string
   paymentMethod: string

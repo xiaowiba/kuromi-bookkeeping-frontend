@@ -74,6 +74,8 @@ defineOptions({ name: 'MobileAmountKeyboard' })
 const MAX_AMOUNT = 999999
 const MAX_DECIMAL_LENGTH = 2
 const AMOUNT_KEYBOARD_POPUP_Z_INDEX = 1600
+const DIGIT_HAPTIC_DURATION = 10
+const ACTION_HAPTIC_DURATION = 16
 const amountKeyboardOverlayProps = {
   zIndex: AMOUNT_KEYBOARD_POPUP_Z_INDEX - 1,
 }
@@ -104,6 +106,11 @@ const syncDraftValue = () => {
   draftValue.value = String(props.modelValue || '')
 }
 
+const triggerHapticFeedback = (duration: number) => {
+  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return
+  navigator.vibrate(duration)
+}
+
 const isValidAmount = (value: string) => {
   if (!value) return true
   if (!/^\d+(\.\d{0,2})?$/.test(value)) return false
@@ -132,10 +139,13 @@ const handleDelete = () => {
 }
 
 const handleClear = () => {
+  triggerHapticFeedback(ACTION_HAPTIC_DURATION)
   draftValue.value = ''
 }
 
 const handleKeyPress = (key: KeyboardKey) => {
+  triggerHapticFeedback(key.type === 'digit' ? DIGIT_HAPTIC_DURATION : ACTION_HAPTIC_DURATION)
+
   if (key.type === 'delete') {
     handleDelete()
     return
@@ -152,11 +162,13 @@ const normalizeAmountValue = (value: string) => {
 }
 
 const handleCancel = () => {
+  triggerHapticFeedback(ACTION_HAPTIC_DURATION)
   syncDraftValue()
   popupVisible.value = false
 }
 
 const handleConfirm = () => {
+  triggerHapticFeedback(ACTION_HAPTIC_DURATION)
   emit('update:modelValue', normalizeAmountValue(draftValue.value))
   popupVisible.value = false
 }

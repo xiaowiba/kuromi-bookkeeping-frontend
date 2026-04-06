@@ -1,21 +1,22 @@
 import type { EChartsOption } from 'echarts'
 import { computed, toValue } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
-import type * as T from '@/apis/bookkeeping/type'
 import {
   REPORT_MOBILE_RANK_LIMIT,
 } from './reportConstants'
 import {
   formatReportAmount,
   formatReportCurrency,
-  resolveReportPaymentMethodLabel,
   formatReportRatio,
   formatTrendAxisLabel,
+  resolveReportPaymentMethodLabel,
 } from './reportFormat'
+import type * as T from '@/apis/bookkeeping/type'
 
 interface ReportOptionMode {
   compact?: boolean
   dualAxis?: boolean
+  rankLimit?: number | false
 }
 
 const REPORT_COLORS = {
@@ -66,8 +67,8 @@ export const buildTrendChartOption = (
     return buildEmptyOption('当前区间暂无趋势数据')
   }
 
-  const expenseData = points.map(item => toChartNumber(item.expense))
-  const incomeData = points.map(item => toChartNumber(item.income))
+  const expenseData = points.map((item) => toChartNumber(item.expense))
+  const incomeData = points.map((item) => toChartNumber(item.income))
   const useDualAxis = mode.compact ? !!mode.dualAxis : true
 
   return {
@@ -78,7 +79,7 @@ export const buildTrendChartOption = (
       borderWidth: 0,
       textStyle: { color: '#fff' },
       formatter: (params: any) => {
-        const lines = (Array.isArray(params) ? params : [params]).map(item => {
+        const lines = (Array.isArray(params) ? params : [params]).map((item) => {
           return `${item.marker}${item.seriesName}：${formatReportCurrency(item.value)}`
         })
         return [params?.[0]?.axisValueLabel ?? '', ...lines].join('<br/>')
@@ -105,7 +106,7 @@ export const buildTrendChartOption = (
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: points.map(item => formatTrendAxisLabel(item.label, trend?.granularity ?? 'day', !!mode.compact)),
+      data: points.map((item) => formatTrendAxisLabel(item.label, trend?.granularity ?? 'day', !!mode.compact)),
       axisLine: { lineStyle: { color: REPORT_COLORS.border } },
       axisLabel: {
         color: REPORT_COLORS.subText,
@@ -240,7 +241,7 @@ export const buildCategoryShareOption = (
         labelLine: {
           lineStyle: { color: REPORT_COLORS.border },
         },
-        data: source.map(item => ({
+        data: source.map((item) => ({
           name: item.name,
           value: toChartNumber(item.amount),
         })),
@@ -250,7 +251,7 @@ export const buildCategoryShareOption = (
 }
 
 const buildHorizontalBarOption = (
-  source: Array<{ name: string; value: number; extra?: string }>,
+  source: Array<{ name: string, value: number, extra?: string }>,
   color: string,
   emptyText: string,
   mode: ReportOptionMode = {},
@@ -298,7 +299,7 @@ const buildHorizontalBarOption = (
         overflow: 'truncate',
         width: mode.compact ? 84 : 112,
       },
-      data: source.map(item => item.name),
+      data: source.map((item) => item.name),
     },
     series: [
       {
@@ -321,13 +322,24 @@ const buildHorizontalBarOption = (
   }
 }
 
+const resolveRankSource = <T>(list: T[] | undefined, mode: ReportOptionMode) => {
+  const source = list ?? []
+  if (mode.rankLimit === false) {
+    return source
+  }
+  if (typeof mode.rankLimit === 'number') {
+    return source.slice(0, mode.rankLimit)
+  }
+  return mode.compact ? source.slice(0, REPORT_MOBILE_RANK_LIMIT) : source
+}
+
 export const buildSubjectRankOption = (
   list: T.ReportSubjectRankItemResp[] | undefined,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
-  const source = (mode.compact ? (list ?? []).slice(0, REPORT_MOBILE_RANK_LIMIT) : (list ?? []))
+  const source = resolveRankSource(list, mode)
     .reverse()
-    .map(item => ({
+    .map((item) => ({
       name: item.subjectName,
       value: toChartNumber(item.amount),
       extra: `占比 ${formatReportRatio(item.ratio)} / ${item.count} 笔`,
@@ -336,13 +348,28 @@ export const buildSubjectRankOption = (
   return buildHorizontalBarOption(source, REPORT_COLORS.primary, '当前区间暂无科目排行', mode)
 }
 
+export const buildTagRankOption = (
+  list: T.ReportTagRankItemResp[] | undefined,
+  mode: ReportOptionMode = {},
+): EChartsOption => {
+  const source = resolveRankSource(list, mode)
+    .reverse()
+    .map((item) => ({
+      name: item.tagName,
+      value: toChartNumber(item.amount),
+      extra: `科目 ${item.subjectName} / 占比 ${formatReportRatio(item.ratio)} / ${item.count} 笔`,
+    }))
+
+  return buildHorizontalBarOption(source, REPORT_COLORS.secondary, '当前条件下暂无标签排行', mode)
+}
+
 export const buildPaymentMethodOption = (
   list: T.ReportPaymentMethodShareItemResp[] | undefined,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
-  const source = (mode.compact ? (list ?? []).slice(0, REPORT_MOBILE_RANK_LIMIT) : (list ?? []))
+  const source = resolveRankSource(list, mode)
     .reverse()
-    .map(item => ({
+    .map((item) => ({
       name: resolveReportPaymentMethodLabel(item.key, item.label),
       value: toChartNumber(item.amount),
       extra: `占比 ${formatReportRatio(item.ratio)}`,
@@ -369,7 +396,7 @@ export const buildUserCompareOption = (
       borderWidth: 0,
       textStyle: { color: '#fff' },
       formatter: (params: any) => {
-        const lines = (Array.isArray(params) ? params : [params]).map(item => {
+        const lines = (Array.isArray(params) ? params : [params]).map((item) => {
           return `${item.marker}${item.seriesName}：${formatReportCurrency(item.value)}`
         })
         return [params?.[0]?.axisValueLabel ?? '', ...lines].join('<br/>')
@@ -400,7 +427,7 @@ export const buildUserCompareOption = (
         color: REPORT_COLORS.text,
         fontSize: mode.compact ? 11 : 12,
       },
-      data: source.map(item => item.userName),
+      data: source.map((item) => item.userName),
     },
     yAxis: {
       type: 'value',
@@ -420,7 +447,7 @@ export const buildUserCompareOption = (
           color: REPORT_COLORS.expense,
           borderRadius: [999, 999, 0, 0],
         },
-        data: source.map(item => toChartNumber(item.expense)),
+        data: source.map((item) => toChartNumber(item.expense)),
       },
       {
         name: '收入',
@@ -430,7 +457,7 @@ export const buildUserCompareOption = (
           color: REPORT_COLORS.income,
           borderRadius: [999, 999, 0, 0],
         },
-        data: source.map(item => toChartNumber(item.income)),
+        data: source.map((item) => toChartNumber(item.income)),
       },
     ],
   }
@@ -443,6 +470,7 @@ export const useReportOptions = (
   const trendOption = computed(() => buildTrendChartOption(toValue(source)?.trend, toValue(mode)))
   const categoryOption = computed(() => buildCategoryShareOption(toValue(source)?.categoryShare, toValue(mode)))
   const subjectRankOption = computed(() => buildSubjectRankOption(toValue(source)?.subjectRank, toValue(mode)))
+  const tagRankOption = computed(() => buildTagRankOption(toValue(source)?.tagRank, toValue(mode)))
   const paymentMethodOption = computed(() => buildPaymentMethodOption(toValue(source)?.paymentMethodShare, toValue(mode)))
   const userCompareOption = computed(() => buildUserCompareOption(toValue(source)?.userCompare, toValue(mode)))
 
@@ -450,6 +478,7 @@ export const useReportOptions = (
     trendOption,
     categoryOption,
     subjectRankOption,
+    tagRankOption,
     paymentMethodOption,
     userCompareOption,
   }

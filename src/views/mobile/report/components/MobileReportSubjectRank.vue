@@ -2,19 +2,26 @@
   <section class="mobile-panel mobile-report-chart-panel">
     <div class="mobile-report-chart-panel__header">
       <h3 class="mobile-section-title">科目排行</h3>
-      <span>Top</span>
+      <span>{{ countText }}</span>
     </div>
-    <Chart :option="option" :update-options="{ notMerge: true }" height="260px" />
+    <Chart :option="option" :update-options="{ notMerge: true }" :height="chartHeight" />
   </section>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { EChartsOption } from 'echarts'
 import Chart from '@/components/Chart/index.vue'
 
-defineProps<{
+const props = withDefaults(defineProps<{
   option: EChartsOption
-}>()
+  count?: number
+}>(), {
+  count: 0,
+})
+
+const chartHeight = computed(() => `${Math.max(260, 88 + props.count * 44)}px`)
+const countText = computed(() => (props.count > 0 ? `共${props.count}项` : '暂无数据'))
 </script>
 
 <style scoped lang="scss">

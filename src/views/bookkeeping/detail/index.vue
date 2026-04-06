@@ -30,6 +30,16 @@
               />
             </div>
           </template>
+          <template #tagId>
+            <div class="subject-query-radio-scroll">
+              <a-radio-group
+                v-model="queryForm.tagId"
+                :options="tagQueryOptions"
+                :disabled="!queryForm.subjectId"
+                @change="handleTagQueryChange"
+              />
+            </div>
+          </template>
           <template #paymentMethod>
             <div class="subject-query-radio-scroll">
               <a-radio-group
@@ -184,6 +194,10 @@
           :detail-name="record.name"
         />
       </template>
+      <template #tagName="{ record }">
+        <a-tag v-if="record.tagName" size="small" color="gold">{{ record.tagName }}</a-tag>
+        <span v-else class="detail-tag-empty">未选择</span>
+      </template>
       <template #paymentMethod="{ record }">
         <GiCellTag :value="record.paymentMethod" :dict="bk_payment_method" />
       </template>
@@ -335,6 +349,7 @@ const createDefaultDetailQueryForm = () => {
     name: '',
     category: '',
     subjectId: '',
+    tagId: '',
     paymentMethod: '',
     timeMode: DETAIL_DEFAULT_TIME_MODE as DetailTimeMode,
     datePreset: DETAIL_DEFAULT_DATE_PRESET as DetailDatePreset,
@@ -364,6 +379,7 @@ const {
   isAdmin,
   paymentMethodQueryOptions,
   subjectQueryOptions: subjectOptions,
+  tagQueryOptions,
   clearSubjectSelection,
   loadCommonFilterOptions,
   createCommonQueryColumns,
@@ -515,6 +531,10 @@ const handleSubjectQueryChange = () => {
   triggerQuerySearch()
 }
 
+const handleTagQueryChange = () => {
+  triggerQuerySearch()
+}
+
 const handlePaymentMethodQueryChange = () => {
   triggerQuerySearch()
 }
@@ -541,9 +561,10 @@ const handleSortModeChange = (value: string | number | boolean) => {
  * 2. 第二行：排序方式
  * 3. 第三行：所属用户 + 分类
  * 4. 第四行：科目
- * 5. 第五行：支付方式
- * 6. 第六行：明细名称
- * 7. 第七行：是否隐藏（仅管理员可见）
+ * 5. 第五行：标签
+ * 6. 第六行：支付方式
+ * 7. 第七行：明细名称
+ * 8. 第八行：是否隐藏（仅管理员可见）
  */
 const commonQueryColumns = createCommonQueryColumns({
   user: {
@@ -562,6 +583,11 @@ const commonQueryColumns = createCommonQueryColumns({
     span: { xs: 24, sm: 24, xxl: 24 },
     useRadioGroup: true,
     onChange: handleSubjectQueryChange,
+  },
+  tag: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    onChange: handleTagQueryChange,
   },
   paymentMethod: {
     span: { xs: 24, sm: 24, xxl: 24 },
@@ -601,6 +627,7 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.userColumn,
   commonQueryColumns.categoryColumn,
   commonQueryColumns.subjectColumn,
+  commonQueryColumns.tagColumn,
   commonQueryColumns.paymentMethodColumn,
   {
     type: 'select',
@@ -727,6 +754,7 @@ const columns = computed<TableInstance['columns']>(() => [
   { title: '科目 / 明细', dataIndex: 'subjectDetail', slotName: 'subjectDetail', width: 240, show: true },
   { title: '所属用户', dataIndex: 'userNickname', slotName: 'userNickname', width: 90, ellipsis: true, tooltip: true, show: true },
   { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center', show: true },
+  { title: '标签', dataIndex: 'tagName', slotName: 'tagName', width: 120, align: 'center', show: true },
   { title: '支付方式', dataIndex: 'paymentMethod', slotName: 'paymentMethod', width: 90, align: 'center', show: true },
   {
     title: '金额',
@@ -1106,6 +1134,11 @@ onUnmounted(() => {
 .detail-date-inline__text {
   color: var(--color-text-1);
   font-weight: 600;
+}
+
+.detail-tag-empty {
+  color: var(--color-text-3);
+  font-size: 12px;
 }
 
 @media (max-width: 768px) {

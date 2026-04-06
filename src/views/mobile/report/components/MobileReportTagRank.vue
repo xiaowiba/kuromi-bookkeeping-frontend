@@ -1,7 +1,7 @@
 <template>
   <section class="mobile-panel mobile-report-chart-panel">
     <div class="mobile-report-chart-panel__header">
-      <h3 class="mobile-section-title">支付方式</h3>
+      <h3 class="mobile-section-title">标签排行</h3>
       <span>{{ countText }}</span>
     </div>
     <Chart :option="option" :update-options="{ notMerge: true }" :height="chartHeight" />

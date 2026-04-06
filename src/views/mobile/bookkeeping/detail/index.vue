@@ -1,7 +1,7 @@
 <template>
   <div class="mobile-detail-page">
     <section class="mobile-detail-hero">
-      <div class="mobile-detail-hero__headline" v-show="false">
+      <div v-show="false" class="mobile-detail-hero__headline">
         <h1 class="mobile-detail-hero__title">{{ appTitle }}</h1>
         <p class="mobile-detail-hero__subtitle">本月明细 · 轻量记账</p>
       </div>
@@ -17,10 +17,10 @@
             全部
           </button>
           <button
-              type="button"
-              class="mobile-detail-hero__chip"
-              :class="{ 'is-active': query.userId === currentUserId }"
-              @click="handleUserFilterChange(currentUserId)"
+            type="button"
+            class="mobile-detail-hero__chip"
+            :class="{ 'is-active': query.userId === currentUserId }"
+            @click="handleUserFilterChange(currentUserId)"
           >
             {{ userStore.userInfo.nickname }}
           </button>
@@ -72,7 +72,6 @@
         >
           下月
         </button>
-
       </div>
 
       <div class="mobile-detail-hero__summary">
@@ -186,14 +185,14 @@
           <p class="mobile-detail-ledger__meta">{{ ledgerMetaText }}</p>
         </div>
         <div class="mobile-detail-ledger__actions">
-          <button
+          <!-- button
             type="button"
             class="mobile-detail-ledger__action"
             :class="{ 'is-warning': filterVisible }"
             @click="toggleFilterPanel"
           >
             {{ filterVisible ? '收起筛选' : '筛选' }}
-          </button>
+          </button -->
           <button
             v-if="privacyStore.isPrivacyMode"
             type="button"
@@ -224,10 +223,9 @@
             <article
               v-for="item in group.items"
               :key="item.id"
-              class="mobile-detail-row"
+              class="mobile-detail-row is-clickable"
               :class="{
                 'is-hidden': privacyStore.isPrivacyMode && item.hidden === 1,
-                'is-clickable': true,
               }"
               @click="handleRowClick(item)"
             >
@@ -242,6 +240,15 @@
               <div class="mobile-detail-row__content">
                 <h4 class="mobile-detail-row__title">{{ item.name }}</h4>
                 <t-tag
+                  v-if="item.tagName"
+                  class="mobile-detail-row__tag"
+                  size="small"
+                  variant="light"
+                  theme="warning"
+                >
+                  {{ item.tagName }}
+                </t-tag>
+                <t-tag
                   class="mobile-detail-row__payment-tag"
                   size="small"
                   variant="light"
@@ -250,8 +257,8 @@
                   {{ paymentMethodLabel(item.paymentMethod) }}
                 </t-tag>
                 <span
-                    v-if="privacyStore.isPrivacyMode && item.hidden === 1"
-                    class="mobile-detail-row__privacy"
+                  v-if="privacyStore.isPrivacyMode && item.hidden === 1"
+                  class="mobile-detail-row__privacy"
                 >
                   隐
                 </span>
@@ -300,10 +307,12 @@
       </div>
     </t-popup>
 
-    <t-popup v-model:visible="actionPopupVisible"
-             placement="bottom"
-             :close-btn="true"
-             destroy-on-close>
+    <t-popup
+      v-model:visible="actionPopupVisible"
+      placement="bottom"
+      :close-btn="true"
+      destroy-on-close
+    >
       <div class="mobile-bottom-sheet">
         <div class="mobile-bottom-sheet__panel">
           <div class="mobile-bottom-sheet__header">
@@ -336,6 +345,10 @@
             <div class="mobile-bottom-sheet__detail-row">
               <span>科目</span>
               <strong>{{ activeDetail.subjectName }}</strong>
+            </div>
+            <div class="mobile-bottom-sheet__detail-row">
+              <span>标签</span>
+              <strong>{{ activeDetail.tagName || '未选择' }}</strong>
             </div>
             <div class="mobile-bottom-sheet__detail-row">
               <span>记账人</span>
@@ -392,7 +405,6 @@
         </div>
       </div>
     </t-popup>
-
   </div>
 </template>
 
@@ -521,9 +533,15 @@ const resetMonthToCurrent = () => {
   syncMonthPickerValue(query.month)
 }
 
+function subjectCategoryLabel(value: string) {
+  if (!value) return '全部分类'
+  const current = bkSubjectCategory.value.find((item) => String(item.value) === value)
+  return current?.label || value
+}
+
 const appTitle = computed(() => appStore.getTitle() || '鲨鱼记账')
 const followUserOptions = computed(() =>
-  userOptions.value.filter(item => String(item.value) !== String(userStore.userInfo.id)),
+  userOptions.value.filter((item) => String(item.value) !== String(userStore.userInfo.id)),
 )
 const isCurrentMonth = computed(() => query.month === getCurrentMonth())
 const currentMonthText = computed(() => dayjs(`${query.month}-01`).format('YYYY年M月'))
@@ -724,7 +742,6 @@ const formatListAmount = (value: number) => {
   return `${value >= 0 ? '+' : '-'}${amountText.replace('-', '')}`
 }
 const formatBalanceNumber = (value: number) => `${value < 0 ? '-' : ''}¥${formatNumber(Math.abs(value))}`
-const formatSignedNumber = (value: number) => `${value >= 0 ? '+' : '-'}¥${formatNumber(Math.abs(value))}`
 const formatGroupSummary = (group: DetailGroup) => {
   if (group.totalIncome > 0 && group.totalExpense > 0) {
     return `收 ¥${formatNumber(group.totalIncome)}  支 ¥${formatNumber(group.totalExpense)}`
@@ -735,14 +752,8 @@ const formatGroupSummary = (group: DetailGroup) => {
   return `支 ¥${formatNumber(group.totalExpense)}`
 }
 
-const subjectCategoryLabel = (value: string) => {
-  if (!value) return '全部分类'
-  const current = bkSubjectCategory.value.find(item => String(item.value) === value)
-  return current?.label || value
-}
-
 const findPaymentMethodItem = (value: string) =>
-  bkPaymentMethod.value.find(item => String(item.value) === String(value))
+  bkPaymentMethod.value.find((item) => String(item.value) === String(value))
 
 const paymentMethodLabel = (value: string) => {
   if (!value) return '默认'
@@ -758,16 +769,6 @@ const subjectCategoryClass = (value: string) => {
   if (value === 'expense' || value === '1') return 'is-expense'
   if (value === 'income' || value === '2') return 'is-income'
   return 'is-neutral'
-}
-
-const subjectBadge = (item: DetailResp) => {
-  if (item.subjectName) {
-    return item.subjectName.slice(0, 1)
-  }
-  if (item.name) {
-    return item.name.slice(0, 1)
-  }
-  return '账'
 }
 
 watch(
@@ -1313,6 +1314,10 @@ onUnmounted(() => {
 }
 
 .mobile-detail-row__payment-tag {
+  flex-shrink: 0;
+}
+
+.mobile-detail-row__tag {
   flex-shrink: 0;
 }
 

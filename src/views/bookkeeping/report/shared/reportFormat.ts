@@ -154,6 +154,9 @@ export const buildReportQuery = (
   if (form.subjectId) {
     query.subjectId = form.subjectId
   }
+  if (form.tagId) {
+    query.tagId = form.tagId
+  }
   if (form.paymentMethod) {
     query.paymentMethod = form.paymentMethod
   }

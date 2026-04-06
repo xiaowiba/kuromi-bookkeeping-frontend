@@ -63,6 +63,27 @@
           </div>
 
           <div class="mobile-field">
+            <label class="mobile-field__label">标签</label>
+            <t-button
+              block
+              size="large"
+              variant="text"
+              class="mobile-direct-create__selector-field"
+              :class="{ 'is-disabled': !form.subjectId }"
+              @click="openTagPicker"
+            >
+              <span class="mobile-direct-create__field-main">
+                {{ selectedTagLabel }}
+              </span>
+              <template #suffix>
+                <small class="mobile-direct-create__field-side">
+                  {{ form.subjectId ? '点击选择' : '请先选择科目' }}
+                </small>
+              </template>
+            </t-button>
+          </div>
+
+          <div class="mobile-field">
             <label class="mobile-field__label">明细名称</label>
             <t-input
               v-model="form.name"
@@ -203,6 +224,59 @@
   </t-popup>
 
   <t-popup
+    v-model:visible="tagPickerVisible"
+    placement="bottom"
+    :prevent-scroll-through="true"
+    :close-btn="true"
+    :destroy-on-close="true"
+    :z-index="TAG_PICKER_POPUP_Z_INDEX"
+    :show-overlay="true"
+    :overlay-props="tagPickerOverlayProps"
+    :close-on-overlay-click="true"
+  >
+    <div class="mobile-option-picker">
+      <div class="mobile-option-picker__header">
+        <div>
+          <p class="mobile-option-picker__eyebrow">{{ selectedSubjectName || '当前科目' }}</p>
+          <h3 class="mobile-option-picker__title">选择标签</h3>
+        </div>
+      </div>
+
+      <div class="mobile-option-picker__body">
+        <div class="mobile-option-picker__subject-grid mobile-option-picker__tag-grid">
+          <t-button
+            v-for="item in tagPickerOptions"
+            :key="`tag-${item.id || 'empty'}`"
+            block
+            size="large"
+            variant="text"
+            class="mobile-option-picker__subject-card mobile-option-picker__tag-card"
+            :class="{
+              'is-active': tempTagId === item.id,
+              'is-disabled': item.disabled,
+            }"
+            :disabled="item.disabled"
+            @click="handleTagSelect(item.id)"
+          >
+            <span class="mobile-option-picker__subject-card-content">
+              <span class="mobile-option-picker__subject-icon mobile-option-picker__tag-icon">
+                <BookkeepingSubjectIcon
+                  :icon="item.icon || 'general'"
+                  mode="mobile"
+                  size="0.8rem"
+                />
+              </span>
+              <span class="mobile-option-picker__subject-name" :title="item.label">
+                {{ item.name }}
+              </span>
+            </span>
+          </t-button>
+        </div>
+      </div>
+    </div>
+  </t-popup>
+
+  <t-popup
     v-model:visible="paymentPickerVisible"
     placement="bottom"
     :prevent-scroll-through="true"
@@ -287,29 +361,30 @@
  */
 import dayjs from 'dayjs'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
+import MobileAmountKeyboard from './MobileAmountKeyboard.vue'
+import MobileDetailFormSkeleton from './MobileDetailFormSkeleton.vue'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
-import { type SubjectResp, listSubject } from '@/apis/bookkeeping/subject'
+import { listSubject } from '@/apis/bookkeeping/subject'
+import { listSubjectTagAll } from '@/apis/bookkeeping/subject-tag'
+import type { SubjectResp, SubjectTagResp } from '@/apis/bookkeeping/type'
 import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
 import { useDict } from '@/hooks/app'
 import { usePrivacyStore, useUserStore } from '@/stores'
 import has from '@/utils/has'
 import { mobileToast } from '@/utils/mobile-toast'
 import { useDetailUserOptions } from '@/views/bookkeeping/shared/useDetailUserOptions'
-import MobileAmountKeyboard from './MobileAmountKeyboard.vue'
-import MobileDetailFormSkeleton from './MobileDetailFormSkeleton.vue'
 
 interface Props {
   visible: boolean
   detailId?: string
 }
 
+defineOptions({ name: 'MobileDetailDirectCreatePopup' })
 const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'update:visible', value: boolean): void
   (e: 'save-success'): void
 }>()
-
-defineOptions({ name: 'MobileDetailDirectCreatePopup' })
 
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
@@ -321,10 +396,14 @@ const MAX_DETAIL_NAME_LENGTH = 100
 const MAX_DETAIL_REMARK_LENGTH = 200
 const getToday = () => dayjs().format('YYYY-MM-DD')
 const SUBJECT_PICKER_POPUP_Z_INDEX = 1500
+const TAG_PICKER_POPUP_Z_INDEX = 1500
 const PAYMENT_PICKER_POPUP_Z_INDEX = 1500
 const DATE_PICKER_POPUP_Z_INDEX = 1550
 const subjectPickerOverlayProps = {
   zIndex: SUBJECT_PICKER_POPUP_Z_INDEX - 1,
+}
+const tagPickerOverlayProps = {
+  zIndex: TAG_PICKER_POPUP_Z_INDEX - 1,
 }
 const paymentPickerOverlayProps = {
   zIndex: PAYMENT_PICKER_POPUP_Z_INDEX - 1,
@@ -347,24 +426,26 @@ const submitButtonText = computed(() => (isUpdate.value ? '保存' : '完成'))
 const optionsLoading = ref(false)
 const submitting = ref(false)
 const allSubjects = ref<SubjectResp[]>([])
-const lastAutoFillName = ref('')
+const subjectTags = ref<SubjectTagResp[]>([])
 const datePickerVisible = ref(false)
 const amountKeyboardVisible = ref(false)
 const subjectPickerVisible = ref(false)
+const tagPickerVisible = ref(false)
 const paymentPickerVisible = ref(false)
 const tempSubjectId = ref('')
+const tempTagId = ref('')
 const tempPaymentMethod = ref('default')
 const datePickerValue = ref(getToday())
 
 const canManageHidden = computed(() => has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode)
 const categoryOptions = computed(() =>
-  bkSubjectCategory.value.map(item => ({
+  bkSubjectCategory.value.map((item) => ({
     label: String(item.label),
     value: String(item.value),
   })),
 )
 const paymentMethodOptions = computed(() =>
-  bkPaymentMethod.value.map(item => ({
+  bkPaymentMethod.value.map((item) => ({
     label: String(item.label),
     value: String(item.value),
   })),
@@ -374,6 +455,7 @@ const createDefaultForm = () => ({
   userId: String(userStore.userInfo.id || ''),
   category: '',
   subjectId: '',
+  tagId: '',
   name: '',
   amount: '',
   detailDate: getToday(),
@@ -385,22 +467,58 @@ const createDefaultForm = () => ({
 const form = reactive(createDefaultForm())
 
 const selectedCategoryLabel = computed(() => {
-  const current = categoryOptions.value.find(item => item.value === form.category)
+  const current = categoryOptions.value.find((item) => item.value === form.category)
   return current?.label || '当前分类'
 })
 
 const subjectOptions = computed(() =>
-  allSubjects.value.filter(item => item.status === 1 && item.category === form.category),
+  allSubjects.value.filter((item) => item.status === 1 && item.category === form.category),
 )
 
 const selectedSubject = computed(() =>
-  subjectOptions.value.find(item => item.id === form.subjectId) || null,
+  subjectOptions.value.find((item) => item.id === form.subjectId) || null,
 )
 
 const selectedSubjectName = computed(() => selectedSubject.value?.name || '')
+const buildSubjectTagLabel = (tag: SubjectTagResp) => {
+  const suffixList: string[] = []
+  if (tag.isDefault) {
+    suffixList.push('默认')
+  }
+  if (tag.status === 2) {
+    suffixList.push('停用')
+  }
+  return suffixList.length ? `${tag.name}（${suffixList.join(' / ')}）` : tag.name
+}
+const tagPickerOptions = computed(() => [
+  {
+    id: '',
+    label: '不选择标签',
+    name: '不选择标签',
+    icon: 'general',
+    disabled: false,
+  },
+  ...subjectTags.value.map((item) => ({
+    id: String(item.id),
+    name: item.name,
+    label: buildSubjectTagLabel(item),
+    icon: item.icon || 'general',
+    disabled: item.status === 2 && String(item.id) !== tempTagId.value,
+  })),
+])
+const selectedTagLabel = computed(() => {
+  if (!form.subjectId) {
+    return '请先选择科目'
+  }
+  if (!form.tagId) {
+    return '不选择标签'
+  }
+  const current = subjectTags.value.find((item) => String(item.id) === String(form.tagId))
+  return current ? buildSubjectTagLabel(current) : '不选择标签'
+})
 
 const selectedPaymentMethodLabel = computed(() => {
-  const current = paymentMethodOptions.value.find(item => item.value === form.paymentMethod)
+  const current = paymentMethodOptions.value.find((item) => item.value === form.paymentMethod)
   return current?.label || '默认'
 })
 
@@ -408,13 +526,15 @@ const resolvePaymentMethodMarker = (label: string) => String(label || '').trim()
 
 const resetState = () => {
   Object.assign(form, createDefaultForm())
-  lastAutoFillName.value = ''
+  subjectTags.value = []
   tempSubjectId.value = ''
+  tempTagId.value = ''
   tempPaymentMethod.value = form.paymentMethod
   datePickerValue.value = form.detailDate || getToday()
   datePickerVisible.value = false
   amountKeyboardVisible.value = false
   subjectPickerVisible.value = false
+  tagPickerVisible.value = false
   paymentPickerVisible.value = false
 }
 
@@ -424,9 +544,36 @@ const loadSubjectOptions = async () => {
   allSubjects.value = data.list ?? []
 }
 
+/**
+ * 加载当前科目下的标签选项。
+ *
+ * 标签不是必填项，因此这里额外保留一个“不选择标签”的前端空值。
+ * 编辑态如果回显的是已停用标签，需要继续保留该标签，避免历史数据无法保存。
+ */
+const loadSubjectTagOptions = async (subjectId?: string, selectedTagId?: string) => {
+  if (!subjectId) {
+    subjectTags.value = []
+    form.tagId = ''
+    tempTagId.value = ''
+    return
+  }
+  const keepTagId = String(selectedTagId ?? form.tagId ?? '')
+  try {
+    const { data } = await listSubjectTagAll({ subjectId })
+    subjectTags.value = data ?? []
+    const exists = subjectTags.value.some((item) => String(item.id) === keepTagId)
+    form.tagId = keepTagId && exists ? keepTagId : ''
+    tempTagId.value = form.tagId
+  } catch {
+    subjectTags.value = []
+    form.tagId = ''
+    tempTagId.value = ''
+  }
+}
+
 const fillFormByDetail = async (id: string) => {
   const { data } = await getDetail(id)
-  const matchedSubject = allSubjects.value.find(item => item.id === data.subjectId)
+  const matchedSubject = allSubjects.value.find((item) => item.id === data.subjectId)
   const category = data.subjectCategory || matchedSubject?.category || ''
   const name = String(data.name || '')
 
@@ -435,6 +582,7 @@ const fillFormByDetail = async (id: string) => {
     userId: String(data.userId || userStore.userInfo.id || ''),
     category,
     subjectId: data.subjectId || '',
+    tagId: data.tagId ? String(data.tagId) : '',
     name,
     amount: data.amount == null ? '' : String(Math.abs(Number(data.amount))),
     detailDate: data.detailDate || getToday(),
@@ -443,10 +591,11 @@ const fillFormByDetail = async (id: string) => {
     hidden: data.hidden ?? 0,
   })
 
-  lastAutoFillName.value = name
   tempSubjectId.value = form.subjectId
+  tempTagId.value = form.tagId
   tempPaymentMethod.value = form.paymentMethod
   datePickerValue.value = form.detailDate || getToday()
+  await loadSubjectTagOptions(form.subjectId, form.tagId)
 }
 
 const ensureOptionsLoaded = async () => {
@@ -459,10 +608,9 @@ const ensureOptionsLoaded = async () => {
 
 const resetSubjectAndName = () => {
   form.subjectId = ''
-  if (form.name === lastAutoFillName.value) {
-    form.name = ''
-  }
-  lastAutoFillName.value = ''
+  form.tagId = ''
+  subjectTags.value = []
+  tempTagId.value = ''
 }
 
 const handleCategoryChange = (category: string) => {
@@ -484,20 +632,36 @@ const openSubjectPicker = () => {
   subjectPickerVisible.value = true
 }
 
-const applySubjectSelection = (subjectId: string) => {
+const applySubjectSelection = async (subjectId: string) => {
   if (!subjectId) return
+  const changed = form.subjectId !== subjectId
   tempSubjectId.value = subjectId
   form.subjectId = subjectId
-  const current = subjectOptions.value.find(item => item.id === subjectId)
-  if (current && (!String(form.name || '').trim() || form.name === lastAutoFillName.value)) {
-    form.name = current.name
-    lastAutoFillName.value = current.name
+  if (changed) {
+    form.tagId = ''
+    tempTagId.value = ''
   }
+  await loadSubjectTagOptions(subjectId, form.tagId)
 }
 
-const handleSubjectSelect = (subjectId: string) => {
-  applySubjectSelection(subjectId)
+const handleSubjectSelect = async (subjectId: string) => {
+  await applySubjectSelection(subjectId)
   subjectPickerVisible.value = false
+}
+
+const openTagPicker = () => {
+  if (!form.subjectId) {
+    mobileToast.warning('请先选择科目')
+    return
+  }
+  tempTagId.value = form.tagId
+  tagPickerVisible.value = true
+}
+
+const handleTagSelect = (tagId: string) => {
+  tempTagId.value = tagId
+  form.tagId = tagId
+  tagPickerVisible.value = false
 }
 
 const openPaymentPicker = () => {
@@ -591,6 +755,7 @@ const handleSubmit = async () => {
 
   const payload = {
     ...form,
+    tagId: form.tagId ? form.tagId : undefined,
     name: String(form.name || '').trim(),
     remark: String(form.remark || '').trim(),
     amount: Number(form.amount),
@@ -736,6 +901,7 @@ watch(
 .mobile-direct-create__selector-field,
 .mobile-direct-create__value-field,
 .mobile-option-picker__subject-card,
+.mobile-option-picker__tag-card,
 .mobile-option-picker__payment-option {
   padding: 0;
   min-height: 0;
@@ -747,6 +913,7 @@ watch(
 .mobile-direct-create__value-field::after,
 .mobile-option-picker__header-btn::after,
 .mobile-option-picker__subject-card::after,
+.mobile-option-picker__tag-card::after,
 .mobile-option-picker__payment-option::after {
   display: none;
 }
@@ -1062,6 +1229,33 @@ watch(
   gap: 0.32rem 0.08rem;
   align-items: start;
   padding: 0.18rem 0.08rem 0.28rem;
+}
+
+.mobile-option-picker__tag-grid {
+  padding-bottom: 0.24rem;
+}
+
+.mobile-option-picker__tag-card {
+  margin-bottom: 0.4rem;
+}
+
+.mobile-option-picker__tag-card.is-active .mobile-option-picker__tag-icon {
+  background: linear-gradient(180deg, #ffe986 0%, #ffd84d 100%);
+  color: #5f4a00;
+  box-shadow: 0 0.08rem 0.18rem rgba(255, 209, 61, 0.28);
+}
+
+.mobile-option-picker__tag-card.is-active .mobile-option-picker__subject-name {
+  color: #1f1f1f;
+  font-weight: 500;
+}
+
+.mobile-option-picker__tag-card.is-disabled {
+  opacity: 0.55;
+}
+
+.mobile-option-picker__tag-icon {
+  background: #f5f5f5;
 }
 
 .mobile-option-picker__payment-option {

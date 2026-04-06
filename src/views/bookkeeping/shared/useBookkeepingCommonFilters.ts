@@ -17,7 +17,8 @@
 import { computed, ref, watch } from 'vue'
 import { useDetailUserOptions } from './useDetailUserOptions'
 import { listSubject } from '@/apis/bookkeeping/subject'
-import type { SubjectResp } from '@/apis/bookkeeping/type'
+import { listSubjectTagAll } from '@/apis/bookkeeping/subject-tag'
+import type { SubjectResp, SubjectTagResp } from '@/apis/bookkeeping/type'
 import type { ColumnItem } from '@/components/GiForm'
 import { useDict } from '@/hooks/app'
 import type { LabelValueState } from '@/types/global'
@@ -26,6 +27,7 @@ interface CommonFilterForm {
   userId?: string
   category: string
   subjectId: string
+  tagId?: string
   paymentMethod?: string
 }
 
@@ -52,6 +54,7 @@ interface CreateCommonQueryColumnsOptions {
   user?: CommonFilterColumnConfig
   category?: CommonFilterColumnConfig
   subject?: CommonFilterColumnConfig
+  tag?: CommonFilterColumnConfig
   paymentMethod?: CommonFilterColumnConfig
 }
 
@@ -70,6 +73,20 @@ const createAllOption = (label: string) => ({
   label,
   value: '',
 })
+
+const formatSubjectTagOptionLabel = (tag: SubjectTagResp) => {
+  const suffixList: string[] = []
+  if (tag.isDefault) {
+    suffixList.push('默认')
+  }
+  if (tag.status === 2) {
+    suffixList.push('停用')
+  }
+  if (!suffixList.length) {
+    return tag.name
+  }
+  return `${tag.name}（${suffixList.join(' / ')}）`
+}
 
 /**
  * 生成带默认值的筛选列配置。
@@ -99,6 +116,7 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
   const { bk_subject_category, bk_payment_method } = useDict('bk_subject_category', 'bk_payment_method')
   const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
   const allSubjects = ref<SubjectResp[]>([])
+  const subjectTags = ref<SubjectTagResp[]>([])
 
   const userQueryOptions = computed<LabelValueState[]>(() => [
     createAllOption(labels?.userAll ?? '全部用户'),
@@ -126,9 +144,27 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
     ]
   })
 
+  const tagQueryOptions = computed<Array<LabelValueState & { disabled?: boolean }>>(() => [
+    createAllOption(labels?.subjectAll?.replace('科目', '标签') ?? '全部标签'),
+    ...subjectTags.value.map((item) => ({
+      label: formatSubjectTagOptionLabel(item),
+      value: String(item.id),
+    })),
+  ])
+
   /** 分类变化后统一清空科目，避免保留无效筛选值。 */
   const clearSubjectSelection = () => {
     form.subjectId = ''
+    if ('tagId' in form) {
+      form.tagId = ''
+    }
+  }
+
+  /** 科目变化后同步清空标签，避免跨科目保留脏值。 */
+  const clearTagSelection = () => {
+    if ('tagId' in form) {
+      form.tagId = ''
+    }
   }
 
   /**
@@ -150,6 +186,17 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
     }
   }
 
+  /** 当前标签必须从属于当前已选科目，否则自动清空。 */
+  const syncTagSelection = () => {
+    if (!('tagId' in form) || !form.tagId) {
+      return
+    }
+    const exists = subjectTags.value.some((item) => String(item.id) === String(form.tagId))
+    if (!exists) {
+      clearTagSelection()
+    }
+  }
+
   const loadSubjectOptions = async () => {
     try {
       const { data } = await listSubject({ sort: ['sort,asc', 'id,desc'], page: 1, size: 1000 } as any)
@@ -159,10 +206,26 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
     }
   }
 
+  const loadSubjectTagOptions = async () => {
+    if (!form.subjectId) {
+      subjectTags.value = []
+      clearTagSelection()
+      return
+    }
+    try {
+      const { data } = await listSubjectTagAll({ subjectId: form.subjectId })
+      subjectTags.value = data ?? []
+    } catch {
+      subjectTags.value = []
+    }
+    syncTagSelection()
+  }
+
   /** 同时加载用户与科目选项，供页面首屏初始化复用。 */
   const loadCommonFilterOptions = async () => {
     await Promise.allSettled([loadUserOptions(), loadSubjectOptions()])
     syncSubjectSelection()
+    await loadSubjectTagOptions()
   }
 
   /**
@@ -184,6 +247,12 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
     const subjectConfig = resolveColumnConfig(columnOptions.subject, {
       label: '科目',
       placeholder: '请选择科目',
+      allowClear: true,
+      allowSearch: true,
+    })
+    const tagConfig = resolveColumnConfig(columnOptions.tag, {
+      label: '标签',
+      placeholder: '请选择标签',
       allowClear: true,
       allowSearch: true,
     })
@@ -236,6 +305,20 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       },
     }
 
+    const tagColumn: ColumnItem = {
+      type: tagConfig.useRadioGroup ? 'radio-group' : 'select',
+      label: tagConfig.label,
+      field: 'tagId',
+      span: tagConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
+      props: {
+        options: tagQueryOptions,
+        placeholder: tagConfig.placeholder,
+        allowClear: tagConfig.allowClear,
+        allowSearch: tagConfig.allowSearch,
+        onChange: tagConfig.onChange,
+      },
+    }
+
     const paymentMethodColumn: ColumnItem = {
       type: paymentMethodConfig.useRadioGroup ? 'radio-group' : 'select',
       label: paymentMethodConfig.label,
@@ -254,6 +337,7 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       userColumn,
       categoryColumn,
       subjectColumn,
+      tagColumn,
       paymentMethodColumn,
     }
   }
@@ -266,15 +350,35 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
     { immediate: true },
   )
 
+  watch(
+    () => form.subjectId,
+    async (value, oldValue) => {
+      if (!value) {
+        subjectTags.value = []
+        clearTagSelection()
+        return
+      }
+      if (value !== oldValue) {
+        clearTagSelection()
+      }
+      await loadSubjectTagOptions()
+    },
+    { immediate: true },
+  )
+
   return {
     isAdmin,
     allSubjects,
+    subjectTags,
     userQueryOptions,
     categoryQueryOptions,
     paymentMethodQueryOptions,
     subjectQueryOptions,
+    tagQueryOptions,
     clearSubjectSelection,
+    clearTagSelection,
     loadCommonFilterOptions,
+    loadSubjectTagOptions,
     createCommonQueryColumns,
   }
 }

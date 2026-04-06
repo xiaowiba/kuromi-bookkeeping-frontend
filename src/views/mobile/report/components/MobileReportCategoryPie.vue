@@ -9,10 +9,10 @@
     <div class="mobile-report-category-list">
       <button
         v-for="item in items.slice(0, 5)"
-        :key="item.name"
+        :key="item.key || item.name"
         type="button"
         class="mobile-report-category-list__item"
-        @click="emit('select', item.name)"
+        @click="emit('select', item.key || item.name)"
       >
         <span>{{ item.name }}</span>
         <strong>{{ formatReportCurrency(item.amount) }}</strong>

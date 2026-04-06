@@ -237,7 +237,7 @@
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message, Modal } from '@arco-design/web-vue'
-import { computed, h, reactive, ref } from 'vue'
+import { computed, h, reactive, ref, watch } from 'vue'
 import AddModal from './AddModal.vue'
 import TagModal from './TagModal.vue'
 import type { SubjectResp } from '@/apis/bookkeeping/subject'
@@ -391,6 +391,9 @@ const {
     immediate: false,
   },
 )
+
+let skipSubjectRadioWatch = true
+let skipTagStatusWatch = true
 
 const subjectColumns: TableInstance['columns'] = [
   {
@@ -561,6 +564,7 @@ function handleSelectSubject(
     return
   }
   if (options.resetTagFilters !== false) {
+    skipTagStatusWatch = true
     resetTagForm()
   }
   tagSearch()
@@ -608,6 +612,7 @@ const searchSubjectList = () => {
 }
 
 const resetSubjectQuery = () => {
+  skipSubjectRadioWatch = true
   resetSubjectForm()
   subjectSearch()
 }
@@ -621,9 +626,38 @@ const searchTagList = () => {
 }
 
 const resetTagQuery = () => {
+  skipTagStatusWatch = true
   resetTagForm()
   searchTagList()
 }
+
+watch(
+  () => [subjectQueryForm.category, subjectQueryForm.status],
+  (value, oldValue) => {
+    if (skipSubjectRadioWatch) {
+      skipSubjectRadioWatch = false
+      return
+    }
+    if (value[0] === oldValue?.[0] && value[1] === oldValue?.[1]) {
+      return
+    }
+    searchSubjectList()
+  },
+)
+
+watch(
+  () => tagQueryForm.status,
+  (value, oldValue) => {
+    if (skipTagStatusWatch) {
+      skipTagStatusWatch = false
+      return
+    }
+    if (value === oldValue) {
+      return
+    }
+    searchTagList()
+  },
+)
 
 const onAddSubject = () => {
   addModalRef.value?.onAdd()

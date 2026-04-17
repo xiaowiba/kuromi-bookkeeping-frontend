@@ -50,8 +50,10 @@ type PaymentChartMode = 'rest' | 'all'
 const props = withDefaults(defineProps<{
   list: ReportPaymentMethodShareItemResp[]
   loading?: boolean
+  colors?: Record<string, any>
 }>(), {
   loading: false,
+  colors: undefined,
 })
 
 const sortedList = computed(() => {
@@ -141,7 +143,7 @@ const dominantLeadText = computed(() => {
   return `约为第 2 名的 ${dominanceMultiple.value.toFixed(1)} 倍`
 })
 
-const currentOption = computed<EChartsOption>(() => buildPaymentMethodOption(visibleList.value))
+const currentOption = computed<EChartsOption>(() => buildPaymentMethodOption(visibleList.value, { colors: props.colors as any }))
 
 const chartHeight = computed(() => {
   const yAxis = Array.isArray(currentOption.value?.yAxis) ? currentOption.value.yAxis[0] : currentOption.value?.yAxis

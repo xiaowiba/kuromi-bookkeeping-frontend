@@ -42,18 +42,42 @@
         />
       </div>
 
+      <!-- 科目钻取：点击科目排行中的某个科目后，展示该科目下的标签排行 -->
+      <div v-if="drilldownSubjectId" class="report-drilldown">
+        <ReportPanelShell
+          :title="`${drilldownSubjectName} - 标签排行`"
+          :description="`点击科目排行中的「${drilldownSubjectName}」后展示其下属标签的金额排行`"
+          :loading="drilldownLoading"
+        >
+          <template #toolbar>
+            <div class="report-drilldown__toolbar">
+              <a-breadcrumb>
+                <a-breadcrumb-item @click="clearDrilldown">全部科目</a-breadcrumb-item>
+                <a-breadcrumb-item>{{ drilldownSubjectName }}</a-breadcrumb-item>
+              </a-breadcrumb>
+              <a-button size="mini" type="text" @click="clearDrilldown">关闭</a-button>
+            </div>
+          </template>
+          <div class="report-drilldown__body">
+            <Chart :option="drilldownTagRankOption" :update-options="{ notMerge: true }" :height="drilldownChartHeight" />
+          </div>
+        </ReportPanelShell>
+      </div>
+
       <div class="report-grid report-grid--bottom">
         <!-- 科目排行图：按金额倒序展示当前区间内消费 / 收入贡献最高的科目 -->
         <ReportSubjectRankCard
           :list="dashboard.subjectRank"
           :selected-category="dashboardFilterForm.category"
           :loading="dashboardLoading"
+          :colors="REPORT_COLORS_TECH_BLUE"
+          @select-subject="handleSubjectDrilldown"
         />
 
         <ReportTagRankCard v-if="showTagRank" :option="tagRankOption" :loading="dashboardLoading" />
 
         <!-- 支付方式分布图：展示微信、支付宝、银行卡等支付渠道的金额分布 -->
-        <ReportPaymentMethodCard :list="dashboard.paymentMethodShare" :loading="dashboardLoading" />
+        <ReportPaymentMethodCard :list="dashboard.paymentMethodShare" :loading="dashboardLoading" :colors="REPORT_COLORS_TECH_BLUE" />
 
         <!-- 多用户对比图：仅在存在多个用户数据时展示不同用户的收支对比 -->
         <ReportUserCompareCard v-if="showUserCompare" :option="userCompareOption" :loading="dashboardLoading" />
@@ -85,7 +109,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { createEmptyReportDashboard } from './shared/reportConstants'
 import { resolveReportPaymentMethodLabel } from './shared/reportFormat'
 import { useReportFilters } from './shared/useReportFilters'
-import { useReportOptions } from './shared/useReportOptions'
+import { useReportOptions, REPORT_COLORS_TECH_BLUE, buildTagRankOption } from './shared/useReportOptions'
 import ReportCategoryShareCard from './components/ReportCategoryShareCard.vue'
 import ReportFilterBar from './components/ReportFilterBar.vue'
 import ReportInsightPanel from './components/ReportInsightPanel.vue'
@@ -95,8 +119,10 @@ import ReportSummaryCards from './components/ReportSummaryCards.vue'
 import ReportTagRankCard from './components/ReportTagRankCard.vue'
 import ReportTrendChartCard from './components/ReportTrendChartCard.vue'
 import ReportUserCompareCard from './components/ReportUserCompareCard.vue'
+import ReportPanelShell from './components/ReportPanelShell.vue'
+import Chart from '@/components/Chart/index.vue'
 import type * as T from '@/apis/bookkeeping/type'
-import { getReportDashboard } from '@/apis/bookkeeping/report'
+import { getReportDashboard, getReportTagRankBySubject } from '@/apis/bookkeeping/report'
 import { usePrivacyStore } from '@/stores'
 
 defineOptions({ name: 'BookkeepingReport' })
@@ -132,12 +158,63 @@ const {
  * 根据 dashboard 响应式数据，实时生成 ECharts 所需配置。
  * 页面本身不手写 option，交给共享 hooks 统一维护。
  */
-const { trendOption, categoryOption, tagRankOption, userCompareOption } = useReportOptions(() => dashboard.value)
+const { trendOption, categoryOption, tagRankOption, userCompareOption } = useReportOptions(
+  () => dashboard.value,
+  () => ({ colors: REPORT_COLORS_TECH_BLUE }),
+)
 
 /** 是否展示“多用户对比”图表。只有多用户数据时才有展示意义 */
 const showUserCompare = computed(() => dashboard.value.userCompare.length > 1)
 /** 只有当查询已经收敛到科目或标签时，才展示标签分析模块。 */
 const showTagRank = computed(() => !!dashboardFilterForm.subjectId || !!dashboardFilterForm.tagId)
+
+/** 科目钻取状态 */
+const drilldownSubjectId = ref('')
+const drilldownSubjectName = ref('')
+const drilldownLoading = ref(false)
+const drilldownTagRankList = ref<T.ReportTagRankItemResp[]>([])
+
+const drilldownTagRankOption = computed(() => buildTagRankOption(drilldownTagRankList.value, { colors: REPORT_COLORS_TECH_BLUE, rankLimit: false }))
+
+const drilldownChartHeight = computed(() => {
+  const yAxis = Array.isArray(drilldownTagRankOption.value?.yAxis) ? drilldownTagRankOption.value.yAxis[0] : drilldownTagRankOption.value?.yAxis
+  const categoryCount = Array.isArray((yAxis as any)?.data) ? (yAxis as any).data.length : 0
+  return `${Math.max(280, 72 + categoryCount * 34)}px`
+})
+
+const clearDrilldown = () => {
+  drilldownSubjectId.value = ''
+  drilldownSubjectName.value = ''
+  drilldownTagRankList.value = []
+}
+
+/**
+ * 科目排行钻取：点击某科目后加载该科目下的标签排行。
+ * 再次点击同一科目时收起，点击不同科目时切换。
+ *
+ * @author Wangsongsong
+ * @date 2026-04-17
+ */
+const handleSubjectDrilldown = async (subjectId: string, subjectName: string) => {
+  if (drilldownSubjectId.value === subjectId) {
+    clearDrilldown()
+    return
+  }
+
+  drilldownSubjectId.value = subjectId
+  drilldownSubjectName.value = subjectName
+  drilldownLoading.value = true
+  try {
+    const query = { ...buildDashboardQuery(), subjectId }
+    const { data } = await getReportTagRankBySubject(query)
+    drilldownTagRankList.value = data ?? []
+  } catch {
+    drilldownTagRankList.value = []
+    Message.error('加载标签排行失败')
+  } finally {
+    drilldownLoading.value = false
+  }
+}
 
 /** 拉取上半部分看板数据：汇总卡、图表、洞察都依赖这个接口 */
 const loadDashboard = async () => {
@@ -163,11 +240,13 @@ const loadDashboard = async () => {
 
 /** 点击“查询”按钮：按当前筛选条件重新加载整页报表数据。 */
 const handleSearch = async () => {
+  clearDrilldown()
   await loadDashboard()
 }
 
 /** 点击“重置”按钮：恢复默认筛选条件后重新加载报表。 */
 const handleReset = async () => {
+  clearDrilldown()
   resetDashboardFilters()
   await loadDashboard()
 }
@@ -232,5 +311,28 @@ onMounted(async () => {
   .report-grid--bottom {
     grid-template-columns: 1fr;
   }
+}
+
+.report-drilldown {
+  margin-top: 0;
+}
+
+.report-drilldown__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+}
+
+.report-drilldown__toolbar :deep(.arco-breadcrumb-item:first-child) {
+  cursor: pointer;
+  color: rgb(var(--primary-6));
+}
+
+.report-drilldown__body {
+  width: 100%;
+  min-width: 0;
+  padding-top: 2px;
 }
 </style>

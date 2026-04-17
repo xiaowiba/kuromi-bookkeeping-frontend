@@ -17,9 +17,30 @@ interface ReportOptionMode {
   compact?: boolean
   dualAxis?: boolean
   rankLimit?: number | false
+  colors?: ReportColorScheme
 }
 
-const REPORT_COLORS = {
+/** 报表配色方案类型 */
+interface ReportColorScheme {
+  expense: string
+  income: string
+  primary: string
+  accent: string
+  secondary: string
+  tertiary: string
+  muted: string
+  border: string
+  text: string
+  subText: string
+  grid: string
+  tooltipBg?: string
+  pieColors?: string[]
+  expenseArea?: string
+  incomeArea?: string
+}
+
+/** 默认暖色系配色（移动端使用） */
+const REPORT_COLORS: ReportColorScheme = {
   expense: '#d97706',
   income: '#0f766e',
   primary: '#ca8a04',
@@ -31,6 +52,34 @@ const REPORT_COLORS = {
   text: '#3f341d',
   subText: '#8a7857',
   grid: 'rgba(148, 126, 87, 0.12)',
+  tooltipBg: 'rgba(62, 46, 18, 0.92)',
+  pieColors: ['#ca8a04', '#f59e0b', '#d97706', '#fbbf24', '#0f766e', '#3b7a57', '#8a7857'],
+  expenseArea: 'rgba(217, 119, 6, 0.12)',
+  incomeArea: 'rgba(15, 118, 110, 0.1)',
+}
+
+/**
+ * 蓝色科技感配色（Web 端报表中心使用）
+ *
+ * @author Wangsongsong
+ * @date 2026-04-17
+ */
+export const REPORT_COLORS_TECH_BLUE: ReportColorScheme = {
+  expense: '#3b82f6',
+  income: '#06b6d4',
+  primary: '#2563eb',
+  accent: '#60a5fa',
+  secondary: '#1e40af',
+  tertiary: '#0ea5e9',
+  muted: '#64748b',
+  border: 'rgba(59, 130, 246, 0.15)',
+  text: '#1e293b',
+  subText: '#64748b',
+  grid: 'rgba(59, 130, 246, 0.08)',
+  tooltipBg: 'rgba(15, 23, 42, 0.92)',
+  pieColors: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#06b6d4', '#0ea5e9', '#7dd3fc'],
+  expenseArea: 'rgba(59, 130, 246, 0.12)',
+  incomeArea: 'rgba(6, 182, 212, 0.1)',
 }
 
 const toChartNumber = (value: number | string | undefined | null) => {
@@ -38,7 +87,7 @@ const toChartNumber = (value: number | string | undefined | null) => {
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 
-const buildEmptyOption = (text: string): EChartsOption => ({
+const buildEmptyOption = (text: string, colors?: ReportColorScheme): EChartsOption => ({
   animation: false,
   xAxis: { show: false, type: 'category', data: [] },
   yAxis: { show: false, type: 'value' },
@@ -50,7 +99,7 @@ const buildEmptyOption = (text: string): EChartsOption => ({
       top: 'middle',
       style: {
         text,
-        fill: REPORT_COLORS.subText,
+        fill: (colors || REPORT_COLORS).subText,
         fontSize: 14,
         fontWeight: 500,
       },
@@ -62,9 +111,10 @@ export const buildTrendChartOption = (
   trend: T.ReportTrendResp | undefined,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
+  const colors = mode.colors || REPORT_COLORS
   const points = trend?.points ?? []
   if (!points.length) {
-    return buildEmptyOption('当前区间暂无趋势数据')
+    return buildEmptyOption('当前区间暂无趋势数据', colors)
   }
 
   const expenseData = points.map((item) => toChartNumber(item.expense))
@@ -72,10 +122,10 @@ export const buildTrendChartOption = (
   const useDualAxis = mode.compact ? !!mode.dualAxis : true
 
   return {
-    color: [REPORT_COLORS.expense, REPORT_COLORS.income],
+    color: [colors.expense, colors.income],
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(62, 46, 18, 0.92)',
+      backgroundColor: colors.tooltipBg || 'rgba(62, 46, 18, 0.92)',
       borderWidth: 0,
       textStyle: { color: '#fff' },
       formatter: (params: any) => {
@@ -92,7 +142,7 @@ export const buildTrendChartOption = (
       itemWidth: 12,
       itemHeight: 8,
       textStyle: {
-        color: REPORT_COLORS.subText,
+        color: colors.subText,
         fontSize: mode.compact ? 11 : 12,
       },
     },
@@ -107,9 +157,9 @@ export const buildTrendChartOption = (
       type: 'category',
       boundaryGap: false,
       data: points.map((item) => formatTrendAxisLabel(item.label, trend?.granularity ?? 'day', !!mode.compact)),
-      axisLine: { lineStyle: { color: REPORT_COLORS.border } },
+      axisLine: { lineStyle: { color: colors.border } },
       axisLabel: {
-        color: REPORT_COLORS.subText,
+        color: colors.subText,
         fontSize: mode.compact ? 11 : 12,
       },
       axisTick: { show: false },
@@ -120,45 +170,45 @@ export const buildTrendChartOption = (
             type: 'value',
             name: '支出',
             nameTextStyle: {
-              color: REPORT_COLORS.expense,
+              color: colors.expense,
               fontSize: 12,
               fontWeight: 700,
               padding: [0, 0, 6, 0],
             },
             axisLabel: {
-              color: REPORT_COLORS.expense,
+              color: colors.expense,
               fontSize: 12,
               formatter: (value: number) => formatReportAmount(value, { compact: true }),
             },
-            axisLine: { show: true, lineStyle: { color: 'rgba(217, 119, 6, 0.22)' } },
-            splitLine: { lineStyle: { color: REPORT_COLORS.grid } },
+            axisLine: { show: true, lineStyle: { color: `${colors.expense}38` } },
+            splitLine: { lineStyle: { color: colors.grid } },
           },
           {
             type: 'value',
             name: '收入',
             nameTextStyle: {
-              color: REPORT_COLORS.income,
+              color: colors.income,
               fontSize: 12,
               fontWeight: 700,
               padding: [0, 0, 6, 0],
             },
             axisLabel: {
-              color: REPORT_COLORS.income,
+              color: colors.income,
               fontSize: 12,
               formatter: (value: number) => formatReportAmount(value, { compact: true }),
             },
-            axisLine: { show: true, lineStyle: { color: 'rgba(15, 118, 110, 0.22)' } },
+            axisLine: { show: true, lineStyle: { color: `${colors.income}38` } },
             splitLine: { show: false },
           },
         ]
       : {
           type: 'value',
           axisLabel: {
-            color: REPORT_COLORS.subText,
+            color: colors.subText,
             fontSize: mode.compact ? 11 : 12,
             formatter: (value: number) => formatReportAmount(value, { compact: true }),
           },
-          splitLine: { lineStyle: { color: REPORT_COLORS.grid } },
+          splitLine: { lineStyle: { color: colors.grid } },
         },
     series: [
       {
@@ -169,8 +219,8 @@ export const buildTrendChartOption = (
         symbol: 'circle',
         symbolSize: mode.compact ? 6 : 7,
         lineStyle: { width: 3 },
-        itemStyle: { color: REPORT_COLORS.expense },
-        areaStyle: { color: 'rgba(217, 119, 6, 0.12)' },
+        itemStyle: { color: colors.expense },
+        areaStyle: { color: colors.expenseArea || 'rgba(217, 119, 6, 0.12)' },
         data: expenseData,
       },
       {
@@ -181,8 +231,8 @@ export const buildTrendChartOption = (
         symbol: 'circle',
         symbolSize: mode.compact ? 6 : 7,
         lineStyle: { width: 3 },
-        itemStyle: { color: REPORT_COLORS.income },
-        areaStyle: { color: 'rgba(15, 118, 110, 0.1)' },
+        itemStyle: { color: colors.income },
+        areaStyle: { color: colors.incomeArea || 'rgba(15, 118, 110, 0.1)' },
         data: incomeData,
       },
     ],
@@ -193,16 +243,17 @@ export const buildCategoryShareOption = (
   list: T.ReportCategoryShareItemResp[] | undefined,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
+  const colors = mode.colors || REPORT_COLORS
   const source = list ?? []
   if (!source.length) {
-    return buildEmptyOption('当前区间暂无分类占比')
+    return buildEmptyOption('当前区间暂无分类占比', colors)
   }
 
   return {
-    color: ['#ca8a04', '#f59e0b', '#d97706', '#fbbf24', '#0f766e', '#3b7a57', '#8a7857'],
+    color: colors.pieColors || ['#ca8a04', '#f59e0b', '#d97706', '#fbbf24', '#0f766e', '#3b7a57', '#8a7857'],
     tooltip: {
       trigger: 'item',
-      backgroundColor: 'rgba(62, 46, 18, 0.92)',
+      backgroundColor: colors.tooltipBg || 'rgba(62, 46, 18, 0.92)',
       borderWidth: 0,
       textStyle: { color: '#fff' },
       formatter: (params: any) => {
@@ -219,7 +270,7 @@ export const buildCategoryShareOption = (
           itemWidth: 10,
           itemHeight: 10,
           textStyle: {
-            color: REPORT_COLORS.subText,
+            color: colors.subText,
             fontSize: 12,
           },
         },
@@ -234,12 +285,12 @@ export const buildCategoryShareOption = (
           borderWidth: 2,
         },
         label: {
-          color: REPORT_COLORS.text,
+          color: colors.text,
           fontSize: mode.compact ? 11 : 12,
           formatter: ({ name, percent }: any) => `${name}\n${percent}%`,
         },
         labelLine: {
-          lineStyle: { color: REPORT_COLORS.border },
+          lineStyle: { color: colors.border },
         },
         data: source.map((item) => ({
           name: item.name,
@@ -256,15 +307,16 @@ const buildHorizontalBarOption = (
   emptyText: string,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
+  const colors = mode.colors || REPORT_COLORS
   if (!source.length) {
-    return buildEmptyOption(emptyText)
+    return buildEmptyOption(emptyText, colors)
   }
 
   return {
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(62, 46, 18, 0.92)',
+      backgroundColor: colors.tooltipBg || 'rgba(62, 46, 18, 0.92)',
       borderWidth: 0,
       textStyle: { color: '#fff' },
       formatter: (params: any) => {
@@ -283,18 +335,18 @@ const buildHorizontalBarOption = (
     xAxis: {
       type: 'value',
       axisLabel: {
-        color: REPORT_COLORS.subText,
+        color: colors.subText,
         fontSize: mode.compact ? 11 : 12,
         formatter: (value: number) => formatReportAmount(value, { compact: true }),
       },
-      splitLine: { lineStyle: { color: REPORT_COLORS.grid } },
+      splitLine: { lineStyle: { color: colors.grid } },
     },
     yAxis: {
       type: 'category',
       axisTick: { show: false },
       axisLine: { show: false },
       axisLabel: {
-        color: REPORT_COLORS.text,
+        color: colors.text,
         fontSize: mode.compact ? 11 : 12,
         overflow: 'truncate',
         width: mode.compact ? 84 : 112,
@@ -312,7 +364,7 @@ const buildHorizontalBarOption = (
         label: {
           show: true,
           position: 'right',
-          color: REPORT_COLORS.subText,
+          color: colors.subText,
           fontSize: mode.compact ? 11 : 12,
           formatter: ({ value }: any) => formatReportAmount(value, { compact: true }),
         },
@@ -337,6 +389,7 @@ export const buildSubjectRankOption = (
   list: T.ReportSubjectRankItemResp[] | undefined,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
+  const colors = mode.colors || REPORT_COLORS
   const source = resolveRankSource(list, mode)
     .reverse()
     .map((item) => ({
@@ -345,13 +398,14 @@ export const buildSubjectRankOption = (
       extra: `占比 ${formatReportRatio(item.ratio)} / ${item.count} 笔`,
     }))
 
-  return buildHorizontalBarOption(source, REPORT_COLORS.primary, '当前区间暂无科目排行', mode)
+  return buildHorizontalBarOption(source, colors.primary, '当前区间暂无科目排行', mode)
 }
 
 export const buildTagRankOption = (
   list: T.ReportTagRankItemResp[] | undefined,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
+  const colors = mode.colors || REPORT_COLORS
   const source = resolveRankSource(list, mode)
     .reverse()
     .map((item) => ({
@@ -360,13 +414,14 @@ export const buildTagRankOption = (
       extra: `科目 ${item.subjectName} / 占比 ${formatReportRatio(item.ratio)} / ${item.count} 笔`,
     }))
 
-  return buildHorizontalBarOption(source, REPORT_COLORS.secondary, '当前条件下暂无标签排行', mode)
+  return buildHorizontalBarOption(source, colors.secondary, '当前条件下暂无标签排行', mode)
 }
 
 export const buildPaymentMethodOption = (
   list: T.ReportPaymentMethodShareItemResp[] | undefined,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
+  const colors = mode.colors || REPORT_COLORS
   const source = resolveRankSource(list, mode)
     .reverse()
     .map((item) => ({
@@ -375,24 +430,25 @@ export const buildPaymentMethodOption = (
       extra: `占比 ${formatReportRatio(item.ratio)}`,
     }))
 
-  return buildHorizontalBarOption(source, REPORT_COLORS.accent, '当前区间暂无支付方式分布', mode)
+  return buildHorizontalBarOption(source, colors.accent, '当前区间暂无支付方式分布', mode)
 }
 
 export const buildUserCompareOption = (
   list: T.ReportUserCompareItemResp[] | undefined,
   mode: ReportOptionMode = {},
 ): EChartsOption => {
+  const colors = mode.colors || REPORT_COLORS
   const source = list ?? []
   if (!source.length) {
-    return buildEmptyOption('当前区间暂无用户对比')
+    return buildEmptyOption('当前区间暂无用户对比', colors)
   }
 
   return {
-    color: [REPORT_COLORS.expense, REPORT_COLORS.income],
+    color: [colors.expense, colors.income],
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(62, 46, 18, 0.92)',
+      backgroundColor: colors.tooltipBg || 'rgba(62, 46, 18, 0.92)',
       borderWidth: 0,
       textStyle: { color: '#fff' },
       formatter: (params: any) => {
@@ -408,7 +464,7 @@ export const buildUserCompareOption = (
       itemWidth: 12,
       itemHeight: 8,
       textStyle: {
-        color: REPORT_COLORS.subText,
+        color: colors.subText,
         fontSize: mode.compact ? 11 : 12,
       },
     },
@@ -422,9 +478,9 @@ export const buildUserCompareOption = (
     xAxis: {
       type: 'category',
       axisTick: { show: false },
-      axisLine: { lineStyle: { color: REPORT_COLORS.border } },
+      axisLine: { lineStyle: { color: colors.border } },
       axisLabel: {
-        color: REPORT_COLORS.text,
+        color: colors.text,
         fontSize: mode.compact ? 11 : 12,
       },
       data: source.map((item) => item.userName),
@@ -432,11 +488,11 @@ export const buildUserCompareOption = (
     yAxis: {
       type: 'value',
       axisLabel: {
-        color: REPORT_COLORS.subText,
+        color: colors.subText,
         fontSize: mode.compact ? 11 : 12,
         formatter: (value: number) => formatReportAmount(value, { compact: true }),
       },
-      splitLine: { lineStyle: { color: REPORT_COLORS.grid } },
+      splitLine: { lineStyle: { color: colors.grid } },
     },
     series: [
       {
@@ -444,7 +500,7 @@ export const buildUserCompareOption = (
         type: 'bar',
         barMaxWidth: mode.compact ? 18 : 22,
         itemStyle: {
-          color: REPORT_COLORS.expense,
+          color: colors.expense,
           borderRadius: [999, 999, 0, 0],
         },
         data: source.map((item) => toChartNumber(item.expense)),
@@ -454,7 +510,7 @@ export const buildUserCompareOption = (
         type: 'bar',
         barMaxWidth: mode.compact ? 18 : 22,
         itemStyle: {
-          color: REPORT_COLORS.income,
+          color: colors.income,
           borderRadius: [999, 999, 0, 0],
         },
         data: source.map((item) => toChartNumber(item.income)),

@@ -20,3 +20,13 @@ export function getReportDashboard(query: T.ReportQuery) {
 export function listReportRankingTable(query: T.ReportPageQuery) {
   return http.get<PageRes<T.ReportRankingTableResp[]>>(`${BASE_URL}/ranking-table`, query)
 }
+
+/**
+ * 查询指定科目下的标签排行
+ *
+ * @author Wangsongsong
+ * @date 2026-04-17
+ */
+export function getReportTagRankBySubject(query: T.ReportQuery & { subjectId: string }) {
+  return http.get<T.ReportTagRankItemResp[]>(`${BASE_URL}/tag-rank`, query)
+}

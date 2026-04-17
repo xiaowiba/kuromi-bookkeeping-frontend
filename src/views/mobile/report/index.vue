@@ -1,13 +1,9 @@
 <template>
   <div class="mobile-page mobile-report-page">
     <section class="mobile-panel mobile-report-hero">
-      <div class="mobile-report-hero__top">
-        <t-button size="small" variant="outline" @click="filterPopupVisible = true">筛选</t-button>
-      </div>
-
       <div class="mobile-report-hero__preset-group">
         <button
-          v-for="item in datePresetOptions"
+          v-for="item in filteredDatePresetOptions"
           :key="String(item.value)"
           type="button"
           class="mobile-report-hero__preset"
@@ -15,6 +11,19 @@
           @click="handlePresetChange(item.value as any)"
         >
           {{ item.shortLabel }}
+        </button>
+      </div>
+
+      <div class="mobile-report-hero__user-group">
+        <button
+          v-for="item in userChipOptions"
+          :key="String(item.value)"
+          type="button"
+          class="mobile-report-hero__user-chip"
+          :class="{ 'is-active': selectedUserValue === String(item.value) }"
+          @click="handleUserChange(String(item.value))"
+        >
+          {{ item.label }}
         </button>
       </div>
 
@@ -33,29 +42,20 @@
       <MobileReportUserCompare v-if="showUserCompare" :option="userCompareOption" />
       <MobileReportInsightPanel :insight="dashboard.insight" />
     </template>
-
-    <MobileReportFilterPopup
-      v-model:visible="filterPopupVisible"
-      :filter-form="filterForm"
-      :date-preset-options="datePresetOptions"
-      :category-options="categoryOptions"
-      :subject-options="subjectOptions"
-      :tag-options="tagOptions"
-      :payment-method-options="paymentMethodOptions"
-      :user-scope-options="userScopeOptions"
-      :user-select-options="userSelectOptions"
-      :all-subjects="allSubjects"
-      :auto-open-calendar="autoOpenCalendar"
-      @confirm="handleConfirmFilters"
-      @reset="handleResetFilters"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+/**
+ * 移动端报表页面
+ *
+ * @author Wangsongsong
+ * @date 2026-03-28
+ * @update 2026-04-17 @Wangsongsong
+ * @desc 移除筛选弹出层，将用户范围移到顶部 chips，隐藏自定义时间预设
+ */
+import { computed, onMounted, ref } from 'vue'
 import MobileReportCategoryPie from './components/MobileReportCategoryPie.vue'
-import MobileReportFilterPopup from './components/MobileReportFilterPopup.vue'
 import MobileReportInsightPanel from './components/MobileReportInsightPanel.vue'
 import MobileReportPaymentMethod from './components/MobileReportPaymentMethod.vue'
 import MobileReportSubjectRank from './components/MobileReportSubjectRank.vue'
@@ -67,7 +67,6 @@ import { useReportOptions } from '@/views/bookkeeping/report/shared/useReportOpt
 import { useReportFilters } from '@/views/bookkeeping/report/shared/useReportFilters'
 import {
   REPORT_DATE_PRESET_OPTIONS,
-  REPORT_USER_SCOPE_OPTIONS,
   createEmptyReportDashboard,
 } from '@/views/bookkeeping/report/shared/reportConstants'
 import { mobileToast } from '@/utils/mobile-toast'
@@ -78,25 +77,36 @@ import { getReportDashboard } from '@/apis/bookkeeping/report'
 defineOptions({ name: 'MobileReport' })
 
 const loading = ref(false)
-const filterPopupVisible = ref(false)
-const autoOpenCalendar = ref(false)
 const dashboard = ref<T.ReportDashboardResp>(createEmptyReportDashboard())
 
 const {
   filterForm,
-  allSubjects,
   userSelectOptions,
-  categoryOptions,
-  paymentMethodOptions,
-  subjectOptions,
-  tagQueryOptions: tagOptions,
   loadFilterOptions,
   resetFilters,
+  setSelectedUser,
   buildDashboardQuery,
 } = useReportFilters()
 
-const datePresetOptions = REPORT_DATE_PRESET_OPTIONS
-const userScopeOptions = REPORT_USER_SCOPE_OPTIONS
+/** 过滤掉"自定义"选项 */
+const filteredDatePresetOptions = computed(() =>
+  REPORT_DATE_PRESET_OPTIONS.filter((item) => item.value !== 'custom'),
+)
+
+/** 用户选择 chips：前面加一个"全部"选项 */
+const userChipOptions = computed(() => [
+  { label: '全部', value: '' },
+  ...userSelectOptions.value,
+])
+
+/** 当前选中的用户值，用于高亮 */
+const selectedUserValue = computed(() => {
+  if (filterForm.userScope === 'all') {
+    return ''
+  }
+  return filterForm.userId || ''
+})
+
 const showUserCompare = computed(() => dashboard.value.userCompare.length > 1)
 const showTagRank = computed(() => !!filterForm.subjectId || !!filterForm.tagId)
 const { trendOption, categoryOption, subjectRankOption, tagRankOption, paymentMethodOption, userCompareOption } = useReportOptions(
@@ -104,21 +114,17 @@ const { trendOption, categoryOption, subjectRankOption, tagRankOption, paymentMe
   () => ({ compact: true, dualAxis: true, rankLimit: false }),
 )
 
-const resolveOptionLabel = (options: Array<{ label: string, value: any }>, value: string) => {
-  return options.find((item) => String(item.value) === String(value))?.label || '全部'
+const resolveUserText = () => {
+  if (filterForm.userScope === 'all') {
+    return '全部用户'
+  }
+  const matched = userSelectOptions.value.find((item) => String(item.value) === String(filterForm.userId))
+  return matched?.label || '当前用户'
 }
 
 const filterSummaryText = computed(() => {
-  const categoryText = resolveOptionLabel(categoryOptions.value, filterForm.category)
-  const subjectText = resolveOptionLabel(subjectOptions.value, filterForm.subjectId)
-  const tagText = resolveOptionLabel(tagOptions.value, filterForm.tagId)
-  const paymentText = resolveOptionLabel(paymentMethodOptions.value, filterForm.paymentMethod)
-  const userText = filterForm.userScope === 'all'
-    ? '全部用户'
-    : filterForm.userScope === 'specific'
-      ? resolveOptionLabel(userSelectOptions.value, filterForm.userId)
-      : '当前用户'
-  return `${userText} · ${categoryText} · ${subjectText} · ${tagText} · ${paymentText}`
+  const presetLabel = filteredDatePresetOptions.value.find((item) => item.value === filterForm.datePreset)?.label || '本月'
+  return `${presetLabel} · ${resolveUserText()}`
 })
 
 const loadDashboard = async () => {
@@ -135,14 +141,6 @@ const loadDashboard = async () => {
 }
 
 const handlePresetChange = async (preset: T.ReportDatePreset) => {
-  if (preset === 'custom') {
-    filterForm.datePreset = 'custom'
-    autoOpenCalendar.value = true
-    filterPopupVisible.value = true
-    return
-  }
-
-  autoOpenCalendar.value = false
   if (filterForm.datePreset === preset) {
     return
   }
@@ -150,14 +148,14 @@ const handlePresetChange = async (preset: T.ReportDatePreset) => {
   await loadDashboard()
 }
 
-const handleConfirmFilters = async () => {
-  filterPopupVisible.value = false
-  await loadDashboard()
-}
-
-const handleResetFilters = async () => {
-  resetFilters()
-  filterPopupVisible.value = false
+/**
+ * 切换用户后直接触发查询
+ *
+ * @author Wangsongsong
+ * @date 2026-04-17
+ */
+const handleUserChange = async (userId: string) => {
+  setSelectedUser(userId || null)
   await loadDashboard()
 }
 
@@ -175,12 +173,6 @@ onMounted(async () => {
   await loadFilterOptions()
   await loadDashboard()
 })
-
-watch(filterPopupVisible, (visible) => {
-  if (!visible) {
-    autoOpenCalendar.value = false
-  }
-})
 </script>
 
 <style scoped lang="scss">
@@ -194,17 +186,9 @@ watch(filterPopupVisible, (visible) => {
   padding: 18px 16px;
 }
 
-.mobile-report-hero__top {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
 .mobile-report-hero__preset-group {
   display: flex;
   gap: 10px;
-  margin-top: 14px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -235,8 +219,43 @@ watch(filterPopupVisible, (visible) => {
   color: #8b5e00;
 }
 
+.mobile-report-hero__user-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-report-hero__user-group::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-report-hero__user-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(143, 99, 17, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 248, 223, 0.78);
+  color: #6b4a0d;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mobile-report-hero__user-chip.is-active {
+  border-color: rgba(197, 138, 18, 0.26);
+  background: rgba(255, 255, 255, 0.96);
+  color: #47300b;
+  box-shadow: 0 4px 10px rgba(103, 73, 12, 0.08);
+}
+
 .mobile-report-hero__desc {
-  margin: 14px 0 0;
+  margin: 12px 0 0;
   color: #7d6a47;
   font-size: 13px;
   line-height: 1.7;

@@ -89,9 +89,17 @@
           <span class="report-calendar-summary__label">{{ item.label }}</span>
           <strong class="report-calendar-summary__value">{{ item.value }}</strong>
         </div>
+        <a-button
+          class="report-calendar-summary__toggle"
+          size="mini"
+          type="text"
+          @click="detailCollapsed = !detailCollapsed"
+        >
+          {{ detailCollapsed ? '展开详情' : '收起详情' }}
+        </a-button>
       </div>
 
-      <div class="report-calendar-layout">
+      <div class="report-calendar-layout" :class="{ 'report-calendar-layout--collapsed': detailCollapsed }">
         <ReportPanelShell
           title="日历总览"
           :description="calendarPanelDescription"
@@ -171,7 +179,10 @@
               class="report-calendar-mini-month"
             >
               <div class="report-calendar-mini-month__head">
-                <strong>{{ panel.monthText }}</strong>
+                <div class="report-calendar-mini-month__head-row">
+                  <strong class="report-calendar-mini-month__title" @click="handleMiniMonthClick(panel.monthKey)">{{ panel.monthText }}</strong>
+                  <span class="report-calendar-mini-month__count">{{ panel.stat?.recordCount ?? 0 }}笔</span>
+                </div>
                 <div class="report-calendar-mini-month__meta">
                   <span class="expense">支 {{ formatReportCurrency(panel.stat?.expense ?? 0, { compact: true }) }}</span>
                   <span class="income">收 {{ formatReportCurrency(panel.stat?.income ?? 0, { compact: true }) }}</span>
@@ -181,7 +192,6 @@
                   >
                     余 {{ formatBalanceCurrency(panel.stat?.balance ?? 0, true) }}
                   </span>
-                  <span class="count">笔 {{ panel.stat?.recordCount ?? 0 }}</span>
                 </div>
               </div>
 
@@ -218,6 +228,7 @@
         </ReportPanelShell>
 
         <ReportPanelShell
+          v-show="!detailCollapsed"
           title="日期详情"
           :description="detailPanelDescription"
           :loading="dayDetailLoading"
@@ -331,12 +342,13 @@ import { getReportCalendar, getReportCalendarDayDetail } from '@/apis/bookkeepin
 import type * as T from '@/apis/bookkeeping/type'
 import type { ColumnItem } from '@/components/GiForm'
 import { useDict } from '@/hooks/app'
-import { usePrivacyStore } from '@/stores'
+import { usePrivacyStore, useUserStore } from '@/stores'
 import { useBookkeepingCommonFilters } from '@/views/bookkeeping/shared/useBookkeepingCommonFilters'
 
 defineOptions({ name: 'BookkeepingReportCalendar' })
 
 const privacyStore = usePrivacyStore()
+const userStore = useUserStore()
 const { bk_subject_category, bk_payment_method } = useDict('bk_subject_category', 'bk_payment_method')
 
 const queryForm = reactive<T.ReportCalendarFilterForm>(createDefaultReportCalendarForm())
@@ -345,6 +357,7 @@ const dayDetailLoading = ref(false)
 const calendarData = ref<T.ReportCalendarResp>(createEmptyReportCalendar())
 const dayDetail = ref<T.ReportCalendarDayDetailResp>(createEmptyReportCalendarDayDetail())
 const selectedDate = ref('')
+const detailCollapsed = ref(false)
 
 /** 复用明细页的通用筛选项，只保留日历页自己的视图模式与统计周期。 */
 const {
@@ -515,6 +528,15 @@ const detailPanelDescription = computed(() => {
   return `${formatReportDate(selectedDate.value, 'YYYY年M月D日')} ${weekday}`
 })
 
+/** 收起状态下在标题栏展示的紧凑汇总文本 */
+const collapsedDetailSummaryText = computed(() => {
+  if (!selectedDate.value) {
+    return '暂无选中日期'
+  }
+  const s = dayDetail.value.summary
+  return `支出 ${formatReportCurrency(s.expense, { compact: true })} / 收入 ${formatReportCurrency(s.income, { compact: true })} / ${s.recordCount}笔`
+})
+
 const monthCalendarCells = computed(() => {
   return buildMonthCalendarCells(queryForm.anchorDate, calendarData.value.dayStats ?? [], selectedDate.value)
 })
@@ -681,6 +703,18 @@ const handleCalendarCellClick = async (cell: CalendarCellItem) => {
 }
 
 /**
+ * 年视图中点击月份标题，跳转到对应月的月视图。
+ *
+ * @author Wangsongsong
+ * @date 2026-04-17
+ */
+const handleMiniMonthClick = async (monthKey: string) => {
+  queryForm.viewMode = 'month'
+  queryForm.anchorDate = normalizeCalendarAnchorDate(`${monthKey}-01`, 'month')
+  await searchMethod()
+}
+
+/**
  * 隐私模式切换或自动过期后，重新按最新口径加载总览与详情。
  *
  * 这里不强行保留旧选中日期，让后端重新计算默认日期，
@@ -695,6 +729,11 @@ watch(
 
 onMounted(async () => {
   await loadCommonFilterOptions()
+  // 默认选中当前登录用户
+  const currentUserId = String(userStore.userInfo.id ?? '')
+  if (currentUserId && !queryForm.userId) {
+    queryForm.userId = currentUserId
+  }
   await searchMethod()
 })
 </script>
@@ -764,10 +803,10 @@ onMounted(async () => {
 .report-calendar-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 8px 12px;
   border: 1px solid rgba(229, 230, 235, 0.9);
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--color-bg-1);
 }
 
@@ -775,11 +814,11 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  flex: 1 1 220px;
-  min-height: 44px;
-  padding: 10px 14px;
-  border-radius: 12px;
+  gap: 10px;
+  flex: 1 1 180px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: 10px;
   border: 1px solid rgba(229, 230, 235, 0.7);
   background: rgba(255, 255, 255, 0.92);
 }
@@ -800,15 +839,23 @@ onMounted(async () => {
 
 .report-calendar-summary__label {
   color: var(--color-text-2);
-  font-size: 13px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
 .report-calendar-summary__value {
   color: var(--color-text-1);
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.report-calendar-summary__toggle {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 12px;
 }
 
 .report-calendar-layout {
@@ -816,6 +863,11 @@ onMounted(async () => {
   grid-template-columns: minmax(0, 1fr) 380px;
   gap: 18px;
   align-items: start;
+  transition: grid-template-columns 0.3s ease;
+}
+
+.report-calendar-layout--collapsed {
+  grid-template-columns: 1fr;
 }
 
 .report-calendar-toolbar {
@@ -986,24 +1038,33 @@ onMounted(async () => {
 }
 
 .report-calendar-metric-chip.balance.is-positive,
-.report-calendar-mini-month__meta .balance.is-positive,
 .report-calendar-detail__summary-item.balance.is-positive {
   color: #00b42a;
   background: rgba(232, 255, 237, 0.95);
 }
 
+.report-calendar-mini-month__meta .balance.is-positive {
+  color: #00b42a;
+}
+
 .report-calendar-metric-chip.balance.is-negative,
-.report-calendar-mini-month__meta .balance.is-negative,
 .report-calendar-detail__summary-item.balance.is-negative {
   color: #f53f3f;
   background: rgba(255, 236, 232, 0.95);
 }
 
+.report-calendar-mini-month__meta .balance.is-negative {
+  color: #f53f3f;
+}
+
 .report-calendar-metric-chip.balance.is-neutral,
-.report-calendar-mini-month__meta .balance.is-neutral,
 .report-calendar-detail__summary-item.balance.is-neutral {
   color: var(--color-text-2);
   background: rgba(242, 243, 245, 0.95);
+}
+
+.report-calendar-mini-month__meta .balance.is-neutral {
+  color: var(--color-text-2);
 }
 
 .report-calendar-year {
@@ -1026,26 +1087,41 @@ onMounted(async () => {
   margin-bottom: 10px;
 }
 
-.report-calendar-mini-month__head strong {
+.report-calendar-mini-month__head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.report-calendar-mini-month__title {
   color: var(--color-text-1);
   font-size: 15px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.report-calendar-mini-month__title:hover {
+  color: rgb(var(--primary-6));
+}
+
+.report-calendar-mini-month__count {
+  color: var(--color-text-3);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .report-calendar-mini-month__meta {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   color: var(--color-text-3);
   font-size: 11px;
 }
 
 .report-calendar-mini-month__meta .balance {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 22px;
-  padding: 0 8px;
-  border-radius: 999px;
+  /* 不使用背景色，保持和支、收一致的行内文本样式 */
 }
 
 .report-calendar-mini-month__weekdays,
@@ -1123,21 +1199,38 @@ onMounted(async () => {
   gap: 16px;
 }
 
+.report-calendar-detail__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: 28px;
+}
+
+.report-calendar-detail__collapsed-summary {
+  color: var(--color-text-3);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .report-calendar-detail__summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
 }
 
 .report-calendar-detail__summary-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  flex: 1 1 160px;
-  min-height: 44px;
-  padding: 10px 14px;
-  border-radius: 10px;
+  gap: 10px;
+  flex: 1 1 140px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: 8px;
   background: rgba(247, 248, 250, 0.9);
 }
 
@@ -1148,7 +1241,7 @@ onMounted(async () => {
 }
 
 .report-calendar-detail__summary-item .value {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-text-1);
   white-space: nowrap;

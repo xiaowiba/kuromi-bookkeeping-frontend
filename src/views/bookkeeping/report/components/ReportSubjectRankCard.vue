@@ -22,7 +22,7 @@
     </template>
 
     <div class="report-subject-rank-card__body">
-      <Chart :option="currentOption" :update-options="{ notMerge: true }" :height="chartHeight" />
+      <Chart ref="chartRef" :option="currentOption" :update-options="{ notMerge: true }" :height="chartHeight" @click="handleChartClick" />
     </div>
   </ReportPanelShell>
 </template>
@@ -41,10 +41,16 @@ const props = withDefaults(defineProps<{
   list: ReportSubjectRankItemResp[]
   loading?: boolean
   selectedCategory?: string
+  colors?: Record<string, any>
 }>(), {
   loading: false,
   selectedCategory: '',
+  colors: undefined,
 })
+
+const emit = defineEmits<{
+  (e: 'select-subject', subjectId: string, subjectName: string): void
+}>()
 
 const expenseList = computed(() => props.list.filter((item) => item.category === 'expense'))
 const incomeList = computed(() => props.list.filter((item) => item.category === 'income'))
@@ -95,13 +101,31 @@ const description = computed(() => {
 })
 
 const currentList = computed(() => (activeCategory.value === 'income' ? incomeList.value : expenseList.value))
-const currentOption = computed<EChartsOption>(() => buildSubjectRankOption(currentList.value))
+const currentOption = computed<EChartsOption>(() => buildSubjectRankOption(currentList.value, { colors: props.colors as any }))
 
 const chartHeight = computed(() => {
   const yAxis = Array.isArray(currentOption.value?.yAxis) ? currentOption.value.yAxis[0] : currentOption.value?.yAxis
   const categoryCount = Array.isArray((yAxis as any)?.data) ? (yAxis as any).data.length : 0
   return `${Math.max(320, 72 + categoryCount * 34)}px`
 })
+
+const chartRef = ref()
+
+/**
+ * 点击科目柱子时，从原始列表中找到对应科目并 emit 给父组件。
+ *
+ * @author Wangsongsong
+ * @date 2026-04-17
+ */
+const handleChartClick = (params: any) => {
+  if (!params?.name) {
+    return
+  }
+  const matched = currentList.value.find((item) => item.subjectName === params.name)
+  if (matched) {
+    emit('select-subject', matched.subjectId, matched.subjectName)
+  }
+}
 </script>
 
 <style scoped lang="scss">

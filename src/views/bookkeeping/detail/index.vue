@@ -768,7 +768,7 @@ const columns = computed<TableInstance['columns']>(() => [
     title: '明细日期',
     dataIndex: 'detailDate',
     slotName: 'detailDate',
-    width: 180,
+    width: 210,
     align: 'center',
     show: true,
   },

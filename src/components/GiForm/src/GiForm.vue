@@ -75,6 +75,7 @@
               <template #default>{{ collapsed ? '展开' : '收起' }}</template>
             </a-button>
           </slot>
+          <slot name="suffix-extra" />
         </a-space>
       </a-grid-item>
     </a-grid>

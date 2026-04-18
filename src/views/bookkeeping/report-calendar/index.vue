@@ -76,27 +76,18 @@
               </span>
             </div>
           </template>
-        </GiForm>
-      </div>
 
-      <div class="report-calendar-summary">
-        <div
-          v-for="item in summaryCards"
-          :key="item.label"
-          class="report-calendar-summary__item"
-          :class="item.tone"
-        >
-          <span class="report-calendar-summary__label">{{ item.label }}</span>
-          <strong class="report-calendar-summary__value">{{ item.value }}</strong>
-        </div>
-        <a-button
-          class="report-calendar-summary__toggle"
-          size="mini"
-          type="text"
-          @click="detailCollapsed = !detailCollapsed"
-        >
-          {{ detailCollapsed ? '展开详情' : '收起详情' }}
-        </a-button>
+          <template #suffix-extra>
+            <a-button
+              class="report-calendar-filter__detail-toggle"
+              size="mini"
+              type="text"
+              @click="detailCollapsed = !detailCollapsed"
+            >
+              {{ detailCollapsed ? '展开详情' : '收起详情' }}
+            </a-button>
+          </template>
+        </GiForm>
       </div>
 
       <div class="report-calendar-layout" :class="{ 'report-calendar-layout--collapsed': detailCollapsed }">
@@ -115,6 +106,18 @@
               <span class="report-calendar-toolbar__label">{{ anchorLabel }}</span>
             </div>
           </template>
+
+          <div class="report-calendar-summary">
+            <div
+              v-for="item in summaryCards"
+              :key="item.label"
+              class="report-calendar-summary__item"
+              :class="item.tone"
+            >
+              <span class="report-calendar-summary__label">{{ item.label }}</span>
+              <strong class="report-calendar-summary__value">{{ item.value }}</strong>
+            </div>
+          </div>
 
           <div v-if="queryForm.viewMode === 'month'" class="report-calendar-month">
             <div class="report-calendar-weekdays">
@@ -148,25 +151,29 @@
                 </div>
 
                 <div v-if="cell.stat" class="report-calendar-cell__metrics">
-                  <span class="report-calendar-metric-chip expense">
-                    <span class="label">支出</span>
-                    <span class="value">{{ formatReportCurrency(cell.stat.expense, { compact: true }) }}</span>
-                  </span>
-                  <span class="report-calendar-metric-chip income">
-                    <span class="label">收入</span>
-                    <span class="value">{{ formatReportCurrency(cell.stat.income, { compact: true }) }}</span>
-                  </span>
-                  <span
-                    class="report-calendar-metric-chip balance"
-                    :class="getBalanceToneClass(cell.stat.balance)"
-                  >
-                    <span class="label">结余</span>
-                    <span class="value">{{ formatBalanceCurrency(cell.stat.balance, true) }}</span>
-                  </span>
-                  <span class="report-calendar-metric-chip neutral">
-                    <span class="label">笔数</span>
-                    <span class="value">{{ cell.stat.recordCount }}</span>
-                  </span>
+                  <div class="report-calendar-cell__metrics-row">
+                    <span class="report-calendar-metric-chip expense">
+                      <span class="label">支</span>
+                      <span class="value">{{ formatReportCurrency(cell.stat.expense, { compact: true }) }}</span>
+                    </span>
+                    <span class="report-calendar-metric-chip income">
+                      <span class="label">收</span>
+                      <span class="value">{{ formatReportCurrency(cell.stat.income, { compact: true }) }}</span>
+                    </span>
+                  </div>
+                  <div class="report-calendar-cell__metrics-row">
+                    <span
+                      class="report-calendar-metric-chip balance"
+                      :class="getBalanceToneClass(cell.stat.balance)"
+                    >
+                      <span class="label">余</span>
+                      <span class="value">{{ formatBalanceCurrency(cell.stat.balance, true) }}</span>
+                    </span>
+                    <span class="report-calendar-metric-chip neutral">
+                      <span class="label">笔</span>
+                      <span class="value">{{ cell.stat.recordCount }}</span>
+                    </span>
+                  </div>
                 </div>
               </button>
             </div>
@@ -778,6 +785,13 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+.report-calendar-filter__detail-toggle {
+  padding-inline: 2px;
+  color: rgb(var(--primary-6));
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .subject-query-radio-scroll {
   width: 100%;
   overflow: visible;
@@ -801,13 +815,10 @@ onMounted(async () => {
 }
 
 .report-calendar-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid rgba(229, 230, 235, 0.9);
-  border-radius: 12px;
-  background: var(--color-bg-1);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .report-calendar-summary__item {
@@ -817,8 +828,8 @@ onMounted(async () => {
   gap: 10px;
   flex: 1 1 180px;
   min-height: 32px;
-  padding: 6px 12px;
-  border-radius: 10px;
+  padding: 0 10px;
+  border-radius: 12px;
   border: 1px solid rgba(229, 230, 235, 0.7);
   background: rgba(255, 255, 255, 0.92);
 }
@@ -848,14 +859,6 @@ onMounted(async () => {
   font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
-}
-
-.report-calendar-summary__toggle {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  white-space: nowrap;
-  font-size: 12px;
 }
 
 .report-calendar-layout {
@@ -903,18 +906,18 @@ onMounted(async () => {
 .report-calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .report-calendar-cell {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 154px;
-  padding: 12px;
+  gap: 6px;
+  //min-height: 112px;
+  padding: 6px 6px 6px 6px;
   text-align: left;
   border: 1px solid rgba(229, 230, 235, 0.9);
-  border-radius: 14px;
+  border-radius: 12px;
   background: #fff;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -966,7 +969,7 @@ onMounted(async () => {
 
 .report-calendar-cell__date {
   color: var(--color-text-1);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -974,12 +977,12 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 20px;
-  padding: 0 8px;
+  min-height: 18px;
+  padding: 0 6px;
   border-radius: 999px;
   background: rgba(var(--primary-6), 0.92);
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1;
   box-shadow: 0 4px 10px rgba(var(--primary-6), 0.2);
@@ -988,19 +991,25 @@ onMounted(async () => {
 .report-calendar-cell__metrics {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: auto;
+  gap: 4px;
+  //margin-top: auto;
+}
+
+.report-calendar-cell__metrics-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
 }
 
 .report-calendar-metric-chip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  min-height: 24px;
-  padding: 0 8px;
-  border-radius: 10px;
-  font-size: 11px;
+  gap: 6px;
+  min-height: 20px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 10px;
   font-weight: 600;
   background: rgba(247, 248, 250, 0.92);
   color: var(--color-text-2);
@@ -1229,7 +1238,7 @@ onMounted(async () => {
   gap: 10px;
   flex: 1 1 140px;
   min-height: 32px;
-  padding: 6px 12px;
+  padding: 0 12px;
   border-radius: 8px;
   background: rgba(247, 248, 250, 0.9);
 }
@@ -1261,7 +1270,7 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
-  padding: 14px;
+  padding: 12px 12px;
   border: 1px solid rgba(229, 230, 235, 0.9);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.98);
@@ -1345,16 +1354,16 @@ onMounted(async () => {
   }
 
   .report-calendar-summary {
-    padding: 10px 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .report-calendar-grid {
-    gap: 8px;
+    gap: 6px;
   }
 
   .report-calendar-cell {
-    min-height: 148px;
-    padding: 10px;
+    min-height: 104px;
+    padding: 8px;
   }
 
   .report-calendar-year {
@@ -1367,6 +1376,12 @@ onMounted(async () => {
 
   .report-calendar-detail__item {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .report-calendar-summary {
+    grid-template-columns: 1fr;
   }
 }
 </style>

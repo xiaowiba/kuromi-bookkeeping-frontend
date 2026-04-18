@@ -496,6 +496,7 @@ export interface ReportCalendarDayDetailItemResp {
   userName: string
   amount: number
   remark: string
+  hidden: number
 }
 
 /** 日历报表单日详情响应 */

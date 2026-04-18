@@ -29,7 +29,7 @@ export interface CalendarYearPanelItem {
   cells: CalendarCellItem[]
 }
 
-export const CALENDAR_WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日']
+export const CALENDAR_WEEKDAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 
 const toValidDate = (value?: string | null) => {
   if (!value) {

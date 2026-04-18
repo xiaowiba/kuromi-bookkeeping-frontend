@@ -10,6 +10,8 @@
       <ReportFilterBar
         :filter-form="dashboardFilterForm"
         :is-admin="isAdmin"
+        :privacy-mode="privacyStore.isPrivacyMode"
+        :privacy-remaining-text="privacyStore.remainingDurationText"
         :category-options="dashboardCategoryOptions"
         :subject-options="dashboardSubjectOptions"
         :tag-options="dashboardTagOptions"
@@ -19,6 +21,7 @@
         :loading="dashboardLoading"
         @search="handleSearch"
         @reset="handleReset"
+        @exit-privacy="onExitPrivacy"
       />
 
       <!-- 报表顶部汇总卡：展示总支出、总收入、结余、记录数等核心概览指标 -->
@@ -249,6 +252,12 @@ const handleReset = async () => {
   clearDrilldown()
   resetDashboardFilters()
   await loadDashboard()
+}
+
+/** 退出隐私模式后，会由监听器自动按最新口径重刷整页报表。 */
+const onExitPrivacy = () => {
+  privacyStore.exitPrivacyMode()
+  Message.success('已退出隐私模式')
 }
 
 /**

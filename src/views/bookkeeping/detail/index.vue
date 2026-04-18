@@ -154,6 +154,9 @@
           <template #icon><icon-lock /></template>
           退出隐私模式
         </a-button>
+        <a-tag v-if="privacyStore.isPrivacyMode" color="orange" size="small" style="margin-left: 8px">
+          剩余 {{ privacyStore.remainingDurationText }}
+        </a-tag>
         <!-- 隐私模式下进入隐藏配置 -->
         <a-button v-if="privacyStore.isPrivacyMode" size="small" style="margin-left: 8px" @click="router.push('/bookkeeping/hide-target')">
           <template #icon><icon-settings /></template>

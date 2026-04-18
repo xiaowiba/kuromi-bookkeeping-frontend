@@ -9,6 +9,16 @@
       @search="emit('search')"
       @reset="emit('reset')"
     >
+      <template #prefix-extra>
+        <a-button v-if="privacyMode" status="warning" size="small" :disabled="loading" @click="emit('exit-privacy')">
+          <template #icon><icon-lock /></template>
+          退出隐私模式
+        </a-button>
+        <a-tag v-if="privacyMode" size="small" color="orange">
+          剩余 {{ privacyRemainingText }}
+        </a-tag>
+      </template>
+
       <template #timeFilter>
         <div class="detail-time-filter">
           <a-radio-group
@@ -196,6 +206,8 @@ interface Props {
   userQueryOptions: LabelValueState[]
   onSelectUser: (value?: string | number | null) => void
   isAdmin: boolean
+  privacyMode?: boolean
+  privacyRemainingText?: string
   loading?: boolean
 }
 
@@ -207,6 +219,7 @@ const emit = defineEmits<{
   (e: 'update:filterForm', value: ReportFilterForm): void
   (e: 'search'): void
   (e: 'reset'): void
+  (e: 'exit-privacy'): void
 }>()
 
 const filterFormModel = computed({

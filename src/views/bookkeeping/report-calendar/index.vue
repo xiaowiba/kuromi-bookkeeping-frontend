@@ -10,6 +10,21 @@
           @search="handleSearch"
           @reset="handleReset"
         >
+          <template #prefix-extra>
+            <a-button
+              v-if="privacyStore.isPrivacyMode"
+              status="warning"
+              size="small"
+              @click="onExitPrivacy"
+            >
+              <template #icon><icon-lock /></template>
+              退出隐私模式
+            </a-button>
+            <a-tag v-if="privacyStore.isPrivacyMode" size="small" color="orange">
+              剩余 {{ privacyStore.remainingDurationText }}
+            </a-tag>
+          </template>
+
           <template #subjectId>
             <div class="subject-query-radio-scroll">
               <a-radio-group
@@ -92,32 +107,35 @@
 
       <div class="report-calendar-layout" :class="{ 'report-calendar-layout--collapsed': detailCollapsed }">
         <ReportPanelShell
+          class="report-calendar-overview-shell"
           title="日历总览"
           :description="calendarPanelDescription"
           :loading="calendarLoading"
         >
           <template #toolbar>
             <div class="report-calendar-toolbar">
-              <a-button-group>
-                <a-button @click="handleShiftPeriod(-1)">上一{{ queryForm.viewMode === 'month' ? '月' : '年' }}</a-button>
-                <a-button @click="handleBackToToday">回到今天</a-button>
-                <a-button @click="handleShiftPeriod(1)">下一{{ queryForm.viewMode === 'month' ? '月' : '年' }}</a-button>
-              </a-button-group>
-              <span class="report-calendar-toolbar__label">{{ anchorLabel }}</span>
+              <div class="report-calendar-summary">
+                <div
+                  v-for="item in summaryCards"
+                  :key="item.label"
+                  class="report-calendar-summary__item"
+                  :class="item.tone"
+                >
+                  <span class="report-calendar-summary__label">{{ item.label }}</span>
+                  <strong class="report-calendar-summary__value">{{ item.value }}</strong>
+                </div>
+              </div>
+
+              <div class="report-calendar-toolbar__actions">
+                <a-button-group>
+                  <a-button @click="handleShiftPeriod(-1)">上一{{ queryForm.viewMode === 'month' ? '月' : '年' }}</a-button>
+                  <a-button @click="handleBackToToday">回到今天</a-button>
+                  <a-button @click="handleShiftPeriod(1)">下一{{ queryForm.viewMode === 'month' ? '月' : '年' }}</a-button>
+                </a-button-group>
+                <span class="report-calendar-toolbar__label">{{ anchorLabel }}</span>
+              </div>
             </div>
           </template>
-
-          <div class="report-calendar-summary">
-            <div
-              v-for="item in summaryCards"
-              :key="item.label"
-              class="report-calendar-summary__item"
-              :class="item.tone"
-            >
-              <span class="report-calendar-summary__label">{{ item.label }}</span>
-              <strong class="report-calendar-summary__value">{{ item.value }}</strong>
-            </div>
-          </div>
 
           <div v-if="queryForm.viewMode === 'month'" class="report-calendar-month">
             <div class="report-calendar-weekdays">
@@ -147,7 +165,11 @@
               >
                 <div class="report-calendar-cell__head">
                   <span class="report-calendar-cell__date">{{ cell.dayText }}</span>
-                  <span v-if="cell.isSelected" class="report-calendar-cell__selected-badge">已选</span>
+                  <span v-if="cell.stat" class="report-calendar-cell__head-meta">
+                    <span class="report-calendar-cell__count" :class="{ 'is-selected': cell.isSelected }">
+                      {{ cell.stat.recordCount }}笔
+                    </span>
+                  </span>
                 </div>
 
                 <div v-if="cell.stat" class="report-calendar-cell__metrics">
@@ -168,10 +190,6 @@
                     >
                       <span class="label">余</span>
                       <span class="value">{{ formatBalanceCurrency(cell.stat.balance, true) }}</span>
-                    </span>
-                    <span class="report-calendar-metric-chip neutral">
-                      <span class="label">笔</span>
-                      <span class="value">{{ cell.stat.recordCount }}</span>
                     </span>
                   </div>
                 </div>
@@ -287,6 +305,7 @@
                       <GiCellTag :value="item.paymentMethod || 'default'" :dict="bk_payment_method" />
                       <a-tag v-if="item.tagName" size="small" color="arcoblue">{{ item.tagName }}</a-tag>
                       <a-tag size="small">{{ item.userName }}</a-tag>
+                      <a-tag v-if="privacyStore.isPrivacyMode && item.hidden === 1" size="small" color="orangered">隐</a-tag>
                     </div>
                     <p v-if="item.remark" class="report-calendar-detail__remark">{{ item.remark }}</p>
                   </div>
@@ -671,6 +690,12 @@ const handleReset = async () => {
   await searchMethod()
 }
 
+/** 退出隐私模式后，watch 会自动按最新口径刷新日历与右侧详情。 */
+const onExitPrivacy = () => {
+  privacyStore.exitPrivacyMode()
+  Message.success('已退出隐私模式')
+}
+
 const handleViewModeChange = async (value: string | number | boolean) => {
   queryForm.viewMode = String(value) as T.ReportCalendarViewMode
   queryForm.anchorDate = normalizeCalendarAnchorDate(queryForm.anchorDate, queryForm.viewMode)
@@ -758,6 +783,25 @@ onMounted(async () => {
   border: 1px solid rgba(229, 230, 235, 0.9);
   border-radius: 16px;
   background: var(--color-bg-1);
+
+  :deep(.arco-grid > .arco-grid-item:last-child) {
+    grid-column: 1 / -1 !important;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  :deep(.arco-grid > .arco-grid-item:last-child > .arco-space) {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    gap: 8px;
+  }
+
+  :deep(.arco-grid > .arco-grid-item:last-child .arco-space-item) {
+    flex: 0 0 auto;
+  }
 }
 
 .report-calendar-filter__mode {
@@ -818,7 +862,9 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 0;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .report-calendar-summary__item {
@@ -876,8 +922,22 @@ onMounted(async () => {
 .report-calendar-toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+}
+
+.report-calendar-overview-shell :deep(.report-panel-shell__toolbar) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.report-calendar-toolbar__actions {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
 }
 
 .report-calendar-toolbar__label {
@@ -962,7 +1022,7 @@ onMounted(async () => {
 
 .report-calendar-cell__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
@@ -973,18 +1033,31 @@ onMounted(async () => {
   font-weight: 700;
 }
 
-.report-calendar-cell__selected-badge {
+.report-calendar-cell__head-meta {
+  display: inline-flex;
+  align-items: flex-end;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.report-calendar-cell__count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 18px;
   padding: 0 6px;
   border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--color-text-3);
+  white-space: nowrap;
+}
+
+.report-calendar-cell__count.is-selected {
   background: rgba(var(--primary-6), 0.92);
   color: #fff;
-  font-size: 10px;
   font-weight: 700;
-  line-height: 1;
   box-shadow: 0 4px 10px rgba(var(--primary-6), 0.2);
 }
 
@@ -992,13 +1065,16 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  //margin-top: auto;
 }
 
 .report-calendar-cell__metrics-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
+}
+
+.report-calendar-cell__metrics-row:last-child {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .report-calendar-metric-chip {
@@ -1351,6 +1427,15 @@ onMounted(async () => {
 @media (max-width: 900px) {
   .report-calendar-page__search {
     padding: 14px 14px 4px;
+  }
+
+  .report-calendar-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .report-calendar-toolbar__actions {
+    justify-content: flex-end;
   }
 
   .report-calendar-summary {

@@ -55,6 +55,7 @@
         :suffix="props.search && (props.suffix || (!props.suffix && collapsed))"
       >
         <a-space wrap>
+          <slot name="prefix-extra" />
           <slot name="suffix">
             <a-button type="primary" @click="emit('search')">
               <template #icon><icon-search /></template>

@@ -11,11 +11,12 @@
  * @desc 改造为记录进入时间、过期时间和有效时长，并支持绝对过期自动退出
  */
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const DEFAULT_EXPIRE_MINUTES = 10
 let visibilityListenerInitialized = false
 let expireTimer: ReturnType<typeof window.setTimeout> | null = null
+let countdownTimer: ReturnType<typeof window.setInterval> | null = null
 
 const normalizeExpireMinutes = (minutes?: number) => {
   const parsedMinutes = Number(minutes)
@@ -38,6 +39,9 @@ const storeSetup = () => {
   /** 隐私模式过期时间戳 */
   const expireAt = ref(0)
 
+  /** 当前时间戳，用于驱动倒计时展示每秒刷新 */
+  const currentTimestamp = ref(Date.now())
+
   /**
    * 清理过期定时器
    *
@@ -48,6 +52,19 @@ const storeSetup = () => {
     if (expireTimer) {
       window.clearTimeout(expireTimer)
       expireTimer = null
+    }
+  }
+
+  /**
+   * 清理倒计时定时器
+   *
+   * @author Codex
+   * @date 2026-04-18
+   */
+  const clearCountdownTimer = () => {
+    if (countdownTimer) {
+      window.clearInterval(countdownTimer)
+      countdownTimer = null
     }
   }
 
@@ -63,20 +80,37 @@ const storeSetup = () => {
       return
     }
 
-    const remainingMilliseconds = expireAt.value - Date.now()
+    currentTimestamp.value = Date.now()
+    const remainingMilliseconds = expireAt.value - currentTimestamp.value
     if (remainingMilliseconds <= 0) {
-      isPrivacyMode.value = false
-      enteredAt.value = 0
-      expireAt.value = 0
+      exitPrivacyMode()
       return
     }
 
     expireTimer = window.setTimeout(() => {
-      isPrivacyMode.value = false
-      enteredAt.value = 0
-      expireAt.value = 0
-      clearExpireTimer()
+      exitPrivacyMode()
     }, remainingMilliseconds)
+  }
+
+  /**
+   * 调度倒计时定时器
+   *
+   * @author Codex
+   * @date 2026-04-18
+   */
+  const scheduleCountdownTimer = () => {
+    clearCountdownTimer()
+    if (!isPrivacyMode.value || !expireAt.value) {
+      currentTimestamp.value = Date.now()
+      return
+    }
+    currentTimestamp.value = Date.now()
+    countdownTimer = window.setInterval(() => {
+      currentTimestamp.value = Date.now()
+      if (expireAt.value && currentTimestamp.value >= expireAt.value) {
+        exitPrivacyMode()
+      }
+    }, 1000)
   }
 
   /**
@@ -108,6 +142,8 @@ const storeSetup = () => {
     enteredAt.value = 0
     expireAt.value = 0
     clearExpireTimer()
+    clearCountdownTimer()
+    currentTimestamp.value = Date.now()
   }
 
   /**
@@ -152,6 +188,7 @@ const storeSetup = () => {
 
     if (isPrivacyMode.value) {
       scheduleExpireTimer()
+      scheduleCountdownTimer()
     }
     return isPrivacyMode.value
   }
@@ -178,11 +215,65 @@ const storeSetup = () => {
     visibilityListenerInitialized = true
   }
 
+  /**
+   * 隐私模式剩余秒数。
+   *
+   * @author Codex
+   * @date 2026-04-18
+   */
+  const remainingSeconds = computed(() => {
+    if (!isPrivacyMode.value || !expireAt.value) {
+      return 0
+    }
+    return Math.max(0, Math.ceil((expireAt.value - currentTimestamp.value) / 1000))
+  })
+
+  /**
+   * 隐私模式剩余时间文案。
+   *
+   * 规则：
+   * 1. 大于等于 1 分钟时，显示为“X分钟YY秒”
+   * 2. 小于 1 分钟时，仅显示“ZZ秒”
+   *
+   * @author Codex
+   * @date 2026-04-18
+   */
+  const remainingDurationText = computed(() => {
+    const seconds = remainingSeconds.value
+    if (seconds >= 60) {
+      const minutes = Math.floor(seconds / 60)
+      const remainSeconds = String(seconds % 60).padStart(2, '0')
+      return `${minutes}分钟${remainSeconds}秒`
+    }
+    return `${seconds}秒`
+  })
+
+  watch(
+    () => [isPrivacyMode.value, expireAt.value] as const,
+    () => {
+      if (!isPrivacyMode.value || !expireAt.value) {
+        clearExpireTimer()
+        clearCountdownTimer()
+        currentTimestamp.value = Date.now()
+        return
+      }
+      if (isExpired()) {
+        exitPrivacyMode()
+        return
+      }
+      scheduleExpireTimer()
+      scheduleCountdownTimer()
+    },
+    { immediate: true },
+  )
+
   return {
     isPrivacyMode,
     expireMinutes,
     enteredAt,
     expireAt,
+    remainingSeconds,
+    remainingDurationText,
     enterPrivacyMode,
     exitPrivacyMode,
     syncExpireMinutes,

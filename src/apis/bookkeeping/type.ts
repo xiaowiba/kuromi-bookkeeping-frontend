@@ -133,6 +133,7 @@ export interface DetailQuery {
   category?: string
   subjectId?: string
   tagId?: string
+  unselectedTagOnly?: boolean
   paymentMethod?: string
   timeMode?: DetailTimeMode
   datePreset?: DetailDatePreset

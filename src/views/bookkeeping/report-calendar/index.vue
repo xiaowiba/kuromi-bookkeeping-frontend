@@ -697,7 +697,18 @@ const onExitPrivacy = () => {
 }
 
 const handleViewModeChange = async (value: string | number | boolean) => {
-  queryForm.viewMode = String(value) as T.ReportCalendarViewMode
+  const previousViewMode = queryForm.viewMode
+  const nextViewMode = String(value) as T.ReportCalendarViewMode
+  queryForm.viewMode = nextViewMode
+
+  // 从年视图切回月视图时，直接落到当前月份，避免继续停留在年视图锚点推导出的 1 月。
+  if (previousViewMode === 'year' && nextViewMode === 'month') {
+    const today = dayjs().format('YYYY-MM-DD')
+    queryForm.anchorDate = normalizeCalendarAnchorDate(today, 'month')
+    await searchMethod(today)
+    return
+  }
+
   queryForm.anchorDate = normalizeCalendarAnchorDate(queryForm.anchorDate, queryForm.viewMode)
   await searchMethod(selectedDate.value || undefined)
 }
@@ -724,6 +735,8 @@ const handleBackToToday = async () => {
  * 2. 点击当前周期内日期时，只刷新右侧详情区。
  */
 const handleCalendarCellClick = async (cell: CalendarCellItem) => {
+  // 用户主动点选日期时，默认联动展开右侧详情面板，避免还要再手动点一次“展开详情”。
+  detailCollapsed.value = false
   if (!cell.inCurrentView) {
     if (queryForm.viewMode === 'month') {
       queryForm.anchorDate = normalizeCalendarAnchorDate(cell.date, 'month')

@@ -74,6 +74,11 @@ watch(
   [expenseList, incomeList, () => props.selectedCategory],
   () => {
     const preferredCategory = resolvePreferredCategory()
+    // 报表中心未显式筛到收入/支出时，科目排行默认优先展示支出排行。
+    if (!props.selectedCategory) {
+      activeCategory.value = preferredCategory
+      return
+    }
     if (activeCategory.value === 'expense' && !expenseList.value.length) {
       activeCategory.value = preferredCategory
       return

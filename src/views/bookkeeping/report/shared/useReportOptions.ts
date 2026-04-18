@@ -87,6 +87,47 @@ const toChartNumber = (value: number | string | undefined | null) => {
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 
+type RankSortableItem = {
+  amount?: number | string | null
+  count?: number | string | null
+}
+
+type HorizontalBarDataItem = {
+  name: string
+  value: number
+  extra?: string
+}
+
+export type ReportTagRankChartDataItem = T.ReportTagRankItemResp & HorizontalBarDataItem
+
+/**
+ * 排行类横向柱状图需要先按金额降序稳定排序，再根据横向类目轴的展示方向反转一次。
+ * 这里显式克隆数组，避免直接 reverse() 改写原列表，导致频繁切换时顺序来回翻转。
+ */
+const buildOrderedRankSource = <T extends RankSortableItem>(
+  list: T[] | undefined,
+  mode: ReportOptionMode,
+) => {
+  const sortedSource = (list ?? [])
+    .map((item, index) => ({ item, index }))
+    .sort((left, right) => {
+      const amountDifference = toChartNumber(right.item.amount) - toChartNumber(left.item.amount)
+      if (amountDifference !== 0) {
+        return amountDifference
+      }
+
+      const countDifference = toChartNumber(right.item.count) - toChartNumber(left.item.count)
+      if (countDifference !== 0) {
+        return countDifference
+      }
+
+      return left.index - right.index
+    })
+    .map(({ item }) => item)
+
+  return resolveRankSource(sortedSource, mode).slice().reverse()
+}
+
 const buildEmptyOption = (text: string, colors?: ReportColorScheme): EChartsOption => ({
   animation: false,
   xAxis: { show: false, type: 'category', data: [] },
@@ -302,7 +343,7 @@ export const buildCategoryShareOption = (
 }
 
 const buildHorizontalBarOption = (
-  source: Array<{ name: string, value: number, extra?: string }>,
+  source: HorizontalBarDataItem[],
   color: string,
   emptyText: string,
   mode: ReportOptionMode = {},
@@ -390,8 +431,7 @@ export const buildSubjectRankOption = (
   mode: ReportOptionMode = {},
 ): EChartsOption => {
   const colors = mode.colors || REPORT_COLORS
-  const source = resolveRankSource(list, mode)
-    .reverse()
+  const source = buildOrderedRankSource(list, mode)
     .map((item) => ({
       name: item.subjectName,
       value: toChartNumber(item.amount),
@@ -406,12 +446,18 @@ export const buildTagRankOption = (
   mode: ReportOptionMode = {},
 ): EChartsOption => {
   const colors = mode.colors || REPORT_COLORS
-  const source = resolveRankSource(list, mode)
-    .reverse()
-    .map((item) => ({
+  const source = buildOrderedRankSource(list, mode)
+    .map<ReportTagRankChartDataItem>((item) => ({
       name: item.tagName,
       value: toChartNumber(item.amount),
       extra: `科目 ${item.subjectName} / 占比 ${formatReportRatio(item.ratio)} / ${item.count} 笔`,
+      tagId: item.tagId,
+      tagName: item.tagName,
+      subjectId: item.subjectId,
+      subjectName: item.subjectName,
+      amount: toChartNumber(item.amount),
+      ratio: item.ratio,
+      count: item.count,
     }))
 
   return buildHorizontalBarOption(source, colors.secondary, '当前条件下暂无标签排行', mode)
@@ -422,8 +468,7 @@ export const buildPaymentMethodOption = (
   mode: ReportOptionMode = {},
 ): EChartsOption => {
   const colors = mode.colors || REPORT_COLORS
-  const source = resolveRankSource(list, mode)
-    .reverse()
+  const source = buildOrderedRankSource(list, mode)
     .map((item) => ({
       name: resolveReportPaymentMethodLabel(item.key, item.label),
       value: toChartNumber(item.amount),

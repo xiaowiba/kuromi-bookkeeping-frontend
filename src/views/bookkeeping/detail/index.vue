@@ -273,10 +273,11 @@
  * @update 2026-04-03 @Wangsongsong
  * @desc Web 端统计区补充当前查询条数，便于无分页模式下确认命中结果规模
  */
+import dayjs from 'dayjs'
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message } from '@arco-design/web-vue'
 import { computed, h, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter, type LocationQueryValue } from 'vue-router'
 import BookkeepingSubjectDetailCell from '../shared/components/BookkeepingSubjectDetailCell.vue'
 import BookkeepingWeekdayTag from '../shared/components/BookkeepingWeekdayTag.vue'
 import {
@@ -314,6 +315,12 @@ import mittBus from '@/utils/mitt'
 
 defineOptions({ name: 'BookkeepingDetail' })
 
+const DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK = 'reportTagRank'
+const DETAIL_ROUTE_TAG_MODE_UNSELECTED = 'unselected'
+const DETAIL_UNSELECTED_TAG_VALUE = '__UNSELECTED__'
+const DETAIL_DELETED_TAG_FALLBACK_NAME = '标签已删除'
+
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
@@ -338,6 +345,11 @@ const DETAIL_SORT_QUERY_MAP = {
 
 type DetailSortMode = keyof typeof DETAIL_SORT_QUERY_MAP
 const DETAIL_DEFAULT_SORT_MODE: DetailSortMode = 'date-desc'
+type TemporaryTagOption = {
+  label: string
+  value: string
+  subjectId: string
+}
 
 /**
  * 创建明细列表默认查询条件。
@@ -353,6 +365,7 @@ const createDefaultDetailQueryForm = () => {
     category: '',
     subjectId: '',
     tagId: '',
+    unselectedTagOnly: false,
     paymentMethod: '',
     timeMode: DETAIL_DEFAULT_TIME_MODE as DetailTimeMode,
     datePreset: DETAIL_DEFAULT_DATE_PRESET as DetailDatePreset,
@@ -365,6 +378,7 @@ const createDefaultDetailQueryForm = () => {
 
 const [queryForm, resetForm] = useResetReactive(createDefaultDetailQueryForm)
 const timePickerState = reactive<DetailTimePickerState>(createDefaultDetailTimePickerState())
+const temporaryTagOption = ref<TemporaryTagOption | null>(null)
 
 const detailTimeModeOptions = DETAIL_TIME_MODE_OPTIONS
 const detailDatePresetOptions = DETAIL_DATE_PRESET_OPTIONS
@@ -382,9 +396,10 @@ const {
   isAdmin,
   paymentMethodQueryOptions,
   subjectQueryOptions: subjectOptions,
-  tagQueryOptions,
+  tagQueryOptions: baseTagQueryOptions,
   clearSubjectSelection,
   loadCommonFilterOptions,
+  loadSubjectTagOptions,
   createCommonQueryColumns,
 } = useBookkeepingCommonFilters({
   form: queryForm,
@@ -394,6 +409,30 @@ const {
     subjectAll: '全部',
     paymentAll: '全部',
   },
+})
+
+const tagQueryOptions = computed<Array<{ label: string, value: string | number, disabled?: boolean }>>(() => {
+  const options = [...baseTagQueryOptions.value]
+
+  if (queryForm.subjectId && !options.some((item) => String(item.value ?? '') === DETAIL_UNSELECTED_TAG_VALUE)) {
+    options.splice(1, 0, {
+      label: '未选择标签',
+      value: DETAIL_UNSELECTED_TAG_VALUE,
+    })
+  }
+
+  if (
+    temporaryTagOption.value
+    && temporaryTagOption.value.subjectId === queryForm.subjectId
+    && !options.some((item) => String(item.value ?? '') === String(temporaryTagOption.value?.value ?? ''))
+  ) {
+    options.push({
+      label: temporaryTagOption.value.label,
+      value: temporaryTagOption.value.value,
+    })
+  }
+
+  return options
 })
 
 /** 当前时间范围的文案回显，方便用户确认筛选口径。 */
@@ -432,6 +471,109 @@ const applyTimeRangeToQuery = (options: {
   queryForm.startDate = options.startDate
   queryForm.endDate = options.endDate
   queryForm.datePreset = options.datePreset ?? queryForm.datePreset
+}
+
+const getSingleRouteQueryValue = (value: LocationQueryValue | LocationQueryValue[] | undefined) => {
+  if (Array.isArray(value)) {
+    return String(value[0] ?? '')
+  }
+  return String(value ?? '')
+}
+
+const resolveQuarterValue = (dateText?: string) => {
+  if (!dateText || !dayjs(dateText).isValid()) {
+    return timePickerState.quarter
+  }
+  const current = dayjs(dateText)
+  return `${current.format('YYYY')}-Q${Math.ceil((current.month() + 1) / 3)}`
+}
+
+/**
+ * 外部通过 URL 回填时间范围后，需要同步更新各类时间选择器的显示值，
+ * 否则表单里的查询口径虽然变了，但周/月/季/年选择器仍会停留在旧值。
+ */
+const syncTimePickerStateFromQuery = () => {
+  if (!queryForm.startDate || !queryForm.endDate) {
+    return
+  }
+
+  timePickerState.range = [queryForm.startDate, queryForm.endDate]
+  timePickerState.weekDate = queryForm.startDate
+  timePickerState.month = dayjs(queryForm.startDate).isValid() ? dayjs(queryForm.startDate).format('YYYY-MM') : timePickerState.month
+  timePickerState.quarter = resolveQuarterValue(queryForm.startDate)
+  timePickerState.year = dayjs(queryForm.startDate).isValid() ? dayjs(queryForm.startDate).format('YYYY') : timePickerState.year
+}
+
+const applyDetailRouteTimeQuery = () => {
+  const timeMode = getSingleRouteQueryValue(route.query.timeMode) as DetailTimeMode
+  const startDate = getSingleRouteQueryValue(route.query.startDate)
+  const endDate = getSingleRouteQueryValue(route.query.endDate)
+  const datePreset = getSingleRouteQueryValue(route.query.datePreset) as DetailDatePreset
+
+  if (!startDate || !endDate) {
+    return
+  }
+
+  applyTimeRangeToQuery({
+    timeMode: timeMode || DETAIL_DEFAULT_TIME_MODE,
+    startDate,
+    endDate,
+    datePreset: timeMode === 'preset' && datePreset ? datePreset : undefined,
+  })
+  syncTimePickerStateFromQuery()
+}
+
+/**
+ * 从报表标签排行跳转进来时，首次根据 route.query 回填筛选条件。
+ *
+ * 回填顺序必须保持稳定：
+ * 1. 先回填时间
+ * 2. 再回填用户、分类、科目
+ * 3. 等待科目下标签选项加载完成
+ * 4. 最后再回填标签、支付方式、隐藏状态
+ *
+ * 否则标签值很容易在科目联动重新加载后被清空。
+ */
+const applyDetailRouteQuery = async () => {
+  const from = getSingleRouteQueryValue(route.query.from)
+  if (from !== DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK) {
+    return
+  }
+
+  applyDetailRouteTimeQuery()
+
+  queryForm.userId = getSingleRouteQueryValue(route.query.userId)
+  queryForm.category = getSingleRouteQueryValue(route.query.category)
+  queryForm.subjectId = getSingleRouteQueryValue(route.query.subjectId)
+
+  if (queryForm.subjectId) {
+    await loadSubjectTagOptions()
+  }
+
+  const tagMode = getSingleRouteQueryValue(route.query.tagMode)
+  const tagId = getSingleRouteQueryValue(route.query.tagId)
+  const tagName = getSingleRouteQueryValue(route.query.tagName)
+  temporaryTagOption.value = null
+  queryForm.unselectedTagOnly = false
+
+  if (tagMode === DETAIL_ROUTE_TAG_MODE_UNSELECTED) {
+    queryForm.tagId = DETAIL_UNSELECTED_TAG_VALUE
+    queryForm.unselectedTagOnly = true
+  } else {
+    queryForm.tagId = tagId
+    if (tagId && !baseTagQueryOptions.value.some((item) => String(item.value ?? '') === tagId)) {
+      temporaryTagOption.value = {
+        label: tagName || DETAIL_DELETED_TAG_FALLBACK_NAME,
+        value: tagId,
+        subjectId: queryForm.subjectId,
+      }
+    }
+  }
+
+  queryForm.paymentMethod = getSingleRouteQueryValue(route.query.paymentMethod)
+
+  const hidden = getSingleRouteQueryValue(route.query.hidden)
+  queryForm.hidden = hidden === '' ? '' : Number(hidden)
 }
 
 const handleTimeModeChange = (value: string | number | boolean) => {
@@ -526,15 +668,23 @@ const handleRangePickerChange = (value?: string[]) => {
 }
 
 const handleCategoryQueryChange = () => {
+  temporaryTagOption.value = null
+  queryForm.unselectedTagOnly = false
   clearSubjectSelection()
   triggerQuerySearch()
 }
 
 const handleSubjectQueryChange = () => {
+  temporaryTagOption.value = null
+  queryForm.unselectedTagOnly = false
   triggerQuerySearch()
 }
 
 const handleTagQueryChange = () => {
+  queryForm.unselectedTagOnly = queryForm.tagId === DETAIL_UNSELECTED_TAG_VALUE
+  if (temporaryTagOption.value && String(queryForm.tagId || '') !== String(temporaryTagOption.value.value)) {
+    temporaryTagOption.value = null
+  }
   triggerQuerySearch()
 }
 
@@ -661,6 +811,12 @@ const buildDetailQuery = () => {
     privacyMode: privacyStore.isPrivacyMode,
   }
   delete (query as typeof query & { sortMode?: DetailSortMode }).sortMode
+  if (query.tagId === DETAIL_UNSELECTED_TAG_VALUE) {
+    query.unselectedTagOnly = true
+    delete (query as typeof query & { tagId?: string }).tagId
+  } else {
+    query.unselectedTagOnly = false
+  }
   return query
 }
 
@@ -806,6 +962,7 @@ const columns = computed<TableInstance['columns']>(() => [
 const reset = () => {
   resetForm()
   Object.assign(timePickerState, createDefaultDetailTimePickerState())
+  temporaryTagOption.value = null
   searchMethod()
 }
 
@@ -1006,8 +1163,9 @@ watch(
 onMounted(async () => {
   mittBus.on('footer-click', onFooterClick)
   await loadCommonFilterOptions()
+  await applyDetailRouteQuery()
   // 初始加载数据和统计
-  searchMethod()
+  await searchMethod()
 })
 
 onUnmounted(() => {

@@ -62,7 +62,7 @@
             </div>
           </template>
           <div class="report-drilldown__body">
-            <Chart :option="drilldownTagRankOption" :update-options="{ notMerge: true }" :height="drilldownChartHeight" />
+            <Chart :option="drilldownTagRankOption" :update-options="{ notMerge: true }" :height="drilldownChartHeight" @click="handleDrilldownTagRankClick" />
           </div>
         </ReportPanelShell>
       </div>
@@ -77,7 +77,7 @@
           @select-subject="handleSubjectDrilldown"
         />
 
-        <ReportTagRankCard v-if="showTagRank" :option="tagRankOption" :loading="dashboardLoading" />
+        <ReportTagRankCard v-if="showTagRank" :option="tagRankOption" :loading="dashboardLoading" @select-tag="handleTagRankSelect" />
 
         <!-- 支付方式分布图：展示微信、支付宝、银行卡等支付渠道的金额分布 -->
         <ReportPaymentMethodCard :list="dashboard.paymentMethodShare" :loading="dashboardLoading" :colors="REPORT_COLORS_TECH_BLUE" />
@@ -109,10 +109,12 @@
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { createEmptyReportDashboard } from './shared/reportConstants'
 import { resolveReportPaymentMethodLabel } from './shared/reportFormat'
 import { useReportFilters } from './shared/useReportFilters'
 import { useReportOptions, REPORT_COLORS_TECH_BLUE, buildTagRankOption } from './shared/useReportOptions'
+import type { ReportTagRankChartDataItem } from './shared/useReportOptions'
 import ReportCategoryShareCard from './components/ReportCategoryShareCard.vue'
 import ReportFilterBar from './components/ReportFilterBar.vue'
 import ReportInsightPanel from './components/ReportInsightPanel.vue'
@@ -130,6 +132,12 @@ import { usePrivacyStore } from '@/stores'
 
 defineOptions({ name: 'BookkeepingReport' })
 
+const DETAIL_ROUTE_PATH = '/bookkeeping/detail'
+const DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK = 'reportTagRank'
+const DETAIL_TAG_MODE_EXACT = 'exact'
+const DETAIL_TAG_MODE_UNSELECTED = 'unselected'
+
+const router = useRouter()
 const privacyStore = usePrivacyStore()
 
 /** 看板区域加载状态：控制汇总卡、图表、洞察等模块的 loading */
@@ -189,6 +197,78 @@ const clearDrilldown = () => {
   drilldownSubjectId.value = ''
   drilldownSubjectName.value = ''
   drilldownTagRankList.value = []
+}
+
+const normalizeTagRankSelection = (
+  payload: Partial<ReportTagRankChartDataItem> | undefined,
+): T.ReportTagRankItemResp | null => {
+  if (!payload?.tagName || !payload?.subjectId || !payload?.subjectName) {
+    return null
+  }
+
+  return {
+    tagId: payload.tagId == null ? undefined : String(payload.tagId),
+    tagName: payload.tagName,
+    subjectId: String(payload.subjectId),
+    subjectName: payload.subjectName,
+    amount: Number(payload.amount ?? payload.value ?? 0),
+    ratio: Number(payload.ratio ?? 0),
+    count: Number(payload.count ?? 0),
+  }
+}
+
+const buildDetailRouteQueryFromTagRank = (payload: T.ReportTagRankItemResp) => {
+  const dashboardQuery = buildDashboardQuery()
+  const routeQuery: Record<string, string> = {
+    from: DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK,
+    timeMode: dashboardFilterForm.timeMode,
+    startDate: dashboardFilterForm.startDate,
+    endDate: dashboardFilterForm.endDate,
+    subjectId: String(payload.subjectId),
+    subjectName: payload.subjectName,
+    tagName: payload.tagName,
+    tagMode: payload.tagId ? DETAIL_TAG_MODE_EXACT : DETAIL_TAG_MODE_UNSELECTED,
+  }
+
+  if (dashboardFilterForm.timeMode === 'preset' && dashboardFilterForm.datePreset && dashboardFilterForm.datePreset !== 'custom') {
+    routeQuery.datePreset = dashboardFilterForm.datePreset
+  }
+  if (dashboardQuery.userId) {
+    routeQuery.userId = String(dashboardQuery.userId)
+  }
+  if (dashboardQuery.category) {
+    routeQuery.category = dashboardQuery.category
+  }
+  if (dashboardQuery.paymentMethod) {
+    routeQuery.paymentMethod = dashboardQuery.paymentMethod
+  }
+  if (dashboardQuery.hidden !== '' && dashboardQuery.hidden !== null && dashboardQuery.hidden !== undefined) {
+    routeQuery.hidden = String(dashboardQuery.hidden)
+  }
+  if (payload.tagId) {
+    routeQuery.tagId = String(payload.tagId)
+  }
+
+  return routeQuery
+}
+
+const openDetailPageByTagRank = (payload: T.ReportTagRankItemResp) => {
+  const resolvedRoute = router.resolve({
+    path: DETAIL_ROUTE_PATH,
+    query: buildDetailRouteQueryFromTagRank(payload),
+  })
+  window.open(resolvedRoute.href, '_blank')
+}
+
+const handleTagRankSelect = (payload: T.ReportTagRankItemResp) => {
+  openDetailPageByTagRank(payload)
+}
+
+const handleDrilldownTagRankClick = (params: any) => {
+  const payload = normalizeTagRankSelection(params?.data as Partial<ReportTagRankChartDataItem> | undefined)
+  if (payload) {
+    handleTagRankSelect(payload)
+  }
 }
 
 /**

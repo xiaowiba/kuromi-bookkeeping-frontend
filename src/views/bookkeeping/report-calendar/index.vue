@@ -30,6 +30,7 @@
               <a-radio-group
                 v-model="queryForm.subjectId"
                 :options="subjectQueryOptions"
+                @change="triggerSearch"
               />
             </div>
           </template>
@@ -40,6 +41,7 @@
                 v-model="queryForm.tagId"
                 :options="tagQueryOptions"
                 :disabled="!queryForm.subjectId"
+                @change="triggerSearch"
               />
             </div>
           </template>
@@ -49,6 +51,7 @@
               <a-radio-group
                 v-model="queryForm.paymentMethod"
                 :options="paymentMethodQueryOptions"
+                @change="triggerSearch"
               />
             </div>
           </template>
@@ -341,7 +344,7 @@
  * 3. 左侧展示日历聚合，右侧展示选中日期的完整明细。
  */
 import { Message } from '@arco-design/web-vue'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import dayjs from 'dayjs'
 import BookkeepingSubjectDetailCell from '../shared/components/BookkeepingSubjectDetailCell.vue'
 import ReportPanelShell from '../report/components/ReportPanelShell.vue'
@@ -418,28 +421,33 @@ const commonQueryColumns = createCommonQueryColumns({
     useRadioGroup: true,
     placeholder: '请选择所属用户',
     allowSearch: true,
+    onChange: () => triggerSearch(),
   },
   category: {
     span: { xs: 24, sm: 12, xxl: 12 },
     useRadioGroup: true,
     placeholder: '请选择分类',
+    onChange: () => triggerSearch(),
   },
   subject: {
     span: { xs: 24, sm: 24, xxl: 24 },
     useRadioGroup: true,
     placeholder: '请选择科目',
     allowSearch: true,
+    onChange: () => triggerSearch(),
   },
   tag: {
     span: { xs: 24, sm: 24, xxl: 24 },
     useRadioGroup: true,
     placeholder: '请选择标签',
     allowSearch: true,
+    onChange: () => triggerSearch(),
   },
   paymentMethod: {
     span: { xs: 24, sm: 24, xxl: 24 },
     useRadioGroup: true,
     placeholder: '请选择支付方式',
+    onChange: () => triggerSearch(),
   },
 })
 
@@ -678,6 +686,18 @@ const searchMethod = async (preferredDate?: string) => {
     return
   }
   await loadDayDetail(nextDate)
+}
+
+/**
+ * 筛选条件变更后自动触发搜索，与报表中心交互对齐。
+ *
+ * @author Wangsongsong
+ * @date 2026-04-17
+ */
+const triggerSearch = () => {
+  nextTick(() => {
+    void searchMethod()
+  })
 }
 
 const handleSearch = async () => {

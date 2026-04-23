@@ -174,6 +174,16 @@
           />
         </div>
       </template>
+      <template #paymentAccountId>
+        <div class="subject-query-radio-scroll">
+          <a-radio-group
+            v-model="filterFormModel.paymentAccountId"
+            :options="paymentAccountOptions"
+            :disabled="loading"
+            @change="handlePaymentAccountChange"
+          />
+        </div>
+      </template>
     </GiForm>
   </a-card>
 </template>
@@ -203,6 +213,7 @@ interface Props {
   subjectOptions: LabelValueState[]
   tagOptions: LabelValueState[]
   paymentMethodOptions: LabelValueState[]
+  paymentAccountOptions: LabelValueState[]
   userQueryOptions: LabelValueState[]
   onSelectUser: (value?: string | number | null) => void
   isAdmin: boolean
@@ -290,6 +301,12 @@ const queryFormColumns: ColumnItem<ReportFilterForm>[] = reactive([
     type: 'radio-group',
     label: '支付方式',
     field: 'paymentMethod',
+    span: { xs: 24, sm: 24, xxl: 24 },
+  },
+  {
+    type: 'radio-group',
+    label: '支付账号',
+    field: 'paymentAccountId',
     span: { xs: 24, sm: 24, xxl: 24 },
   },
   {
@@ -456,6 +473,10 @@ const handleTagChange = () => {
 }
 
 const handlePaymentMethodChange = () => {
+  triggerSearch()
+}
+
+const handlePaymentAccountChange = () => {
   triggerSearch()
 }
 

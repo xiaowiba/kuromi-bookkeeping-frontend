@@ -239,29 +239,40 @@
 
               <div class="mobile-detail-row__content">
                 <h4 class="mobile-detail-row__title">{{ item.name }}</h4>
-                <t-tag
-                  v-if="item.tagName"
-                  class="mobile-detail-row__tag"
-                  size="small"
-                  variant="light"
-                  theme="warning"
-                >
-                  {{ item.tagName }}
-                </t-tag>
-                <t-tag
-                  class="mobile-detail-row__payment-tag"
-                  size="small"
-                  variant="light"
-                  :theme="paymentMethodTheme(item.paymentMethod)"
-                >
-                  {{ paymentMethodLabel(item.paymentMethod) }}
-                </t-tag>
-                <span
-                  v-if="privacyStore.isPrivacyMode && item.hidden === 1"
-                  class="mobile-detail-row__privacy"
-                >
-                  隐
-                </span>
+                <div class="mobile-detail-row__tag-grid">
+                  <t-tag
+                    v-if="item.tagName"
+                    class="mobile-detail-row__tag"
+                    size="small"
+                    variant="light"
+                    theme="warning"
+                  >
+                    {{ item.tagName }}
+                  </t-tag>
+                  <t-tag
+                    class="mobile-detail-row__payment-tag"
+                    size="small"
+                    variant="light"
+                    :theme="paymentMethodTheme(item.paymentMethod)"
+                  >
+                    {{ paymentMethodLabel(item.paymentMethod) }}
+                  </t-tag>
+                  <t-tag
+                    v-if="item.paymentAccountName"
+                    class="mobile-detail-row__payment-tag"
+                    size="small"
+                    :theme="item.paymentAccountDeleted ? 'default' : 'primary'"
+                    :variant="item.paymentAccountDeleted ? 'outline' : 'light'"
+                  >
+                    {{ formatPaymentAccountName(item.paymentAccountName, item.paymentAccountDeleted) }}
+                  </t-tag>
+                  <span
+                    v-if="privacyStore.isPrivacyMode && item.hidden === 1"
+                    class="mobile-detail-row__privacy"
+                  >
+                    隐
+                  </span>
+                </div>
                 <h6 class="mobile-detail-row__create__user">{{ item.userNickname }}</h6>
               </div>
 
@@ -340,29 +351,79 @@
             </div>
             <div class="mobile-bottom-sheet__detail-row">
               <span>分类</span>
-              <strong>{{ subjectCategoryLabel(activeDetail.subjectCategory) }}</strong>
+              <strong class="mobile-bottom-sheet__detail-tag-wrap">
+                <t-tag
+                  class="mobile-bottom-sheet__detail-tag"
+                  size="small"
+                  variant="light"
+                  :theme="subjectCategoryTheme(activeDetail.subjectCategory)"
+                >
+                  {{ subjectCategoryLabel(activeDetail.subjectCategory) }}
+                </t-tag>
+              </strong>
             </div>
             <div class="mobile-bottom-sheet__detail-row">
               <span>科目</span>
-              <strong>{{ activeDetail.subjectName }}</strong>
+              <strong class="mobile-bottom-sheet__detail-tag-wrap">
+                <t-tag
+                  class="mobile-bottom-sheet__detail-tag"
+                  size="small"
+                  variant="light"
+                  theme="default"
+                >
+                  {{ activeDetail.subjectName }}
+                </t-tag>
+              </strong>
             </div>
             <div class="mobile-bottom-sheet__detail-row">
               <span>标签</span>
-              <strong>{{ activeDetail.tagName || '未选择' }}</strong>
+              <strong class="mobile-bottom-sheet__detail-tag-wrap">
+                <t-tag
+                  class="mobile-bottom-sheet__detail-tag"
+                  size="small"
+                  variant="light"
+                  :theme="activeDetail.tagName ? 'warning' : 'default'"
+                >
+                  {{ activeDetail.tagName || '未选择' }}
+                </t-tag>
+              </strong>
             </div>
             <div class="mobile-bottom-sheet__detail-row">
               <span>记账人</span>
-              <strong>{{ activeDetail.userNickname }}</strong>
+              <strong class="mobile-bottom-sheet__detail-tag-wrap">
+                <t-tag
+                  class="mobile-bottom-sheet__detail-tag"
+                  size="small"
+                  variant="light"
+                  theme="primary"
+                >
+                  {{ activeDetail.userNickname }}
+                </t-tag>
+              </strong>
             </div>
             <div class="mobile-bottom-sheet__detail-row">
               <span>支付方式</span>
               <strong class="mobile-bottom-sheet__detail-tag-wrap">
                 <t-tag
+                  class="mobile-bottom-sheet__detail-tag"
                   size="small"
                   variant="light"
                   :theme="paymentMethodTheme(activeDetail.paymentMethod)"
                 >
                   {{ paymentMethodLabel(activeDetail.paymentMethod) }}
+                </t-tag>
+              </strong>
+            </div>
+            <div v-if="activeDetail.paymentAccountName" class="mobile-bottom-sheet__detail-row">
+              <span>支付账号</span>
+              <strong class="mobile-bottom-sheet__detail-tag-wrap">
+                <t-tag
+                  class="mobile-bottom-sheet__detail-tag"
+                  size="small"
+                  :theme="activeDetail.paymentAccountDeleted ? 'default' : 'primary'"
+                  :variant="activeDetail.paymentAccountDeleted ? 'outline' : 'light'"
+                >
+                  {{ formatPaymentAccountName(activeDetail.paymentAccountName, activeDetail.paymentAccountDeleted) }}
                 </t-tag>
               </strong>
             </div>
@@ -455,6 +516,7 @@ import { useAppStore, usePrivacyStore, useUserStore } from '@/stores'
 import has from '@/utils/has'
 import mittBus from '@/utils/mitt'
 import { mobileToast } from '@/utils/mobile-toast'
+import { formatPaymentAccountName } from '@/utils/paymentAccountDisplay'
 import { useDetailUserOptions } from '@/views/bookkeeping/shared/useDetailUserOptions'
 
 defineOptions({ name: 'MobileBookkeepingDetail' })
@@ -763,6 +825,12 @@ const paymentMethodLabel = (value: string) => {
 const paymentMethodTheme = (value: string) => {
   const extra = findPaymentMethodItem(value)?.extra || 'default'
   return extra === 'error' ? 'danger' : extra
+}
+
+const subjectCategoryTheme = (value: string) => {
+  if (value === 'expense' || value === '1') return 'danger'
+  if (value === 'income' || value === '2') return 'success'
+  return 'default'
 }
 
 const subjectCategoryClass = (value: string) => {
@@ -1289,8 +1357,9 @@ onUnmounted(() => {
   min-width: 0;
   flex: 1;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 .mobile-detail-row__main {
@@ -1302,8 +1371,7 @@ onUnmounted(() => {
 
 .mobile-detail-row__title {
   margin: 0;
-  min-width: 0;
-  flex: 1;
+  width: 100%;
   color: #403a35;
   font-size: 16px;
   font-weight: 600;
@@ -1313,18 +1381,42 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
+.mobile-detail-row__tag-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, max-content));
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  align-items: start;
+}
+
 .mobile-detail-row__payment-tag {
-  flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .mobile-detail-row__tag {
-  flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mobile-detail-row__tag-grid :deep(.t-tag) {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+}
+
+.mobile-detail-row__tag-grid :deep(.t-tag__text) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-detail-row__create__user {
   margin: 0;
   min-width: 0;
-  //flex: 1;
+  width: 100%;
   color: #403a35;
   font-size: 14px;
   font-weight: 300;
@@ -1337,8 +1429,10 @@ onUnmounted(() => {
 .mobile-detail-row__privacy {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   height: 20px;
-  flex-shrink: 0;
+  min-width: 0;
+  width: 100%;
   padding: 0 8px;
   border-radius: 999px;
   background: rgba(244, 174, 74, 0.18);
@@ -1534,6 +1628,22 @@ onUnmounted(() => {
 .mobile-bottom-sheet__detail-tag-wrap {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  min-width: 0;
+}
+
+.mobile-bottom-sheet__detail-tag {
+  max-width: 100%;
+}
+
+.mobile-bottom-sheet__detail-tag-wrap :deep(.t-tag) {
+  max-width: 100%;
+}
+
+.mobile-bottom-sheet__detail-tag-wrap :deep(.t-tag__text) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-bottom-sheet__detail-row .is-income {
@@ -1606,5 +1716,11 @@ onUnmounted(() => {
   color: #5d4a2a;
   font-size: 15px;
   font-weight: 700;
+}
+
+.text-deleted {
+  text-decoration: line-through;
+  opacity: 0.6;
+  color: #999;
 }
 </style>

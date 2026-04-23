@@ -16,6 +16,7 @@
         :subject-options="dashboardSubjectOptions"
         :tag-options="dashboardTagOptions"
         :payment-method-options="dashboardPaymentMethodOptions"
+        :payment-account-options="dashboardPaymentAccountOptions"
         :user-query-options="dashboardUserQueryOptions"
         :on-select-user="setDashboardSelectedUser"
         :loading="dashboardLoading"
@@ -156,6 +157,7 @@ const {
   userQueryOptions: dashboardUserQueryOptions,
   categoryOptions: dashboardCategoryOptions,
   paymentMethodOptions: dashboardPaymentMethodOptions,
+  paymentAccountOptions: dashboardPaymentAccountOptions,
   subjectOptions: dashboardSubjectOptions,
   tagQueryOptions: dashboardTagOptions,
   loadFilterOptions: loadDashboardFilterOptions,
@@ -241,6 +243,9 @@ const buildDetailRouteQueryFromTagRank = (payload: T.ReportTagRankItemResp) => {
   }
   if (dashboardQuery.paymentMethod) {
     routeQuery.paymentMethod = dashboardQuery.paymentMethod
+  }
+  if (dashboardQuery.paymentAccountId) {
+    routeQuery.paymentAccountId = String(dashboardQuery.paymentAccountId)
   }
   if (dashboardQuery.hidden !== '' && dashboardQuery.hidden !== null && dashboardQuery.hidden !== undefined) {
     routeQuery.hidden = String(dashboardQuery.hidden)

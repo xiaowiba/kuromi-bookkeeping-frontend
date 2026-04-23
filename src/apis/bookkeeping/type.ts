@@ -107,6 +107,9 @@ export interface DetailResp {
   amount: number
   detailDate: string
   paymentMethod: string
+  paymentAccountId?: string
+  paymentAccountName?: string
+  paymentAccountDeleted?: boolean
   remark: string
   hidden: number
   createUserString: string
@@ -133,6 +136,7 @@ export interface DetailQuery {
   category?: string
   subjectId?: string
   tagId?: string
+  paymentAccountId?: string
   unselectedTagOnly?: boolean
   paymentMethod?: string
   timeMode?: DetailTimeMode
@@ -269,6 +273,7 @@ export interface ReportQuery {
   subjectId?: string
   tagId?: string
   paymentMethod?: string
+  paymentAccountId?: string
   userId?: string
   hidden?: number | string
   privacyMode?: boolean
@@ -290,6 +295,7 @@ export interface ReportFilterForm {
   subjectId: string
   tagId: string
   paymentMethod: string
+  paymentAccountId: string
   userScope: ReportUserScope
   userId: string
   hidden: number | string
@@ -303,6 +309,7 @@ export interface ReportCalendarFilterForm {
   subjectId: string
   tagId: string
   paymentMethod: string
+  paymentAccountId: string
   userId: string
 }
 
@@ -402,6 +409,9 @@ export interface ReportRankingTableResp {
   category: string
   paymentMethod: string
   paymentMethodLabel: string
+  paymentAccountId?: string
+  paymentAccountName?: string
+  paymentAccountDeleted?: boolean
   userId: string
   userName: string
   amount: number
@@ -435,6 +445,9 @@ export interface ReportCalendarPreviewItemResp {
   detailName: string
   category: string
   amount: number
+  paymentAccountId?: string
+  paymentAccountName?: string
+  paymentAccountDeleted?: boolean
   userId: string
   userName: string
 }
@@ -493,6 +506,9 @@ export interface ReportCalendarDayDetailItemResp {
   category: string
   paymentMethod: string
   paymentMethodLabel: string
+  paymentAccountId?: string
+  paymentAccountName?: string
+  paymentAccountDeleted?: boolean
   userId: string
   userName: string
   amount: number
@@ -506,3 +522,35 @@ export interface ReportCalendarDayDetailResp {
   summary: ReportCalendarDayDetailSummaryResp
   details: ReportCalendarDayDetailItemResp[]
 }
+
+/** 支付账号响应类型 */
+export interface PaymentAccountResp {
+  id: string
+  userId: string
+  userNickname: string
+  name: string
+  sort: number
+  status: 1 | 2
+  createUserString: string
+  createTime: string
+  updateUserString: string
+  updateTime: string
+}
+
+/** 支付账号查询条件 */
+export interface PaymentAccountQuery {
+  userId?: string
+  name?: string
+  status?: number
+}
+
+/** 支付账号分页查询条件 */
+export interface PaymentAccountPageQuery extends PaymentAccountQuery, PageQuery {}
+
+/** 支付账号新增/修改参数 */
+export interface PaymentAccountReq {
+  name: string
+  sort?: number
+  status: 1 | 2
+}
+

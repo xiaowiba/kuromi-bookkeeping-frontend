@@ -18,7 +18,8 @@ import { computed, ref, watch } from 'vue'
 import { useDetailUserOptions } from './useDetailUserOptions'
 import { listSubject } from '@/apis/bookkeeping/subject'
 import { listSubjectTagAll } from '@/apis/bookkeeping/subject-tag'
-import type { SubjectResp, SubjectTagResp } from '@/apis/bookkeeping/type'
+import { listMyPaymentAccount } from '@/apis/bookkeeping/payment-account'
+import type { PaymentAccountResp, SubjectResp, SubjectTagResp } from '@/apis/bookkeeping/type'
 import type { ColumnItem } from '@/components/GiForm'
 import { useDict } from '@/hooks/app'
 import type { LabelValueState } from '@/types/global'
@@ -29,6 +30,7 @@ interface CommonFilterForm {
   subjectId: string
   tagId?: string
   paymentMethod?: string
+  paymentAccountId?: string
 }
 
 type CommonFilterChangeValue = string | number | boolean
@@ -38,6 +40,7 @@ interface CommonFilterLabels {
   categoryAll?: string
   subjectAll?: string
   paymentAll?: string
+  paymentAccountAll?: string
 }
 
 interface CommonFilterColumnConfig {
@@ -56,6 +59,7 @@ interface CreateCommonQueryColumnsOptions {
   subject?: CommonFilterColumnConfig
   tag?: CommonFilterColumnConfig
   paymentMethod?: CommonFilterColumnConfig
+  paymentAccount?: CommonFilterColumnConfig
 }
 
 interface UseBookkeepingCommonFiltersOptions<TForm extends CommonFilterForm> {
@@ -117,6 +121,7 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
   const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
   const allSubjects = ref<SubjectResp[]>([])
   const subjectTags = ref<SubjectTagResp[]>([])
+  const paymentAccounts = ref<PaymentAccountResp[]>([])
 
   const userQueryOptions = computed<LabelValueState[]>(() => [
     createAllOption(labels?.userAll ?? '全部用户'),
@@ -131,6 +136,11 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
   const paymentMethodQueryOptions = computed<LabelValueState[]>(() => [
     createAllOption(labels?.paymentAll ?? '全部'),
     ...((bk_payment_method.value ?? []).map(normalizeOption)),
+  ])
+
+  const paymentAccountQueryOptions = computed<LabelValueState[]>(() => [
+    createAllOption(labels?.paymentAccountAll ?? '全部账号'),
+    ...paymentAccounts.value.map((item) => ({ label: item.name, value: String(item.id) })),
   ])
 
   const subjectQueryOptions = computed<LabelValueState[]>(() => {
@@ -206,6 +216,15 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
     }
   }
 
+  const loadPaymentAccountOptions = async () => {
+    try {
+      const { data } = await listMyPaymentAccount()
+      paymentAccounts.value = data ?? []
+    } catch {
+      paymentAccounts.value = []
+    }
+  }
+
   const loadSubjectTagOptions = async () => {
     if (!form.subjectId) {
       subjectTags.value = []
@@ -223,7 +242,7 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
 
   /** 同时加载用户与科目选项，供页面首屏初始化复用。 */
   const loadCommonFilterOptions = async () => {
-    await Promise.allSettled([loadUserOptions(), loadSubjectOptions()])
+    await Promise.allSettled([loadUserOptions(), loadSubjectOptions(), loadPaymentAccountOptions()])
     syncSubjectSelection()
     await loadSubjectTagOptions()
   }
@@ -261,6 +280,12 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       placeholder: '请选择支付方式',
       allowClear: true,
       allowSearch: false,
+    })
+    const paymentAccountConfig = resolveColumnConfig(columnOptions.paymentAccount, {
+      label: '支付账号',
+      placeholder: '请选择支付账号',
+      allowClear: true,
+      allowSearch: true,
     })
 
     const userColumn: ColumnItem = {
@@ -333,12 +358,27 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       },
     }
 
+    const paymentAccountColumn: ColumnItem = {
+      type: paymentAccountConfig.useRadioGroup ? 'radio-group' : 'select',
+      label: paymentAccountConfig.label,
+      field: 'paymentAccountId',
+      span: paymentAccountConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
+      props: {
+        options: paymentAccountQueryOptions,
+        placeholder: paymentAccountConfig.placeholder,
+        allowClear: paymentAccountConfig.allowClear,
+        allowSearch: paymentAccountConfig.allowSearch,
+        onChange: paymentAccountConfig.onChange,
+      },
+    }
+
     return {
       userColumn,
       categoryColumn,
       subjectColumn,
       tagColumn,
       paymentMethodColumn,
+      paymentAccountColumn,
     }
   }
 
@@ -373,11 +413,13 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
     userQueryOptions,
     categoryQueryOptions,
     paymentMethodQueryOptions,
+    paymentAccountQueryOptions,
     subjectQueryOptions,
     tagQueryOptions,
     clearSubjectSelection,
     clearTagSelection,
     loadCommonFilterOptions,
+    loadPaymentAccountOptions,
     loadSubjectTagOptions,
     createCommonQueryColumns,
   }

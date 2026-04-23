@@ -8,17 +8,27 @@ export default function appInfo(): Plugin {
     apply: 'serve',
     async buildStart() {
       const { bold, green, cyan, bgGreen, underline } = picocolors
+      const title = bold(green(bgGreen('Kuromi Bookkeeping Frontend v4.2.0-SNAPSHOT')))
+      const repo = `${cyan('项目仓库：')}${underline('https://github.com/xiaowiba/kuromi-bookkeeping-frontend')}`
+      const readme = `${cyan('README：')}${underline('https://github.com/xiaowiba/kuromi-bookkeeping-frontend#readme')}`
+      // const issues = `${cyan('Issues：')}${underline('https://github.com/xiaowiba/kuromi-bookkeeping-frontend/issues')}`
+      const description = cyan('基于 ContiNew Admin UI 二次开发的 Web / H5 系统前端')
+      const message = [
+        title,
+        repo,
+        readme,
+        // issues,
+        description,
+      ].join('\n')
+
       // eslint-disable-next-line no-console
       console.log(
-        boxen(
-          `${bold(green(`${bgGreen('Kuromi Bookkeeping Frontend v4.2.0-SNAPSHOT')}`))}\n${cyan('项目仓库：')}${underline('https://github.com/xiaowiba/kuromi-bookkeeping-frontend')}\n${cyan('README：')}${underline('https://github.com/xiaowiba/kuromi-bookkeeping-frontend#readme')}\n${cyan('Issues：')}${underline('https://github.com/xiaowiba/kuromi-bookkeeping-frontend/issues')}\n${cyan('基于 ContiNew Admin UI 二次开发的 Web / H5 记账系统前端')}`,
-          {
-            padding: 1,
-            margin: 1,
-            borderStyle: 'double',
-            textAlignment: 'center',
-          },
-        ),
+        boxen(message, {
+          padding: 1,
+          margin: 1,
+          borderStyle: 'double',
+          textAlignment: 'center',
+        }),
       )
     },
   }

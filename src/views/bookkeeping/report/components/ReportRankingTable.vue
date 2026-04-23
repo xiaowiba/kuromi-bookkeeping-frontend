@@ -63,6 +63,17 @@
         </a-tag>
       </template>
 
+      <template #paymentAccountName="{ record }">
+        <a-tag
+          v-if="record.paymentAccountName"
+          size="small"
+          :color="record.paymentAccountDeleted ? 'gray' : 'cyan'"
+          :class="{ 'tag-deleted': record.paymentAccountDeleted }"
+        >
+          {{ formatPaymentAccountName(record.paymentAccountName, record.paymentAccountDeleted) }}
+        </a-tag>
+      </template>
+
       <template #amount="{ record }">
         <span
           class="report-ranking-table__amount"
@@ -93,6 +104,7 @@ import {
   formatReportRatio,
   resolveReportPaymentMethodLabel,
 } from '../shared/reportFormat'
+import { formatPaymentAccountName } from '@/utils/paymentAccountDisplay'
 
 const props = withDefaults(defineProps<{
   list: ReportRankingTableResp[]
@@ -126,6 +138,7 @@ const columns: TableInstance['columns'] = [
   { title: '分类', dataIndex: 'category', slotName: 'category', width: 96, align: 'center' },
   { title: '科目 / 明细', dataIndex: 'subjectDetail', slotName: 'subjectDetail', width: 280 },
   { title: '支付方式', dataIndex: 'paymentMethod', slotName: 'paymentMethod', width: 130, align: 'center' },
+  { title: '支付账号', dataIndex: 'paymentAccountName', slotName: 'paymentAccountName', width: 150, align: 'center' },
   { title: '用户', dataIndex: 'userName', width: 110, ellipsis: true, tooltip: true },
   { title: '金额', dataIndex: 'amount', slotName: 'amount', width: 130, align: 'right' },
   { title: '占比', dataIndex: 'ratio', slotName: 'ratio', width: 96, align: 'right' },
@@ -245,5 +258,10 @@ const handleTableChange = (_data: unknown[], extra: TableChangeExtra) => {
   .report-ranking-table {
     padding: 14px 14px 10px;
   }
+}
+
+.tag-deleted {
+  text-decoration: line-through;
+  opacity: 0.6;
 }
 </style>

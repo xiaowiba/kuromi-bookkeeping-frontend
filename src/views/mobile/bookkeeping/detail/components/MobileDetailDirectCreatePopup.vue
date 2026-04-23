@@ -51,7 +51,10 @@
               :class="{ 'is-disabled': !form.category }"
               @click="openSubjectPicker"
             >
-              <span class="mobile-direct-create__field-main">
+              <span
+                class="mobile-direct-create__field-main"
+                :class="{ 'is-placeholder': !selectedSubjectName }"
+              >
                 {{ selectedSubjectName || '请选择科目' }}
               </span>
               <template #suffix>
@@ -72,7 +75,10 @@
               :class="{ 'is-disabled': !form.subjectId }"
               @click="openTagPicker"
             >
-              <span class="mobile-direct-create__field-main">
+              <span
+                class="mobile-direct-create__field-main"
+                :class="{ 'is-placeholder': !form.subjectId }"
+              >
                 {{ selectedTagLabel }}
               </span>
               <template #suffix>
@@ -125,6 +131,21 @@
             <t-button block size="large" variant="text" class="mobile-direct-create__selector-field" @click="openPaymentPicker">
               <span class="mobile-direct-create__field-main">
                 {{ selectedPaymentMethodLabel }}
+              </span>
+              <template #suffix>
+                <small class="mobile-direct-create__field-side">点击选择</small>
+              </template>
+            </t-button>
+          </div>
+
+          <div class="mobile-field">
+            <label class="mobile-field__label">支付账号</label>
+            <t-button block size="large" variant="text" class="mobile-direct-create__selector-field" @click="openPaymentAccountPicker">
+              <span
+                class="mobile-direct-create__field-main"
+                :class="{ 'is-placeholder': !selectedPaymentAccountName }"
+              >
+                {{ selectedPaymentAccountName || '请选择支付账号' }}
               </span>
               <template #suffix>
                 <small class="mobile-direct-create__field-side">点击选择</small>
@@ -323,6 +344,49 @@
   </t-popup>
 
   <t-popup
+    v-model:visible="paymentAccountPickerVisible"
+    placement="bottom"
+    :prevent-scroll-through="true"
+    :close-btn="true"
+    :destroy-on-close="true"
+    :z-index="PAYMENT_ACCOUNT_PICKER_POPUP_Z_INDEX"
+    :show-overlay="true"
+    :overlay-props="paymentAccountPickerOverlayProps"
+    :close-on-overlay-click="true"
+  >
+    <div class="mobile-option-picker">
+      <div class="mobile-option-picker__header">
+        <div>
+          <p class="mobile-option-picker__eyebrow">支付账号</p>
+          <h3 class="mobile-option-picker__title">选择支付账号</h3>
+        </div>
+      </div>
+
+      <div class="mobile-option-picker__body">
+        <div class="mobile-option-picker__payment-grid">
+          <t-button
+            v-for="item in paymentAccountOptions"
+            :key="item.value"
+            block
+            size="large"
+            variant="text"
+            class="mobile-option-picker__payment-option"
+            :class="{ 'is-active': tempPaymentAccountId === item.value }"
+            @click="handlePaymentAccountSelect(item.value)"
+          >
+            <span class="mobile-option-picker__payment-option-content">
+              <span class="mobile-option-picker__payment-circle">
+                {{ resolvePaymentAccountMarker(item.label) }}
+              </span>
+              <span class="mobile-option-picker__payment-label">{{ item.label }}</span>
+            </span>
+          </t-button>
+        </div>
+      </div>
+    </div>
+  </t-popup>
+
+  <t-popup
     v-model:visible="datePickerVisible"
     placement="bottom"
     :prevent-scroll-through="true"
@@ -366,7 +430,8 @@ import MobileDetailFormSkeleton from './MobileDetailFormSkeleton.vue'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { listSubject } from '@/apis/bookkeeping/subject'
 import { listSubjectTagAll } from '@/apis/bookkeeping/subject-tag'
-import type { SubjectResp, SubjectTagResp } from '@/apis/bookkeeping/type'
+import { listMyPaymentAccount } from '@/apis/bookkeeping/payment-account'
+import type { PaymentAccountResp, SubjectResp, SubjectTagResp } from '@/apis/bookkeeping/type'
 import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
 import { useDict } from '@/hooks/app'
 import { usePrivacyStore, useUserStore } from '@/stores'
@@ -398,6 +463,7 @@ const getToday = () => dayjs().format('YYYY-MM-DD')
 const SUBJECT_PICKER_POPUP_Z_INDEX = 1500
 const TAG_PICKER_POPUP_Z_INDEX = 1500
 const PAYMENT_PICKER_POPUP_Z_INDEX = 1500
+const PAYMENT_ACCOUNT_PICKER_POPUP_Z_INDEX = 1500
 const DATE_PICKER_POPUP_Z_INDEX = 1550
 const subjectPickerOverlayProps = {
   zIndex: SUBJECT_PICKER_POPUP_Z_INDEX - 1,
@@ -407,6 +473,9 @@ const tagPickerOverlayProps = {
 }
 const paymentPickerOverlayProps = {
   zIndex: PAYMENT_PICKER_POPUP_Z_INDEX - 1,
+}
+const paymentAccountPickerOverlayProps = {
+  zIndex: PAYMENT_ACCOUNT_PICKER_POPUP_Z_INDEX - 1,
 }
 const datePickerOverlayProps = {
   zIndex: DATE_PICKER_POPUP_Z_INDEX - 1,
@@ -427,14 +496,17 @@ const optionsLoading = ref(false)
 const submitting = ref(false)
 const allSubjects = ref<SubjectResp[]>([])
 const subjectTags = ref<SubjectTagResp[]>([])
+const paymentAccounts = ref<PaymentAccountResp[]>([])
 const datePickerVisible = ref(false)
 const amountKeyboardVisible = ref(false)
 const subjectPickerVisible = ref(false)
 const tagPickerVisible = ref(false)
 const paymentPickerVisible = ref(false)
+const paymentAccountPickerVisible = ref(false)
 const tempSubjectId = ref('')
 const tempTagId = ref('')
 const tempPaymentMethod = ref('default')
+const tempPaymentAccountId = ref('')
 const datePickerValue = ref(getToday())
 
 const canManageHidden = computed(() => has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode)
@@ -450,6 +522,12 @@ const paymentMethodOptions = computed(() =>
     value: String(item.value),
   })),
 )
+const paymentAccountOptions = computed(() =>
+  paymentAccounts.value.map((item) => ({
+    label: item.name,
+    value: String(item.id),
+  })),
+)
 
 const createDefaultForm = () => ({
   userId: String(userStore.userInfo.id || ''),
@@ -460,6 +538,7 @@ const createDefaultForm = () => ({
   amount: '',
   detailDate: getToday(),
   paymentMethod: 'default',
+  paymentAccountId: '',
   remark: '',
   hidden: 0,
 })
@@ -522,7 +601,13 @@ const selectedPaymentMethodLabel = computed(() => {
   return current?.label || '默认'
 })
 
+const selectedPaymentAccountName = computed(() => {
+  const current = paymentAccounts.value.find((item) => String(item.id) === String(form.paymentAccountId))
+  return current?.name || ''
+})
+
 const resolvePaymentMethodMarker = (label: string) => String(label || '').trim().slice(0, 1) || '?'
+const resolvePaymentAccountMarker = (label: string) => String(label || '').trim().slice(0, 1) || 'A'
 
 const resetState = () => {
   Object.assign(form, createDefaultForm())
@@ -530,18 +615,27 @@ const resetState = () => {
   tempSubjectId.value = ''
   tempTagId.value = ''
   tempPaymentMethod.value = form.paymentMethod
+  tempPaymentAccountId.value = form.paymentAccountId
   datePickerValue.value = form.detailDate || getToday()
   datePickerVisible.value = false
   amountKeyboardVisible.value = false
   subjectPickerVisible.value = false
   tagPickerVisible.value = false
   paymentPickerVisible.value = false
+  paymentAccountPickerVisible.value = false
 }
 
 const loadSubjectOptions = async () => {
   if (allSubjects.value.length) return
   const { data } = await listSubject({ sort: ['sort,asc'], page: 1, size: 200 } as any)
   allSubjects.value = data.list ?? []
+}
+
+const loadPaymentAccountOptions = async () => {
+  if (paymentAccounts.value.length) return paymentAccounts.value
+  const { data } = await listMyPaymentAccount()
+  paymentAccounts.value = data ?? []
+  return paymentAccounts.value
 }
 
 /**
@@ -587,6 +681,7 @@ const fillFormByDetail = async (id: string) => {
     amount: data.amount == null ? '' : String(Math.abs(Number(data.amount))),
     detailDate: data.detailDate || getToday(),
     paymentMethod: data.paymentMethod || 'default',
+    paymentAccountId: data.paymentAccountId ? String(data.paymentAccountId) : '',
     remark: data.remark || '',
     hidden: data.hidden ?? 0,
   })
@@ -594,16 +689,17 @@ const fillFormByDetail = async (id: string) => {
   tempSubjectId.value = form.subjectId
   tempTagId.value = form.tagId
   tempPaymentMethod.value = form.paymentMethod
+  tempPaymentAccountId.value = form.paymentAccountId
   datePickerValue.value = form.detailDate || getToday()
   await loadSubjectTagOptions(form.subjectId, form.tagId)
 }
 
 const ensureOptionsLoaded = async () => {
-  const tasks: Promise<any>[] = [loadSubjectOptions()]
+  const tasks: Promise<any>[] = [loadSubjectOptions(), loadPaymentAccountOptions()]
   if (isAdmin.value) {
     tasks.push(loadUserOptions())
   }
-  await Promise.all(tasks)
+  return await Promise.all(tasks)
 }
 
 const resetSubjectAndName = () => {
@@ -679,6 +775,17 @@ const handlePaymentMethodSelect = (paymentMethod: string) => {
   paymentPickerVisible.value = false
 }
 
+const openPaymentAccountPicker = () => {
+  tempPaymentAccountId.value = form.paymentAccountId || ''
+  paymentAccountPickerVisible.value = true
+}
+
+const handlePaymentAccountSelect = (paymentAccountId: string) => {
+  tempPaymentAccountId.value = paymentAccountId
+  form.paymentAccountId = paymentAccountId
+  paymentAccountPickerVisible.value = false
+}
+
 const openDatePicker = () => {
   datePickerValue.value = form.detailDate || getToday()
   datePickerVisible.value = true
@@ -743,6 +850,10 @@ const validateForm = () => {
     mobileToast.warning('请选择支付方式')
     return false
   }
+  if (!form.paymentAccountId) {
+    mobileToast.warning('请选择支付账号')
+    return false
+  }
   if (remark.length > MAX_DETAIL_REMARK_LENGTH) {
     mobileToast.warning(`备注最多 ${MAX_DETAIL_REMARK_LENGTH} 个字`)
     return false
@@ -782,9 +893,17 @@ const initializePage = async () => {
   resetState()
   optionsLoading.value = true
   try {
-    await ensureOptionsLoaded()
+    const results = await ensureOptionsLoaded()
+    const accounts = results[1] // loadPaymentAccountOptions 是第二个任务
     if (currentDetailId.value) {
       await fillFormByDetail(currentDetailId.value)
+    } else if (accounts && Array.isArray(accounts)) {
+      // 新增模式尝试填充默认账号
+      const defaultAccount = accounts.find((item) => item.isDefault === 1)
+      if (defaultAccount) {
+        form.paymentAccountId = String(defaultAccount.id)
+        tempPaymentAccountId.value = form.paymentAccountId
+      }
     }
   } finally {
     optionsLoading.value = false
@@ -978,6 +1097,12 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mobile-direct-create__field-main.is-placeholder {
+  color: #a07f32;
+  font-size: 0.4rem;
+  font-weight: 400;
 }
 
 .mobile-direct-create__selector-field.is-disabled {

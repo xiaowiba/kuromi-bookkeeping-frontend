@@ -49,6 +49,15 @@
               />
             </div>
           </template>
+          <template #paymentAccountId>
+            <div class="subject-query-radio-scroll">
+              <a-radio-group
+                v-model="queryForm.paymentAccountId"
+                :options="paymentAccountQueryOptions"
+                @change="handlePaymentAccountQueryChange"
+              />
+            </div>
+          </template>
           <template #timeFilter>
             <div class="detail-time-filter">
               <a-radio-group
@@ -204,6 +213,16 @@
       <template #paymentMethod="{ record }">
         <GiCellTag :value="record.paymentMethod" :dict="bk_payment_method" />
       </template>
+      <template #paymentAccountName="{ record }">
+        <a-tag
+          v-if="record.paymentAccountName"
+          size="small"
+          :color="record.paymentAccountDeleted ? 'gray' : 'cyan'"
+          :class="{ 'tag-deleted': record.paymentAccountDeleted }"
+        >
+          {{ formatPaymentAccountName(record.paymentAccountName, record.paymentAccountDeleted) }}
+        </a-tag>
+      </template>
       <template #detailDate="{ record }">
         <div class="detail-date-inline">
           <span class="detail-date-inline__text">{{ record.detailDate }}</span>
@@ -312,6 +331,7 @@ import { useDict } from '@/hooks/app'
 import { usePrivacyStore, useUserStore } from '@/stores'
 import has from '@/utils/has'
 import mittBus from '@/utils/mitt'
+import { formatPaymentAccountName } from '@/utils/paymentAccountDisplay'
 
 defineOptions({ name: 'BookkeepingDetail' })
 
@@ -367,6 +387,7 @@ const createDefaultDetailQueryForm = () => {
     tagId: '',
     unselectedTagOnly: false,
     paymentMethod: '',
+    paymentAccountId: '',
     timeMode: DETAIL_DEFAULT_TIME_MODE as DetailTimeMode,
     datePreset: DETAIL_DEFAULT_DATE_PRESET as DetailDatePreset,
     startDate: presetRange.startDate,
@@ -395,6 +416,7 @@ const detailRangePickerStyle = {
 const {
   isAdmin,
   paymentMethodQueryOptions,
+  paymentAccountQueryOptions,
   subjectQueryOptions: subjectOptions,
   tagQueryOptions: baseTagQueryOptions,
   clearSubjectSelection,
@@ -692,6 +714,10 @@ const handlePaymentMethodQueryChange = () => {
   triggerQuerySearch()
 }
 
+const handlePaymentAccountQueryChange = () => {
+  triggerQuerySearch()
+}
+
 const handleUserQueryChange = () => {
   triggerQuerySearch()
 }
@@ -747,6 +773,11 @@ const commonQueryColumns = createCommonQueryColumns({
     useRadioGroup: true,
     onChange: handlePaymentMethodQueryChange,
   },
+  paymentAccount: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    onChange: handlePaymentAccountQueryChange,
+  },
 })
 
 const queryFormColumns: ColumnItem[] = reactive([
@@ -782,6 +813,7 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.subjectColumn,
   commonQueryColumns.tagColumn,
   commonQueryColumns.paymentMethodColumn,
+  commonQueryColumns.paymentAccountColumn,
   {
     type: 'select',
     label: '是否隐藏',
@@ -911,10 +943,19 @@ const columns = computed<TableInstance['columns']>(() => [
     show: false,
   },
   { title: '科目 / 明细', dataIndex: 'subjectDetail', slotName: 'subjectDetail', width: 240, show: true },
-  { title: '所属用户', dataIndex: 'userNickname', slotName: 'userNickname', width: 90, ellipsis: true, tooltip: true, show: true },
+  {
+    title: '所属用户',
+     dataIndex: 'userNickname',
+     slotName: 'userNickname',
+     width: 90,
+     ellipsis: true,
+     tooltip: true,
+     show: true,
+    },
   { title: '分类', dataIndex: 'subjectCategory', slotName: 'subjectCategory', width: 70, align: 'center', show: true },
   { title: '标签', dataIndex: 'tagName', slotName: 'tagName', width: 120, align: 'center', show: true },
   { title: '支付方式', dataIndex: 'paymentMethod', slotName: 'paymentMethod', width: 90, align: 'center', show: true },
+  { title: '支付账号', dataIndex: 'paymentAccountName', slotName: 'paymentAccountName', width: 110, align: 'center', show: true },
   {
     title: '金额',
     dataIndex: 'amount',
@@ -927,11 +968,18 @@ const columns = computed<TableInstance['columns']>(() => [
     title: '明细日期',
     dataIndex: 'detailDate',
     slotName: 'detailDate',
-    width: 210,
+    width: 240,
     align: 'center',
     show: true,
   },
-  { title: '备注', dataIndex: 'remark', width: 120, ellipsis: true, tooltip: true, show: true },
+  {
+    title: '备注',
+    dataIndex: 'remark',
+    width: 60,
+    ellipsis: true,
+    tooltip: true,
+    show: true,
+  },
   {
     title: '隐藏',
     dataIndex: 'hidden',
@@ -1339,5 +1387,10 @@ onUnmounted(() => {
     gap: 10px;
     margin-right: 0;
   }
+}
+
+.tag-deleted {
+  text-decoration: line-through;
+  opacity: 0.6;
 }
 </style>

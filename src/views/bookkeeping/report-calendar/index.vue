@@ -56,6 +56,16 @@
             </div>
           </template>
 
+          <template #paymentAccountId>
+            <div class="subject-query-radio-scroll">
+              <a-radio-group
+                v-model="queryForm.paymentAccountId"
+                :options="paymentAccountQueryOptions"
+                @change="triggerSearch"
+              />
+            </div>
+          </template>
+
           <template #viewMode>
             <a-radio-group
               v-model="queryForm.viewMode"
@@ -306,6 +316,14 @@
                     <div class="report-calendar-detail__item-tags">
                       <GiCellTag :value="item.category" :dict="bk_subject_category" />
                       <GiCellTag :value="item.paymentMethod || 'default'" :dict="bk_payment_method" />
+                      <a-tag
+                        v-if="item.paymentAccountName"
+                        size="small"
+                        :color="item.paymentAccountDeleted ? 'gray' : 'cyan'"
+                        :class="{ 'tag-deleted': item.paymentAccountDeleted }"
+                      >
+                        {{ formatPaymentAccountName(item.paymentAccountName, item.paymentAccountDeleted) }}
+                      </a-tag>
                       <a-tag v-if="item.tagName" size="small" color="arcoblue">{{ item.tagName }}</a-tag>
                       <a-tag size="small">{{ item.userName }}</a-tag>
                       <a-tag v-if="privacyStore.isPrivacyMode && item.hidden === 1" size="small" color="orangered">隐</a-tag>
@@ -367,6 +385,7 @@ import {
   formatReportWeekday,
   resolveReportPaymentMethodLabel,
 } from '@/views/bookkeeping/report/shared/reportFormat'
+import { formatPaymentAccountName } from '@/utils/paymentAccountDisplay'
 import { getReportCalendar, getReportCalendarDayDetail } from '@/apis/bookkeeping/report-calendar'
 import type * as T from '@/apis/bookkeeping/type'
 import type { ColumnItem } from '@/components/GiForm'
@@ -393,6 +412,7 @@ const {
   subjectQueryOptions,
   tagQueryOptions,
   paymentMethodQueryOptions,
+  paymentAccountQueryOptions,
   loadCommonFilterOptions,
   createCommonQueryColumns,
 } = useBookkeepingCommonFilters({
@@ -402,11 +422,12 @@ const {
     categoryAll: '全部',
     subjectAll: '全部科目',
     paymentAll: '全部',
+    paymentAccountAll: '全部账号',
   },
 })
 
 /**
- * 日历页在共享筛选基础上插入“日历视图”和“统计周期”两个专属条件。
+ * 日历页在共享筛选基础上插入”日历视图”和”统计周期”两个专属条件。
  *
  * 布局规则：
  * 1. 第一行：日历视图 + 统计周期
@@ -414,6 +435,7 @@ const {
  * 3. 第三行：科目
  * 4. 第四行：标签
  * 5. 第五行：支付方式
+ * 6. 第六行：支付账号
  */
 const commonQueryColumns = createCommonQueryColumns({
   user: {
@@ -449,6 +471,12 @@ const commonQueryColumns = createCommonQueryColumns({
     placeholder: '请选择支付方式',
     onChange: () => triggerSearch(),
   },
+  paymentAccount: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    placeholder: '请选择支付账号',
+    onChange: () => triggerSearch(),
+  },
 })
 
 const queryFormColumns: ColumnItem[] = reactive([
@@ -467,6 +495,7 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.subjectColumn,
   commonQueryColumns.tagColumn,
   commonQueryColumns.paymentMethodColumn,
+  commonQueryColumns.paymentAccountColumn,
 ])
 
 const calendarWeekdays = CALENDAR_WEEKDAY_LABELS
@@ -615,6 +644,9 @@ const buildCalendarQuery = (overrides: Partial<T.ReportCalendarQuery> = {}): T.R
   }
   if (queryForm.paymentMethod) {
     query.paymentMethod = queryForm.paymentMethod
+  }
+  if (queryForm.paymentAccountId) {
+    query.paymentAccountId = queryForm.paymentAccountId
   }
   if (queryForm.userId) {
     query.userId = queryForm.userId
@@ -1501,5 +1533,10 @@ onMounted(async () => {
   .report-calendar-summary {
     grid-template-columns: 1fr;
   }
+}
+
+.tag-deleted {
+  text-decoration: line-through;
+  opacity: 0.6;
 }
 </style>

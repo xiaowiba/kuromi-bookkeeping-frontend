@@ -27,6 +27,19 @@
         </button>
       </div>
 
+      <div class="mobile-report-hero__user-group">
+        <button
+          v-for="item in paymentAccountChipOptions"
+          :key="String(item.value)"
+          type="button"
+          class="mobile-report-hero__user-chip"
+          :class="{ 'is-active': String(filterForm.paymentAccountId || '') === String(item.value) }"
+          @click="handlePaymentAccountChange(String(item.value))"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+
       <p class="mobile-report-hero__desc">{{ filterSummaryText }}</p>
     </section>
 
@@ -82,6 +95,7 @@ const dashboard = ref<T.ReportDashboardResp>(createEmptyReportDashboard())
 const {
   filterForm,
   userSelectOptions,
+  paymentAccountOptions,
   loadFilterOptions,
   resetFilters,
   setSelectedUser,
@@ -95,9 +109,18 @@ const filteredDatePresetOptions = computed(() =>
 
 /** 用户选择 chips：前面加一个"全部"选项 */
 const userChipOptions = computed(() => [
-  { label: '全部', value: '' },
+  { label: '全部用户', value: '' },
   ...userSelectOptions.value,
 ])
+
+/** 支付账号 chips */
+const paymentAccountChipOptions = computed(() =>
+  paymentAccountOptions.value.map((item) => (
+    String(item.value ?? '') === ''
+      ? { ...item, label: '全部账号' }
+      : item
+  )),
+)
 
 /** 当前选中的用户值，用于高亮 */
 const selectedUserValue = computed(() => {
@@ -122,9 +145,17 @@ const resolveUserText = () => {
   return matched?.label || '当前用户'
 }
 
+const resolveAccountText = () => {
+  if (!filterForm.paymentAccountId) {
+    return '全部账号'
+  }
+  const matched = paymentAccountOptions.value.find((item) => String(item.value) === String(filterForm.paymentAccountId))
+  return matched?.label || '未知账号'
+}
+
 const filterSummaryText = computed(() => {
   const presetLabel = filteredDatePresetOptions.value.find((item) => item.value === filterForm.datePreset)?.label || '本月'
-  return `${presetLabel} · ${resolveUserText()}`
+  return `${presetLabel} · ${resolveUserText()} · ${resolveAccountText()}`
 })
 
 const loadDashboard = async () => {
@@ -156,6 +187,11 @@ const handlePresetChange = async (preset: T.ReportDatePreset) => {
  */
 const handleUserChange = async (userId: string) => {
   setSelectedUser(userId || null)
+  await loadDashboard()
+}
+
+const handlePaymentAccountChange = async (paymentAccountId: string) => {
+  filterForm.paymentAccountId = paymentAccountId || ''
   await loadDashboard()
 }
 

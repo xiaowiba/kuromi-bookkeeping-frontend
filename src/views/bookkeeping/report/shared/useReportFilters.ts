@@ -37,6 +37,7 @@ export const useReportFilters = () => {
     userQueryOptions,
     categoryQueryOptions: categoryOptions,
     paymentMethodQueryOptions: paymentMethodOptions,
+    paymentAccountQueryOptions: paymentAccountOptions,
     subjectQueryOptions: subjectOptions,
     tagQueryOptions,
     loadCommonFilterOptions,
@@ -47,6 +48,7 @@ export const useReportFilters = () => {
       categoryAll: '全部',
       subjectAll: '全部',
       paymentAll: '全部',
+      paymentAccountAll: '全部',
     },
   })
 
@@ -194,6 +196,7 @@ export const useReportFilters = () => {
     userSelectOptions,
     categoryOptions,
     paymentMethodOptions,
+    paymentAccountOptions,
     subjectOptions,
     tagQueryOptions,
     loadFilterOptions,

@@ -38,6 +38,8 @@
  * @desc 修复编辑明细时名称被科目联动逻辑覆盖的问题，自动填充仅在新增态生效
  * @update 2026-03-23 @Wangsongsong
  * @desc 新增支付方式单选字段，必填且默认值为“默认”
+ * @update 2026-04-23
+ * @desc 支付账号字段改为与所属科目一致的单选按钮组
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
@@ -46,6 +48,7 @@ import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { listSubject } from '@/apis/bookkeeping/subject'
 import { listSubjectTagAll } from '@/apis/bookkeeping/subject-tag'
+import { listMyPaymentAccount } from '@/apis/bookkeeping/payment-account'
 import { type ColumnItem, GiForm } from '@/components/GiForm'
 import { useResetReactive } from '@/hooks'
 import { useDict } from '@/hooks/app'
@@ -84,10 +87,15 @@ const subjectOptions = ref<LabelValueState[]>([])
 const subjectTagOptions = ref<Array<LabelValueState & { disabled?: boolean }>>([
   { label: '不选择标签', value: '' },
 ])
+/** 当前用户的支付账号选项 */
+const paymentAccountOptions = ref<LabelValueState[]>([
+  { label: '不选择', value: '' },
+])
 const [form, resetForm] = useResetReactive({
   detailDate: new Date().toISOString().slice(0, 10),
   category: '',
   paymentMethod: 'default',
+  paymentAccountId: '',
   tagId: '',
   hidden: 0,
 })
@@ -177,6 +185,15 @@ const columns: ColumnItem[] = reactive([
     required: true,
   },
   {
+    label: '支付账号',
+    field: 'paymentAccountId',
+    type: 'radio-group',
+    span: 24,
+    props: {
+      options: paymentAccountOptions,
+    },
+  },
+  {
     label: '备注',
     field: 'remark',
     type: 'textarea',
@@ -230,6 +247,26 @@ const loadSubjectOptions = async () => {
   if (allSubjects.value.length) return
   const { data } = await listSubject({ sort: ['sort,asc'], page: 1, size: 200 } as any)
   allSubjects.value = data.list
+}
+
+/**
+ * 加载当前用户的支付账号选项
+ *
+ * @author Wangsongsong
+ * @date 2026-04-21
+ */
+const loadPaymentAccountOptions = async () => {
+  try {
+    const { data } = await listMyPaymentAccount()
+    paymentAccountOptions.value = [
+      { label: '不选择', value: '' },
+      ...(data ?? []).map((item) => ({ label: item.name, value: String(item.id) })),
+    ]
+    return data ?? []
+  } catch {
+    paymentAccountOptions.value = [{ label: '不选择', value: '' }]
+    return []
+  }
 }
 
 /**
@@ -302,6 +339,7 @@ const save = async () => {
     const payload = {
       ...form,
       tagId: form.tagId ? form.tagId : undefined,
+      paymentAccountId: form.paymentAccountId ? form.paymentAccountId : undefined,
     }
     // 非管理员自动设置当前用户 ID
     if (!isAdmin.value) {
@@ -325,14 +363,20 @@ const save = async () => {
 const onAdd = async () => {
   reset()
   dataId.value = ''
-  const tasks: Promise<any>[] = [loadSubjectOptions()]
+  const tasks: Promise<any>[] = [loadSubjectOptions(), loadPaymentAccountOptions()]
   if (isAdmin.value) {
     tasks.push(loadUserOptions())
   }
-  await Promise.all(tasks)
-  // 非管理员默认设置当前用户
+  const [accounts] = await Promise.all(tasks)
+  // 非管理员默认设置当前用户，并尝试填充默认账号
   if (!isAdmin.value) {
     form.userId = userStore.userInfo.id
+    if (accounts && Array.isArray(accounts)) {
+      const defaultAccount = accounts.find((item: any) => item.isDefault === 1)
+      if (defaultAccount) {
+        form.paymentAccountId = String(defaultAccount.id)
+      }
+    }
   }
   visible.value = true
 }
@@ -341,7 +385,7 @@ const onAdd = async () => {
 const onUpdate = async (id: string) => {
   reset()
   dataId.value = id
-  const tasks: Promise<any>[] = [loadSubjectOptions()]
+  const tasks: Promise<any>[] = [loadSubjectOptions(), loadPaymentAccountOptions()]
   if (isAdmin.value) {
     tasks.push(loadUserOptions())
   }
@@ -352,6 +396,7 @@ const onUpdate = async (id: string) => {
     data.amount = Math.abs(data.amount) as any
   }
   data.paymentMethod = data.paymentMethod || 'default'
+  data.paymentAccountId = data.paymentAccountId ? String(data.paymentAccountId) : ''
   data.tagId = data.tagId || ''
   // 回填分类（从详情的 subjectCategory 获取）
   form.category = data.subjectCategory || ''

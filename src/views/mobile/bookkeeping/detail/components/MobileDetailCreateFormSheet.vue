@@ -283,7 +283,7 @@ const createDefaultForm = () => ({
   amount: resolveInitialAmount(),
   detailDate: props.initialDetailDate || getToday(),
   paymentMethod: props.initialPaymentMethod || 'default',
-  isNecessary: props.initialIsNecessary ?? 0,
+  isNecessary: props.initialIsNecessary ?? 1,
   remark: props.initialRemark || '',
   hidden: props.initialHidden ?? 0,
 })
@@ -372,7 +372,7 @@ const handleSubmit = async () => {
     name: String(form.name || '').trim(),
     remark: String(form.remark || '').trim(),
     amount: Number(form.amount),
-    isNecessary: Number(form.isNecessary ?? 0),
+    isNecessary: Number(form.isNecessary ?? 1),
     userId: form.userId || userStore.userInfo.id,
   }
 

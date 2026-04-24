@@ -719,7 +719,7 @@ const fillFormByDetail = async (id: string) => {
     detailDate: data.detailDate || getToday(),
     paymentMethod: data.paymentMethod || 'default',
     paymentAccountId: data.paymentAccountId ? String(data.paymentAccountId) : '',
-    isNecessary: Number(data.isNecessary ?? 0),
+    isNecessary: Number(data.isNecessary ?? 1),
     remark: data.remark || '',
     hidden: data.hidden ?? 0,
   })
@@ -912,7 +912,7 @@ const handleSubmit = async () => {
     name: String(form.name || '').trim(),
     remark: String(form.remark || '').trim(),
     amount: Number(form.amount),
-    isNecessary: Number(form.isNecessary ?? 0),
+    isNecessary: Number(form.isNecessary ?? 1),
     userId: isAdmin.value ? form.userId : String(userStore.userInfo.id || ''),
   }
 

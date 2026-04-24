@@ -215,7 +215,6 @@ const columns: ColumnItem[] = reactive([
     field: 'isNecessary',
     type: 'radio-group',
     span: 24,
-    required: true,
     props: {
       options: isNecessaryOptions,
     },
@@ -367,7 +366,7 @@ const save = async () => {
       ...form,
       tagId: form.tagId ? form.tagId : undefined,
       paymentAccountId: form.paymentAccountId ? form.paymentAccountId : undefined,
-      isNecessary: Number(form.isNecessary ?? 0),
+      isNecessary: Number(form.isNecessary ?? 1),
     }
     // 非管理员自动设置当前用户 ID
     if (!isAdmin.value) {
@@ -426,7 +425,7 @@ const onUpdate = async (id: string) => {
   data.paymentMethod = data.paymentMethod || 'default'
   data.paymentAccountId = data.paymentAccountId ? String(data.paymentAccountId) : ''
   data.tagId = data.tagId || ''
-  data.isNecessary = Number(data.isNecessary ?? 0)
+  data.isNecessary = Number(data.isNecessary ?? 1)
   // 回填分类（从详情的 subjectCategory 获取）
   form.category = data.subjectCategory || ''
   // 等分类 watch 触发后再赋值科目和名称

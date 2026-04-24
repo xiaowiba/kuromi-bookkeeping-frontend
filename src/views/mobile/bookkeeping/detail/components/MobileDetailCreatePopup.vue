@@ -73,7 +73,7 @@
     :initial-amount="editingDetailAmount"
     :initial-detail-date="editingDetail?.detailDate || ''"
     :initial-payment-method="editingDetail?.paymentMethod || 'default'"
-    :initial-is-necessary="editingDetail?.isNecessary ?? 0"
+    :initial-is-necessary="editingDetail?.isNecessary ?? 1"
     :initial-remark="editingDetail?.remark || ''"
     :initial-hidden="editingDetail?.hidden ?? 0"
     @submit-success="handleSubmitSuccess"

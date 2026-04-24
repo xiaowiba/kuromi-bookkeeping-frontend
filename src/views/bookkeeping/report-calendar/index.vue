@@ -3,7 +3,7 @@
     <div class="report-calendar-page">
       <div class="report-calendar-page__search">
         <GiForm
-          v-model="queryForm"
+          v-model="queryFormModel"
           search
           :columns="queryFormColumns"
           size="medium"
@@ -61,6 +61,16 @@
               <a-radio-group
                 v-model="queryForm.paymentAccountId"
                 :options="paymentAccountQueryOptions"
+                @change="triggerSearch"
+              />
+            </div>
+          </template>
+
+          <template #isNecessary>
+            <div class="subject-query-radio-scroll">
+              <a-radio-group
+                v-model="queryForm.isNecessary"
+                :options="isNecessaryQueryOptions"
                 @change="triggerSearch"
               />
             </div>
@@ -325,6 +335,9 @@
                         {{ formatPaymentAccountName(item.paymentAccountName, item.paymentAccountDeleted) }}
                       </a-tag>
                       <a-tag v-if="item.tagName" size="small" color="arcoblue">{{ item.tagName }}</a-tag>
+                      <a-tag size="small" :color="item.isNecessary === 1 ? 'green' : 'gray'">
+                        {{ item.isNecessary === 1 ? '必要' : '非必要' }}
+                      </a-tag>
                       <a-tag size="small">{{ item.userName }}</a-tag>
                       <a-tag v-if="privacyStore.isPrivacyMode && item.hidden === 1" size="small" color="orangered">隐</a-tag>
                     </div>
@@ -400,6 +413,12 @@ const userStore = useUserStore()
 const { bk_subject_category, bk_payment_method } = useDict('bk_subject_category', 'bk_payment_method')
 
 const queryForm = reactive<T.ReportCalendarFilterForm>(createDefaultReportCalendarForm())
+const queryFormModel = computed<T.ReportCalendarFilterForm>({
+  get: () => queryForm,
+  set: (value) => {
+    Object.assign(queryForm, value)
+  },
+})
 const calendarLoading = ref(false)
 const dayDetailLoading = ref(false)
 const calendarData = ref<T.ReportCalendarResp>(createEmptyReportCalendar())
@@ -413,6 +432,7 @@ const {
   tagQueryOptions,
   paymentMethodQueryOptions,
   paymentAccountQueryOptions,
+  isNecessaryQueryOptions,
   loadCommonFilterOptions,
   createCommonQueryColumns,
 } = useBookkeepingCommonFilters({
@@ -423,6 +443,7 @@ const {
     subjectAll: '全部科目',
     paymentAll: '全部',
     paymentAccountAll: '全部账号',
+    isNecessaryAll: '全部',
   },
 })
 
@@ -436,6 +457,7 @@ const {
  * 4. 第四行：标签
  * 5. 第五行：支付方式
  * 6. 第六行：支付账号
+ * 7. 第七行：是否必要
  */
 const commonQueryColumns = createCommonQueryColumns({
   user: {
@@ -477,6 +499,12 @@ const commonQueryColumns = createCommonQueryColumns({
     placeholder: '请选择支付账号',
     onChange: () => triggerSearch(),
   },
+  isNecessary: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    placeholder: '请选择是否必要',
+    onChange: () => triggerSearch(),
+  },
 })
 
 const queryFormColumns: ColumnItem[] = reactive([
@@ -496,6 +524,7 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.tagColumn,
   commonQueryColumns.paymentMethodColumn,
   commonQueryColumns.paymentAccountColumn,
+  commonQueryColumns.isNecessaryColumn,
 ])
 
 const calendarWeekdays = CALENDAR_WEEKDAY_LABELS
@@ -647,6 +676,9 @@ const buildCalendarQuery = (overrides: Partial<T.ReportCalendarQuery> = {}): T.R
   }
   if (queryForm.paymentAccountId) {
     query.paymentAccountId = queryForm.paymentAccountId
+  }
+  if (queryForm.isNecessary !== '' && queryForm.isNecessary !== null && queryForm.isNecessary !== undefined) {
+    query.isNecessary = Number(queryForm.isNecessary)
   }
   if (queryForm.userId) {
     query.userId = queryForm.userId

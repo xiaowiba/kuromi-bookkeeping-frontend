@@ -163,6 +163,9 @@ export const buildReportQuery = (
   if (form.paymentAccountId) {
     query.paymentAccountId = form.paymentAccountId
   }
+  if (form.isNecessary !== '' && form.isNecessary !== null && form.isNecessary !== undefined) {
+    query.isNecessary = Number(form.isNecessary)
+  }
   if (form.hidden !== '' && form.hidden !== null && form.hidden !== undefined) {
     query.hidden = Number(form.hidden)
   }

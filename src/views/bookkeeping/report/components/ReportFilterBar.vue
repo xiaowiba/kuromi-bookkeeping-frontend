@@ -184,6 +184,17 @@
           />
         </div>
       </template>
+
+      <template #isNecessary>
+        <div class="subject-query-radio-scroll">
+          <a-radio-group
+            v-model="filterFormModel.isNecessary"
+            :options="isNecessaryOptions"
+            :disabled="loading"
+            @change="handleIsNecessaryChange"
+          />
+        </div>
+      </template>
     </GiForm>
   </a-card>
 </template>
@@ -214,6 +225,7 @@ interface Props {
   tagOptions: LabelValueState[]
   paymentMethodOptions: LabelValueState[]
   paymentAccountOptions: LabelValueState[]
+  isNecessaryOptions: LabelValueState[]
   userQueryOptions: LabelValueState[]
   onSelectUser: (value?: string | number | null) => void
   isAdmin: boolean
@@ -307,6 +319,12 @@ const queryFormColumns: ColumnItem<ReportFilterForm>[] = reactive([
     type: 'radio-group',
     label: '支付账号',
     field: 'paymentAccountId',
+    span: { xs: 24, sm: 24, xxl: 24 },
+  },
+  {
+    type: 'radio-group',
+    label: '是否必要',
+    field: 'isNecessary',
     span: { xs: 24, sm: 24, xxl: 24 },
   },
   {
@@ -477,6 +495,10 @@ const handlePaymentMethodChange = () => {
 }
 
 const handlePaymentAccountChange = () => {
+  triggerSearch()
+}
+
+const handleIsNecessaryChange = () => {
   triggerSearch()
 }
 

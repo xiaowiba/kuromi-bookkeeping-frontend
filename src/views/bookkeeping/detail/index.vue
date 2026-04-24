@@ -58,6 +58,15 @@
               />
             </div>
           </template>
+          <template #isNecessary>
+            <div class="subject-query-radio-scroll">
+              <a-radio-group
+                v-model="queryForm.isNecessary"
+                :options="isNecessaryQueryOptions"
+                @change="handleIsNecessaryQueryChange"
+              />
+            </div>
+          </template>
           <template #timeFilter>
             <div class="detail-time-filter">
               <a-radio-group
@@ -221,6 +230,14 @@
           :class="{ 'tag-deleted': record.paymentAccountDeleted }"
         >
           {{ formatPaymentAccountName(record.paymentAccountName, record.paymentAccountDeleted) }}
+        </a-tag>
+      </template>
+      <template #isNecessary="{ record }">
+        <a-tag
+          size="small"
+          :color="record.isNecessary === 1 ? 'green' : 'gray'"
+        >
+          {{ record.isNecessary === 1 ? '必要' : '非必要' }}
         </a-tag>
       </template>
       <template #detailDate="{ record }">
@@ -388,6 +405,7 @@ const createDefaultDetailQueryForm = () => {
     unselectedTagOnly: false,
     paymentMethod: '',
     paymentAccountId: '',
+    isNecessary: '',
     timeMode: DETAIL_DEFAULT_TIME_MODE as DetailTimeMode,
     datePreset: DETAIL_DEFAULT_DATE_PRESET as DetailDatePreset,
     startDate: presetRange.startDate,
@@ -417,6 +435,7 @@ const {
   isAdmin,
   paymentMethodQueryOptions,
   paymentAccountQueryOptions,
+  isNecessaryQueryOptions,
   subjectQueryOptions: subjectOptions,
   tagQueryOptions: baseTagQueryOptions,
   clearSubjectSelection,
@@ -593,6 +612,8 @@ const applyDetailRouteQuery = async () => {
   }
 
   queryForm.paymentMethod = getSingleRouteQueryValue(route.query.paymentMethod)
+  const isNecessary = getSingleRouteQueryValue(route.query.isNecessary)
+  queryForm.isNecessary = isNecessary === '' ? '' : Number(isNecessary)
 
   const hidden = getSingleRouteQueryValue(route.query.hidden)
   queryForm.hidden = hidden === '' ? '' : Number(hidden)
@@ -718,6 +739,10 @@ const handlePaymentAccountQueryChange = () => {
   triggerQuerySearch()
 }
 
+const handleIsNecessaryQueryChange = () => {
+  triggerQuerySearch()
+}
+
 const handleUserQueryChange = () => {
   triggerQuerySearch()
 }
@@ -742,8 +767,10 @@ const handleSortModeChange = (value: string | number | boolean) => {
  * 4. 第四行：科目
  * 5. 第五行：标签
  * 6. 第六行：支付方式
- * 7. 第七行：明细名称
- * 8. 第八行：是否隐藏（仅管理员可见）
+ * 7. 第七行：支付账号
+ * 8. 第八行：是否必要
+ * 9. 第九行：明细名称
+ * 10. 第十行：是否隐藏（仅管理员可见）
  */
 const commonQueryColumns = createCommonQueryColumns({
   user: {
@@ -778,6 +805,11 @@ const commonQueryColumns = createCommonQueryColumns({
     useRadioGroup: true,
     onChange: handlePaymentAccountQueryChange,
   },
+  isNecessary: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    onChange: handleIsNecessaryQueryChange,
+  },
 })
 
 const queryFormColumns: ColumnItem[] = reactive([
@@ -796,7 +828,6 @@ const queryFormColumns: ColumnItem[] = reactive([
     },
   },
   {
-    type: 'select',
     label: '排序方式',
     field: 'sortMode',
     span: { xs: 24, sm: 24, xxl: 24 },
@@ -814,8 +845,8 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.tagColumn,
   commonQueryColumns.paymentMethodColumn,
   commonQueryColumns.paymentAccountColumn,
+  commonQueryColumns.isNecessaryColumn,
   {
-    type: 'select',
     label: '是否隐藏',
     field: 'hidden',
     span: { xs: 24, sm: 24, xxl: 24 },
@@ -843,6 +874,11 @@ const buildDetailQuery = () => {
     privacyMode: privacyStore.isPrivacyMode,
   }
   delete (query as typeof query & { sortMode?: DetailSortMode }).sortMode
+  if (query.isNecessary !== '' && query.isNecessary !== null && query.isNecessary !== undefined) {
+    query.isNecessary = Number(query.isNecessary)
+  } else {
+    delete (query as typeof query & { isNecessary?: string | number }).isNecessary
+  }
   if (query.tagId === DETAIL_UNSELECTED_TAG_VALUE) {
     query.unselectedTagOnly = true
     delete (query as typeof query & { tagId?: string }).tagId
@@ -969,6 +1005,14 @@ const columns = computed<TableInstance['columns']>(() => [
     dataIndex: 'detailDate',
     slotName: 'detailDate',
     width: 240,
+    align: 'center',
+    show: true,
+  },
+  {
+    title: '是否必要',
+    dataIndex: 'isNecessary',
+    slotName: 'isNecessary',
+    width: 92,
     align: 'center',
     show: true,
   },

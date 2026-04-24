@@ -68,7 +68,10 @@ export const createDefaultReportCalendarForm = (): T.ReportCalendarFilterForm =>
   anchorDate: dayjs().startOf('month').format('YYYY-MM-DD'),
   category: '',
   subjectId: '',
+  tagId: '',
   paymentMethod: '',
+  paymentAccountId: '',
+  isNecessary: '',
   userId: '',
 })
 

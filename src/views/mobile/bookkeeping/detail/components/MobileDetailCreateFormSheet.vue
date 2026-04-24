@@ -85,6 +85,26 @@
         </div>
 
         <div class="mobile-field">
+          <label class="mobile-field__label">{{ necessaryFieldLabel }}</label>
+          <div class="mobile-create-sheet__necessary-group" role="radiogroup" :aria-label="necessaryFieldLabel">
+            <button
+              v-for="item in isNecessaryOptions"
+              :key="item.value"
+              type="button"
+              :class="[
+                'mobile-create-sheet__necessary-option',
+                { 'is-active': Number(form.isNecessary) === Number(item.value) },
+              ]"
+              role="radio"
+              :aria-checked="Number(form.isNecessary) === Number(item.value)"
+              @click="form.isNecessary = Number(item.value)"
+            >
+              {{ item.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="mobile-field">
           <label class="mobile-field__label">备注</label>
           <t-textarea
             v-model="form.remark"
@@ -194,6 +214,7 @@ interface Props {
   initialAmount?: string | number
   initialDetailDate?: string
   initialPaymentMethod?: string
+  initialIsNecessary?: number
   initialRemark?: string
   initialHidden?: number
 }
@@ -208,7 +229,7 @@ defineOptions({ name: 'MobileDetailCreateFormSheet' })
 
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
-const { bk_payment_method: bkPaymentMethod } = useDict('bk_payment_method')
+const { bk_payment_method: bkPaymentMethod, common_yes_no: commonYesNo } = useDict('bk_payment_method', 'common_yes_no')
 
 const MAX_AMOUNT = 999999
 const MAX_DETAIL_NAME_LENGTH = 100
@@ -234,6 +255,18 @@ const paymentMethodOptions = computed(() =>
     value: item.value,
   })),
 )
+const yesNoFallbackOptions = [
+  { label: '是', value: 1 },
+  { label: '否', value: 0 },
+]
+const isNecessaryOptions = computed(() => {
+  const options = commonYesNo.value?.length ? commonYesNo.value : yesNoFallbackOptions
+  return options.map((item) => ({
+    label: String(item.label ?? ''),
+    value: Number(item.value ?? 0),
+  }))
+})
+const necessaryFieldLabel = computed(() => (form.category === 'income' ? '是否必要收入' : '是否必要支出'))
 const resolvePaymentMethodMarker = (label: string) => String(label || '').trim().slice(0, 1) || '?'
 
 const resolveInitialAmount = () => {
@@ -250,6 +283,7 @@ const createDefaultForm = () => ({
   amount: resolveInitialAmount(),
   detailDate: props.initialDetailDate || getToday(),
   paymentMethod: props.initialPaymentMethod || 'default',
+  isNecessary: props.initialIsNecessary ?? 0,
   remark: props.initialRemark || '',
   hidden: props.initialHidden ?? 0,
 })
@@ -319,6 +353,10 @@ const validateForm = () => {
     mobileToast.warning('请选择支付方式')
     return false
   }
+  if (form.isNecessary !== 0 && form.isNecessary !== 1) {
+    mobileToast.warning('请选择是否必要')
+    return false
+  }
   if (remark.length > MAX_DETAIL_REMARK_LENGTH) {
     mobileToast.warning(`备注最多 ${MAX_DETAIL_REMARK_LENGTH} 个字`)
     return false
@@ -334,6 +372,7 @@ const handleSubmit = async () => {
     name: String(form.name || '').trim(),
     remark: String(form.remark || '').trim(),
     amount: Number(form.amount),
+    isNecessary: Number(form.isNecessary ?? 0),
     userId: form.userId || userStore.userInfo.id,
   }
 
@@ -551,6 +590,32 @@ watch(
 .mobile-create-sheet__payment-method-option.is-active .mobile-create-sheet__payment-method-label {
   color: #1f1f1f;
   font-weight: 500;
+}
+
+.mobile-create-sheet__necessary-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.16rem;
+}
+
+.mobile-create-sheet__necessary-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0.88rem;
+  border: 0.02rem solid rgba(146, 97, 0, 0.12);
+  border-radius: 0.24rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #7d5a00;
+  font-size: 0.3rem;
+  font-weight: 700;
+}
+
+.mobile-create-sheet__necessary-option.is-active {
+  border-color: rgba(239, 188, 46, 0.35);
+  background: linear-gradient(135deg, #f7cf4b 0%, #efbc2e 100%);
+  color: #5f4a00;
+  box-shadow: 0 0.12rem 0.24rem rgba(239, 188, 46, 0.18);
 }
 
 .mobile-create-sheet__switch-card {

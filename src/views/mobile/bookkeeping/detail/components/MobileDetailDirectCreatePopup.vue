@@ -154,6 +154,26 @@
           </div>
 
           <div class="mobile-field">
+            <label class="mobile-field__label">{{ necessaryFieldLabel }}</label>
+            <div class="mobile-direct-create__necessary-group" role="radiogroup" :aria-label="necessaryFieldLabel">
+              <t-button
+                v-for="item in isNecessaryOptions"
+                :key="item.value"
+                block
+                size="large"
+                variant="text"
+                class="mobile-direct-create__necessary-btn"
+                :class="{ 'is-active': Number(form.isNecessary) === Number(item.value) }"
+                role="radio"
+                :aria-checked="Number(form.isNecessary) === Number(item.value)"
+                @click="form.isNecessary = Number(item.value)"
+              >
+                {{ item.label }}
+              </t-button>
+            </div>
+          </div>
+
+          <div class="mobile-field">
             <label class="mobile-field__label">备注</label>
             <t-textarea
               v-model="form.remark"
@@ -454,7 +474,11 @@ const emit = defineEmits<{
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
 const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
-const { bk_subject_category: bkSubjectCategory, bk_payment_method: bkPaymentMethod } = useDict('bk_subject_category', 'bk_payment_method')
+const {
+  bk_subject_category: bkSubjectCategory,
+  bk_payment_method: bkPaymentMethod,
+  common_yes_no: commonYesNo,
+} = useDict('bk_subject_category', 'bk_payment_method', 'common_yes_no')
 
 const MAX_AMOUNT = 999999
 const MAX_DETAIL_NAME_LENGTH = 100
@@ -528,6 +552,18 @@ const paymentAccountOptions = computed(() =>
     value: String(item.id),
   })),
 )
+const yesNoFallbackOptions = [
+  { label: '是', value: 1 },
+  { label: '否', value: 0 },
+]
+const isNecessaryOptions = computed(() => {
+  const options = commonYesNo.value?.length ? commonYesNo.value : yesNoFallbackOptions
+  return options.map((item) => ({
+    label: String(item.label ?? ''),
+    value: Number(item.value ?? 0),
+  }))
+})
+const necessaryFieldLabel = computed(() => (form.category === 'income' ? '是否必要收入' : '是否必要支出'))
 
 const createDefaultForm = () => ({
   userId: String(userStore.userInfo.id || ''),
@@ -539,6 +575,7 @@ const createDefaultForm = () => ({
   detailDate: getToday(),
   paymentMethod: 'default',
   paymentAccountId: '',
+  isNecessary: 1,
   remark: '',
   hidden: 0,
 })
@@ -682,6 +719,7 @@ const fillFormByDetail = async (id: string) => {
     detailDate: data.detailDate || getToday(),
     paymentMethod: data.paymentMethod || 'default',
     paymentAccountId: data.paymentAccountId ? String(data.paymentAccountId) : '',
+    isNecessary: Number(data.isNecessary ?? 0),
     remark: data.remark || '',
     hidden: data.hidden ?? 0,
   })
@@ -854,6 +892,10 @@ const validateForm = () => {
     mobileToast.warning('请选择支付账号')
     return false
   }
+  if (form.isNecessary !== 0 && form.isNecessary !== 1) {
+    mobileToast.warning('请选择是否必要')
+    return false
+  }
   if (remark.length > MAX_DETAIL_REMARK_LENGTH) {
     mobileToast.warning(`备注最多 ${MAX_DETAIL_REMARK_LENGTH} 个字`)
     return false
@@ -870,6 +912,7 @@ const handleSubmit = async () => {
     name: String(form.name || '').trim(),
     remark: String(form.remark || '').trim(),
     amount: Number(form.amount),
+    isNecessary: Number(form.isNecessary ?? 0),
     userId: isAdmin.value ? form.userId : String(userStore.userInfo.id || ''),
   }
 
@@ -1043,7 +1086,8 @@ watch(
   gap: 0.2rem;
 }
 
-.mobile-direct-create__category-btn {
+.mobile-direct-create__category-btn,
+.mobile-direct-create__necessary-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1057,11 +1101,18 @@ watch(
   height: 1.12rem;
 }
 
-.mobile-direct-create__category-btn.is-active {
+.mobile-direct-create__category-btn.is-active,
+.mobile-direct-create__necessary-btn.is-active {
   border-color: rgba(239, 188, 46, 0.35);
   background: linear-gradient(135deg, #f7cf4b 0%, #efbc2e 100%);
   color: #5f4a00;
   box-shadow: 0 0.12rem 0.24rem rgba(239, 188, 46, 0.18);
+}
+
+.mobile-direct-create__necessary-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.2rem;
 }
 
 .mobile-direct-create__selector-field,

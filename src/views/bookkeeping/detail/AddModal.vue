@@ -43,7 +43,7 @@
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, h, reactive, ref, watch } from 'vue'
 import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { listSubject } from '@/apis/bookkeeping/subject'
@@ -64,7 +64,11 @@ const emit = defineEmits<{
 const { width } = useWindowSize()
 const userStore = useUserStore()
 const privacyStore = usePrivacyStore()
-const { bk_subject_category, bk_payment_method } = useDict('bk_subject_category', 'bk_payment_method')
+const { bk_subject_category, bk_payment_method, common_yes_no } = useDict(
+  'bk_subject_category',
+  'bk_payment_method',
+  'common_yes_no',
+)
 const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
 
 /** 表单布局：移动端垂直排列，PC端水平排列 */
@@ -91,12 +95,25 @@ const subjectTagOptions = ref<Array<LabelValueState & { disabled?: boolean }>>([
 const paymentAccountOptions = ref<LabelValueState[]>([
   { label: '不选择', value: '' },
 ])
+const yesNoFallbackOptions: LabelValueState[] = [
+  { label: '是', value: 1 },
+  { label: '否', value: 0 },
+]
+const isNecessaryOptions = computed<LabelValueState[]>(() => {
+  const options = common_yes_no.value?.length ? common_yes_no.value : yesNoFallbackOptions
+  return options.map((item) => ({
+    label: String(item.label ?? ''),
+    value: Number(item.value ?? 0),
+  }))
+})
+const necessaryFieldLabel = computed(() => (form.category === 'income' ? '是否必要收入' : '是否必要支出'))
 const [form, resetForm] = useResetReactive({
   detailDate: new Date().toISOString().slice(0, 10),
   category: '',
   paymentMethod: 'default',
   paymentAccountId: '',
   tagId: '',
+  isNecessary: 1,
   hidden: 0,
 })
 
@@ -191,6 +208,16 @@ const columns: ColumnItem[] = reactive([
     span: 24,
     props: {
       options: paymentAccountOptions,
+    },
+  },
+  {
+    label: () => h('span', necessaryFieldLabel.value),
+    field: 'isNecessary',
+    type: 'radio-group',
+    span: 24,
+    required: true,
+    props: {
+      options: isNecessaryOptions,
     },
   },
   {
@@ -340,6 +367,7 @@ const save = async () => {
       ...form,
       tagId: form.tagId ? form.tagId : undefined,
       paymentAccountId: form.paymentAccountId ? form.paymentAccountId : undefined,
+      isNecessary: Number(form.isNecessary ?? 0),
     }
     // 非管理员自动设置当前用户 ID
     if (!isAdmin.value) {
@@ -398,6 +426,7 @@ const onUpdate = async (id: string) => {
   data.paymentMethod = data.paymentMethod || 'default'
   data.paymentAccountId = data.paymentAccountId ? String(data.paymentAccountId) : ''
   data.tagId = data.tagId || ''
+  data.isNecessary = Number(data.isNecessary ?? 0)
   // 回填分类（从详情的 subjectCategory 获取）
   form.category = data.subjectCategory || ''
   // 等分类 watch 触发后再赋值科目和名称

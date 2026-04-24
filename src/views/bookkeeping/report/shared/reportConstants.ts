@@ -69,6 +69,7 @@ export const createReportFilterForm = (
     tagId: '',
     paymentMethod: '',
     paymentAccountId: '',
+    isNecessary: '',
     userScope,
     userId: userScope === 'all' ? '' : currentUserId,
     hidden: '',

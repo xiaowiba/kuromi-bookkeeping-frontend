@@ -110,6 +110,7 @@ export interface DetailResp {
   paymentAccountId?: string
   paymentAccountName?: string
   paymentAccountDeleted?: boolean
+  isNecessary: number
   remark: string
   hidden: number
   createUserString: string
@@ -139,6 +140,7 @@ export interface DetailQuery {
   paymentAccountId?: string
   unselectedTagOnly?: boolean
   paymentMethod?: string
+  isNecessary?: number | string
   timeMode?: DetailTimeMode
   datePreset?: DetailDatePreset
   startDate?: string
@@ -274,6 +276,7 @@ export interface ReportQuery {
   tagId?: string
   paymentMethod?: string
   paymentAccountId?: string
+  isNecessary?: number | string
   userId?: string
   hidden?: number | string
   privacyMode?: boolean
@@ -296,6 +299,7 @@ export interface ReportFilterForm {
   tagId: string
   paymentMethod: string
   paymentAccountId: string
+  isNecessary: number | string
   userScope: ReportUserScope
   userId: string
   hidden: number | string
@@ -310,6 +314,7 @@ export interface ReportCalendarFilterForm {
   tagId: string
   paymentMethod: string
   paymentAccountId: string
+  isNecessary: number | string
   userId: string
 }
 
@@ -412,6 +417,7 @@ export interface ReportRankingTableResp {
   paymentAccountId?: string
   paymentAccountName?: string
   paymentAccountDeleted?: boolean
+  isNecessary: number
   userId: string
   userName: string
   amount: number
@@ -509,6 +515,7 @@ export interface ReportCalendarDayDetailItemResp {
   paymentAccountId?: string
   paymentAccountName?: string
   paymentAccountDeleted?: boolean
+  isNecessary: number
   userId: string
   userName: string
   amount: number
@@ -553,4 +560,3 @@ export interface PaymentAccountReq {
   sort?: number
   status: 1 | 2
 }
-

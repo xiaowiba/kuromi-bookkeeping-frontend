@@ -229,51 +229,62 @@
               }"
               @click="handleRowClick(item)"
             >
-              <span class="mobile-detail-row__badge" :class="subjectCategoryClass(item.subjectCategory)">
-                <BookkeepingSubjectIcon
-                  :icon="item.subjectIcon"
-                  mode="mobile"
-                  :size="18"
-                />
-              </span>
-
               <div class="mobile-detail-row__content">
-                <h4 class="mobile-detail-row__title">{{ item.name }}</h4>
-                <div class="mobile-detail-row__tag-grid">
-                  <t-tag
-                    v-if="item.tagName"
-                    class="mobile-detail-row__tag"
-                    size="small"
-                    variant="light"
-                    theme="warning"
-                  >
-                    {{ item.tagName }}
-                  </t-tag>
-                  <t-tag
-                    class="mobile-detail-row__payment-tag"
-                    size="small"
-                    variant="light"
-                    :theme="paymentMethodTheme(item.paymentMethod)"
-                  >
-                    {{ paymentMethodLabel(item.paymentMethod) }}
-                  </t-tag>
-                  <t-tag
-                    v-if="item.paymentAccountName"
-                    class="mobile-detail-row__payment-tag"
-                    size="small"
-                    :theme="item.paymentAccountDeleted ? 'default' : 'primary'"
-                    :variant="item.paymentAccountDeleted ? 'outline' : 'light'"
-                  >
-                    {{ formatPaymentAccountName(item.paymentAccountName, item.paymentAccountDeleted) }}
-                  </t-tag>
-                  <span
-                    v-if="privacyStore.isPrivacyMode && item.hidden === 1"
-                    class="mobile-detail-row__privacy"
-                  >
-                    隐
+                <div class="mobile-detail-row__leading">
+                  <h6 class="mobile-detail-row__create__user">{{ item.userNickname }}</h6>
+                  <span class="mobile-detail-row__badge" :class="subjectCategoryClass(item.subjectCategory)">
+                    <BookkeepingSubjectIcon
+                      :icon="item.subjectIcon"
+                      mode="mobile"
+                      :size="18"
+                    />
                   </span>
                 </div>
-                <h6 class="mobile-detail-row__create__user">{{ item.userNickname }}</h6>
+                <div class="mobile-detail-row__body">
+                  <h4 class="mobile-detail-row__title">{{ item.name }}</h4>
+                  <div class="mobile-detail-row__tag-strip">
+                    <t-tag
+                      v-if="item.tagName"
+                      class="mobile-detail-row__tag"
+                      size="small"
+                      variant="light"
+                      theme="warning"
+                    >
+                      {{ item.tagName }}
+                    </t-tag>
+                    <t-tag
+                      class="mobile-detail-row__payment-tag"
+                      size="small"
+                      variant="light"
+                      :theme="paymentMethodTheme(item.paymentMethod)"
+                    >
+                      {{ paymentMethodLabel(item.paymentMethod) }}
+                    </t-tag>
+                    <t-tag
+                      v-if="item.paymentAccountName"
+                      class="mobile-detail-row__payment-tag"
+                      size="small"
+                      :theme="item.paymentAccountDeleted ? 'default' : 'primary'"
+                      :variant="item.paymentAccountDeleted ? 'outline' : 'light'"
+                    >
+                      {{ formatPaymentAccountName(item.paymentAccountName, item.paymentAccountDeleted) }}
+                    </t-tag>
+                    <t-tag
+                      class="mobile-detail-row__payment-tag"
+                      size="small"
+                      variant="light"
+                      :theme="isNecessaryTheme(item.isNecessary)"
+                    >
+                      {{ isNecessaryLabel(item.isNecessary) }}
+                    </t-tag>
+                    <span
+                      v-if="privacyStore.isPrivacyMode && item.hidden === 1"
+                      class="mobile-detail-row__privacy"
+                    >
+                      隐
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div class="mobile-detail-row__aside">
@@ -424,6 +435,19 @@
                   :variant="activeDetail.paymentAccountDeleted ? 'outline' : 'light'"
                 >
                   {{ formatPaymentAccountName(activeDetail.paymentAccountName, activeDetail.paymentAccountDeleted) }}
+                </t-tag>
+              </strong>
+            </div>
+            <div class="mobile-bottom-sheet__detail-row">
+              <span>是否必要</span>
+              <strong class="mobile-bottom-sheet__detail-tag-wrap">
+                <t-tag
+                  class="mobile-bottom-sheet__detail-tag"
+                  size="small"
+                  variant="light"
+                  :theme="isNecessaryTheme(activeDetail.isNecessary)"
+                >
+                  {{ isNecessaryLabel(activeDetail.isNecessary) }}
                 </t-tag>
               </strong>
             </div>
@@ -826,6 +850,10 @@ const paymentMethodTheme = (value: string) => {
   const extra = findPaymentMethodItem(value)?.extra || 'default'
   return extra === 'error' ? 'danger' : extra
 }
+
+const isNecessaryLabel = (value: number) => (Number(value) === 1 ? '必要' : '非必要')
+
+const isNecessaryTheme = (value: number) => (Number(value) === 1 ? 'success' : 'default')
 
 const subjectCategoryTheme = (value: string) => {
   if (value === 'expense' || value === '1') return 'danger'
@@ -1318,22 +1346,22 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   border-radius: 50%;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .mobile-detail-row__badge :deep(.bookkeeping-subject-icon) {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
 }
 
 .mobile-detail-row__badge :deep(.t-icon),
 .mobile-detail-row__badge :deep(.svg-icon) {
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .mobile-detail-row__badge.is-expense {
@@ -1357,21 +1385,33 @@ onUnmounted(() => {
   min-width: 0;
   flex: 1;
   display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.mobile-detail-row__leading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 42px;
+  gap: 6px;
+  min-width: 42px;
+}
+
+.mobile-detail-row__body {
+  display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-}
-
-.mobile-detail-row__main {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
   min-width: 0;
 }
 
 .mobile-detail-row__title {
   margin: 0;
   width: 100%;
+  min-width: 0;
   color: #403a35;
   font-size: 16px;
   font-weight: 600;
@@ -1381,32 +1421,32 @@ onUnmounted(() => {
   text-overflow: ellipsis;
 }
 
-.mobile-detail-row__tag-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, max-content));
+.mobile-detail-row__tag-strip {
+  display: flex;
+  align-items: center;
   gap: 6px;
   width: 100%;
   min-width: 0;
-  align-items: start;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .mobile-detail-row__payment-tag {
+  flex: 0 1 auto;
   min-width: 0;
-  max-width: 100%;
 }
 
 .mobile-detail-row__tag {
+  flex: 0 1 auto;
   min-width: 0;
-  max-width: 100%;
 }
 
-.mobile-detail-row__tag-grid :deep(.t-tag) {
-  width: 100%;
+.mobile-detail-row__tag-strip :deep(.t-tag) {
+  flex: 0 1 auto;
   min-width: 0;
-  justify-content: center;
 }
 
-.mobile-detail-row__tag-grid :deep(.t-tag__text) {
+.mobile-detail-row__tag-strip :deep(.t-tag__text) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1415,12 +1455,12 @@ onUnmounted(() => {
 
 .mobile-detail-row__create__user {
   margin: 0;
-  min-width: 0;
   width: 100%;
-  color: #403a35;
-  font-size: 14px;
-  font-weight: 300;
+  color: #8a6b2f;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1.3;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1428,11 +1468,10 @@ onUnmounted(() => {
 
 .mobile-detail-row__privacy {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   height: 20px;
-  min-width: 0;
-  width: 100%;
   padding: 0 8px;
   border-radius: 999px;
   background: rgba(244, 174, 74, 0.18);

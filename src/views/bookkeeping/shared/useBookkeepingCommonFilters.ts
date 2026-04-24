@@ -31,6 +31,7 @@ interface CommonFilterForm {
   tagId?: string
   paymentMethod?: string
   paymentAccountId?: string
+  isNecessary?: string | number
 }
 
 type CommonFilterChangeValue = string | number | boolean
@@ -41,6 +42,7 @@ interface CommonFilterLabels {
   subjectAll?: string
   paymentAll?: string
   paymentAccountAll?: string
+  isNecessaryAll?: string
 }
 
 interface CommonFilterColumnConfig {
@@ -60,6 +62,7 @@ interface CreateCommonQueryColumnsOptions {
   tag?: CommonFilterColumnConfig
   paymentMethod?: CommonFilterColumnConfig
   paymentAccount?: CommonFilterColumnConfig
+  isNecessary?: CommonFilterColumnConfig
 }
 
 interface UseBookkeepingCommonFiltersOptions<TForm extends CommonFilterForm> {
@@ -77,6 +80,11 @@ const createAllOption = (label: string) => ({
   label,
   value: '',
 })
+
+const YES_NO_FALLBACK_OPTIONS: LabelValueState[] = [
+  { label: '是', value: '1' },
+  { label: '否', value: '0' },
+]
 
 const formatSubjectTagOptionLabel = (tag: SubjectTagResp) => {
   const suffixList: string[] = []
@@ -117,7 +125,11 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
   options: UseBookkeepingCommonFiltersOptions<TForm>,
 ) => {
   const { form, labels } = options
-  const { bk_subject_category, bk_payment_method } = useDict('bk_subject_category', 'bk_payment_method')
+  const { bk_subject_category, bk_payment_method, common_yes_no } = useDict(
+    'bk_subject_category',
+    'bk_payment_method',
+    'common_yes_no',
+  )
   const { isAdmin, userOptions, loadUserOptions } = useDetailUserOptions()
   const allSubjects = ref<SubjectResp[]>([])
   const subjectTags = ref<SubjectTagResp[]>([])
@@ -141,6 +153,11 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
   const paymentAccountQueryOptions = computed<LabelValueState[]>(() => [
     createAllOption(labels?.paymentAccountAll ?? '全部账号'),
     ...paymentAccounts.value.map((item) => ({ label: item.name, value: String(item.id) })),
+  ])
+
+  const isNecessaryQueryOptions = computed<LabelValueState[]>(() => [
+    createAllOption(labels?.isNecessaryAll ?? '全部'),
+    ...((common_yes_no.value?.length ? common_yes_no.value : YES_NO_FALLBACK_OPTIONS).map(normalizeOption)),
   ])
 
   const subjectQueryOptions = computed<LabelValueState[]>(() => {
@@ -287,6 +304,12 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       allowClear: true,
       allowSearch: true,
     })
+    const isNecessaryConfig = resolveColumnConfig(columnOptions.isNecessary, {
+      label: '是否必要',
+      placeholder: '请选择是否必要',
+      allowClear: true,
+      allowSearch: false,
+    })
 
     const userColumn: ColumnItem = {
       type: userConfig.useRadioGroup ? 'radio-group' : 'select',
@@ -372,6 +395,20 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       },
     }
 
+    const isNecessaryColumn: ColumnItem = {
+      type: isNecessaryConfig.useRadioGroup ? 'radio-group' : 'select',
+      label: isNecessaryConfig.label,
+      field: 'isNecessary',
+      span: isNecessaryConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
+      props: {
+        options: isNecessaryQueryOptions,
+        placeholder: isNecessaryConfig.placeholder,
+        allowClear: isNecessaryConfig.allowClear,
+        allowSearch: isNecessaryConfig.allowSearch,
+        onChange: isNecessaryConfig.onChange,
+      },
+    }
+
     return {
       userColumn,
       categoryColumn,
@@ -379,6 +416,7 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       tagColumn,
       paymentMethodColumn,
       paymentAccountColumn,
+      isNecessaryColumn,
     }
   }
 
@@ -414,6 +452,7 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
     categoryQueryOptions,
     paymentMethodQueryOptions,
     paymentAccountQueryOptions,
+    isNecessaryQueryOptions,
     subjectQueryOptions,
     tagQueryOptions,
     clearSubjectSelection,

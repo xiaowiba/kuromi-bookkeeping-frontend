@@ -1,50 +1,47 @@
 <template>
   <div class="login pc">
-    <h3 class="login-logo">
-      <img v-if="logo" :src="logo" alt="logo" />
-      <img v-else src="/logo.svg" alt="logo" />
-      <span>{{ title }}</span>
-    </h3>
+    <div class="login-hero">
+      <LoginHeroBanner class="login-banner" />
+    </div>
 
-    <a-row align="stretch" class="login-box">
-      <a-col :xs="0" :sm="12" :md="13">
-        <div class="login-left">
-          <img class="login-left__img" src="@/assets/images/banner.png" alt="banner" />
+    <div class="login-box">
+      <div class="login-right">
+        <div class="login-right__brand">
+          <img v-if="logo" :src="logo" alt="logo" />
+          <img v-else src="/logo.svg" alt="logo" />
+          <span>{{ title }}</span>
         </div>
-      </a-col>
-      <a-col :xs="24" :sm="12" :md="11">
-        <div class="login-right">
-          <h3 v-if="isEmailLogin" class="login-right__title">邮箱登录</h3>
-          <EmailLogin v-if="isEmailLogin" />
-          <a-tabs v-else v-model:activeKey="activeTab" class="login-right__form">
-            <a-tab-pane key="1" title="账号登录">
-              <component :is="AccountLogin" v-if="activeTab === '1'" />
-            </a-tab-pane>
-            <!-- a-tab-pane key="2" title="手机号登录">
-              <component :is="PhoneLogin" v-if="activeTab === '2'" />
-            </a-tab-pane -->
-          </a-tabs>
-          <div v-if="false" class="login-right__oauth">
-            <a-divider orientation="center">其他登录方式</a-divider>
-            <div class="list">
-              <div v-if="isEmailLogin" class="mode item" @click="toggleLoginMode"><icon-user /> 账号/手机号登录</div>
-              <div v-else class="mode item" @click="toggleLoginMode"><icon-email /> 邮箱登录</div>
-              <a class="item" title="使用 Gitee 账号登录" @click="onOauth('gitee')">
-                <GiSvgIcon name="gitee" :size="24" />
-              </a>
-              <a class="item" title="使用 GitHub 账号登录" @click="onOauth('github')">
-                <GiSvgIcon name="github" :size="24" />
-              </a>
-              <a class="item" title="使用微信账号登录" @click="onOauth('wechat_open')">
-                <GiSvgIcon name="wechat" :size="24" />
-              </a>
-            </div>
+        <h3 v-if="isEmailLogin" class="login-right__title">邮箱登录</h3>
+        <EmailLogin v-if="isEmailLogin" />
+        <a-tabs v-else v-model:activeKey="activeTab" class="login-right__form">
+          <a-tab-pane key="1" title="账号登录">
+            <component :is="AccountLogin" v-if="activeTab === '1'" />
+          </a-tab-pane>
+          <!-- a-tab-pane key="2" title="手机号登录">
+            <component :is="PhoneLogin" v-if="activeTab === '2'" />
+          </a-tab-pane -->
+        </a-tabs>
+        <div v-if="false" class="login-right__oauth">
+          <a-divider orientation="center">其他登录方式</a-divider>
+          <div class="list">
+            <div v-if="isEmailLogin" class="mode item" @click="toggleLoginMode"><icon-user /> 账号/手机号登录</div>
+            <div v-else class="mode item" @click="toggleLoginMode"><icon-email /> 邮箱登录</div>
+            <a class="item" title="使用 Gitee 账号登录" @click="onOauth('gitee')">
+              <GiSvgIcon name="gitee" :size="24" />
+            </a>
+            <a class="item" title="使用 GitHub 账号登录" @click="onOauth('github')">
+              <GiSvgIcon name="github" :size="24" />
+            </a>
+            <a class="item" title="使用微信账号登录" @click="onOauth('wechat_open')">
+              <GiSvgIcon name="wechat" :size="24" />
+            </a>
           </div>
         </div>
-      </a-col>
-    </a-row>
+        <div class="login-right__copyright">{{ copyrightText }}</div>
+      </div>
+    </div>
 
-    <div class="footer">
+    <div v-if="false" class="footer">
       <div class="beian">
         <div class="below text">{{ appStore.getCopyright() }}{{ appStore.getForRecord() ? ` · ${appStore.getForRecord()}` : '' }}</div>
       </div>
@@ -73,6 +70,7 @@
               <component :is="PhoneLogin" v-if="activeTab === '2'" />
             </a-tab-pane -->
           </a-tabs>
+          <div class="login-right__copyright">{{ copyrightText }}</div>
         </div>
       </a-col>
     </a-row>
@@ -101,6 +99,7 @@ import Background from './components/background/index.vue'
 import AccountLogin from './components/account/index.vue'
 import PhoneLogin from './components/phone/index.vue'
 import EmailLogin from './components/email/index.vue'
+import LoginHeroBanner from './components/LoginHeroBanner.vue'
 import { socialAuth } from '@/apis/auth'
 import { useAppStore } from '@/stores'
 import { useTenantStore } from '@/stores/modules/tenant'
@@ -122,6 +121,7 @@ const tenantStore = useTenantStore()
 
 const title = computed(() => appStore.getTitle())
 const logo = computed(() => appStore.getLogo())
+const copyrightText = computed(() => `${appStore.getCopyright()}${appStore.getForRecord() ? ` | ${appStore.getForRecord()}` : ''}`)
 
 const isEmailLogin = ref(false)
 const activeTab = ref('1')
@@ -341,6 +341,15 @@ onMounted(() => {
         }
       }
     }
+
+    &__copyright {
+      margin-top: 20PX;
+      color: rgba(110, 89, 50, 0.72);
+      font-size: 12PX;
+      line-height: 20PX;
+      text-align: center;
+      word-break: break-word;
+    }
   }
 
   .theme-btn {
@@ -385,92 +394,81 @@ onMounted(() => {
   }
 
   .login {
+    position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;
+    align-items: stretch;
+    overflow: hidden;
     background:
       radial-gradient(circle at top left, rgba(255, 224, 130, 0.24) 0%, transparent 34%),
       linear-gradient(180deg, #fffaf0 0%, #f7f0e3 100%);
 
-    &-logo {
-      position: fixed;
-      top: 20PX;
-      left: 30PX;
-      z-index: 9999;
-      color: var(--login-accent-deep);
-      font-weight: 700;
-      font-size: 20PX;
-      line-height: 32PX;
-      margin-bottom: 20PX;
+    &-box {
+      position: relative;
+      z-index: 20;
+      width: min(92%, 460PX);
+      margin: clamp(16PX, 3vh, 28PX) auto 0;
+      overflow: visible;
       display: flex;
-      justify-content: center;
+    }
+  }
+
+  .login-hero {
+    position: relative;
+    z-index: 5;
+    width: 100%;
+    flex: none;
+  }
+
+  .login-banner {
+    position: relative;
+    display: block;
+    width: 100%;
+  }
+
+  .login-right {
+    width: 100%;
+    min-height: 0;
+    background: var(--login-surface);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 34PX 36PX 28PX;
+    box-sizing: border-box;
+    border: 1PX solid var(--login-accent-border);
+    border-radius: 30PX;
+    box-shadow:
+      0 28PX 60PX rgba(130, 90, 22, 0.16),
+      0 8PX 18PX rgba(130, 90, 22, 0.06);
+    backdrop-filter: blur(14px);
+
+    &__brand {
+      display: flex;
       align-items: center;
+      justify-content: center;
+      margin-bottom: 22PX;
+      color: var(--login-accent-deep);
+      font-size: 20PX;
+      font-weight: 700;
+      line-height: 32PX;
+      text-align: center;
 
       img {
         width: 34PX;
         height: 34PX;
         margin-right: 8PX;
+        flex: none;
+        object-fit: contain;
+      }
+
+      span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
-
-    &-box {
-      width: 86%;
-      max-width: 850PX;
-      display: flex;
-      z-index: 999;
-      overflow: hidden;
-      border: 1PX solid var(--login-accent-border);
-      border-radius: 24PX;
-      box-shadow: var(--login-shadow);
-    }
-  }
-
-  .login-left {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-    background:
-      radial-gradient(circle at top left, rgba(255, 243, 197, 0.9) 0%, transparent 38%),
-      linear-gradient(145deg, #fff1bf 0%, #ffd25d 100%);
-
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(135deg, rgba(255, 248, 227, 0.28) 0%, rgba(139, 94, 0, 0.08) 100%);
-      pointer-events: none;
-    }
-
-    &__img {
-      width: 100%;
-      position: absolute;
-      bottom: 0;
-      right: 0;
-      top: 50%;
-      left: 50%;
-      transform: translateX(-50%) translateY(-50%);
-      transition: all 0.3s;
-      object-fit: cover;
-      opacity: 0.88;
-      filter: saturate(0.82) hue-rotate(330deg);
-    }
-  }
-
-  .login-right {
-    width: 100%;
-    height: 100%;
-    background: var(--login-surface);
-    display: flex;
-    flex-direction: column;
-    padding: 30PX 30PX 0;
-    box-sizing: border-box;
 
     &__title {
       color: var(--login-accent-deep);
@@ -584,13 +582,22 @@ onMounted(() => {
         }
       }
     }
+
+    &__copyright {
+      margin-top: 20PX;
+      color: rgba(110, 89, 50, 0.72);
+      font-size: 12PX;
+      line-height: 20PX;
+      text-align: center;
+      word-break: break-word;
+    }
   }
 
   .theme-btn {
     position: fixed;
     top: 20PX;
     right: 30PX;
-    z-index: 999;
+    z-index: 30;
   }
 
   // 新增弹窗层级设置
@@ -603,7 +610,7 @@ onMounted(() => {
     box-sizing: border-box;
     position: absolute;
     bottom: 10PX;
-    z-index: 999;
+    z-index: 30;
 
     .beian {
       .text {

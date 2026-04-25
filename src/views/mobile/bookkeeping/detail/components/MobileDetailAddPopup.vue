@@ -319,7 +319,7 @@ const handleSubmit = async () => {
   try {
     const payload = {
       ...form,
-      tagId: form.tagId ? form.tagId : undefined,
+      tagId: form.tagId ? form.tagId : null,
       amount: Number(form.amount),
       userId: isAdmin.value ? form.userId : userStore.userInfo.id,
     }

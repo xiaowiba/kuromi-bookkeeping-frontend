@@ -11,7 +11,6 @@
     >
       <Logo :collapsed="appStore.menuCollapse" />
       <Menu :menus="twoLevelMenus" :menu-style="{ flex: 1 }" />
-      <WwAds class="ads" />
     </section>
 
     <!-- 右侧内容区域 -->
@@ -54,7 +53,6 @@ import { useLevelMenu } from '@/layout/hooks/useLevelMenu'
 import { useDevice } from '@/hooks'
 import { getToken } from '@/utils/auth'
 
-import WwAds from '@/layout/components/WwAds.vue'
 import NoticePopup from '@/views/user/message/components/NoticePopup.vue'
 
 /** 组件名称 */

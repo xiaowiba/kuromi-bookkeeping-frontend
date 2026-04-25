@@ -908,7 +908,8 @@ const handleSubmit = async () => {
 
   const payload = {
     ...form,
-    tagId: form.tagId ? form.tagId : undefined,
+    tagId: form.tagId ? form.tagId : null,
+    paymentAccountId: form.paymentAccountId ? form.paymentAccountId : null,
     name: String(form.name || '').trim(),
     remark: String(form.remark || '').trim(),
     amount: Number(form.amount),

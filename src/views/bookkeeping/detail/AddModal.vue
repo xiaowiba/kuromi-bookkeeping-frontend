@@ -4,7 +4,7 @@
     :title="title"
     :mask-closable="false"
     :esc-to-close="false"
-    :width="width >= 800 ? 800 : '100%'"
+    :width="modalWidth"
     :class="{ 'mobile-modal': isMobile() }"
     draggable
     @before-ok="save"
@@ -76,6 +76,9 @@ const formLayout = computed(() => (isMobile() ? 'vertical' : 'horizontal'))
 
 /** 表单尺寸：移动端大号，PC端大号 */
 const formSize = computed(() => (isMobile() ? 'large' : 'large'))
+
+/** 弹窗宽度：桌面端适当放宽，窄屏保留边距避免溢出 */
+const modalWidth = computed(() => (isMobile() ? '100%' : Math.min(width.value - 32, 920)))
 
 const dataId = ref('')
 const visible = ref(false)
@@ -364,8 +367,8 @@ const save = async () => {
     if (isInvalid) return false
     const payload = {
       ...form,
-      tagId: form.tagId ? form.tagId : undefined,
-      paymentAccountId: form.paymentAccountId ? form.paymentAccountId : undefined,
+      tagId: form.tagId ? form.tagId : null,
+      paymentAccountId: form.paymentAccountId ? form.paymentAccountId : null,
       isNecessary: Number(form.isNecessary ?? 1),
     }
     // 非管理员自动设置当前用户 ID

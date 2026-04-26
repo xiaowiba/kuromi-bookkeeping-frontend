@@ -1,7 +1,12 @@
 <template>
   <div class="login pc" :class="{ 'login--dark': isDark }">
     <div class="login-hero">
-      <LoginHeroBanner class="login-banner" />
+      <div class="login-banner-container">
+        <Transition name="fade" mode="out-in">
+          <LoginHeroBannerSkeleton v-if="!bannerLoaded" key="skeleton" class="login-banner" />
+          <LoginHeroBanner v-else key="banner" class="login-banner" />
+        </Transition>
+      </div>
     </div>
 
     <div class="login-box">
@@ -100,6 +105,7 @@ import AccountLogin from './components/account/index.vue'
 import PhoneLogin from './components/phone/index.vue'
 import EmailLogin from './components/email/index.vue'
 import LoginHeroBanner from './components/LoginHeroBanner.vue'
+import LoginHeroBannerSkeleton from './components/LoginHeroBannerSkeleton.vue'
 import { socialAuth } from '@/apis/auth'
 import { useAppStore } from '@/stores'
 import { useTenantStore } from '@/stores/modules/tenant'
@@ -115,6 +121,8 @@ defineOptions({ name: 'Login' })
  * @desc 修复登录页中文乱码，并保留生产环境构建后的桌面端与移动端样式隔离方案
  * @update 2026-03-23 @Wangsongsong
  * @desc 统一登录页黄色调视觉，收敛标签页、容器与交互状态中的蓝色样式
+ * @update 2026-04-26 @Wangsongsong
+ * @desc 添加 Hero Banner 骨架屏，优化首次加载体验
  */
 const appStore = useAppStore()
 const tenantStore = useTenantStore()
@@ -126,6 +134,18 @@ const isDark = computed(() => appStore.theme === 'dark')
 
 const isEmailLogin = ref(false)
 const activeTab = ref('1')
+const bannerLoaded = ref(false)
+
+// 模拟 Banner 加载完成
+// 由于 Banner 组件包含大量图片资源，使用延迟加载优化首屏体验
+onMounted(() => {
+  onGetTenant()
+
+  // 延迟显示 Banner，给骨架屏足够的展示时间
+  setTimeout(() => {
+    bannerLoaded.value = true
+  }, 800)
+})
 
 // 切换登录模式
 const toggleLoginMode = () => {
@@ -149,12 +169,23 @@ const onGetTenant = async () => {
     tenantStore.setTenantId(tenantId)
   }
 }
-onMounted(() => {
-  onGetTenant()
-})
 </script>
 
 <style scoped lang="scss">
+// 过渡动画
+.fade-enter-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 .login {
   --login-accent: #d8a117;
   --login-accent-hover: #c58a12;
@@ -479,6 +510,11 @@ onMounted(() => {
     z-index: 5;
     width: 100%;
     flex: none;
+  }
+
+  .login-banner-container {
+    position: relative;
+    width: 100%;
   }
 
   .login-banner {

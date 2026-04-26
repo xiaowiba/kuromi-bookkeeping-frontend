@@ -15,6 +15,7 @@ const desktopToMobileRouteMap: Record<string, string> = {
   '/dashboard/analysis': '/m/report',
   '/bookkeeping/detail': MOBILE_HOME_PATH,
   '/bookkeeping/report': '/m/report',
+  '/bookkeeping/bill': '/m/bill',
   '/bookkeeping/subject': '/m/subject',
   '/user/profile': '/m/me',
 }
@@ -23,6 +24,7 @@ const mobileToDesktopRouteMap: Record<string, string> = {
   '/m': '/bookkeeping/detail',
   '/m/bookkeeping/detail': '/bookkeeping/detail',
   '/m/report': '/bookkeeping/report',
+  '/m/bill': '/bookkeeping/bill',
   '/m/subject': '/bookkeeping/subject',
   '/m/me': '/user/profile',
 }

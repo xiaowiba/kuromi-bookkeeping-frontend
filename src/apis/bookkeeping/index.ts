@@ -6,6 +6,7 @@
  */
 export * from './subject'
 export * from './subject-tag'
+export * from './bill'
 export * from './report-calendar'
 export * from './payment-account'
 export * from './detail'

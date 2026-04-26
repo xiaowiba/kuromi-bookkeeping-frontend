@@ -39,6 +39,12 @@ export const systemRoutes: RouteRecordRaw[] = [
         meta: { title: '我的', hidden: true, showInTabs: false, isMobile: true, hideMobileNavbar: true },
       },
       {
+        path: 'bill',
+        name: 'MobileBill',
+        component: () => import('@/views/mobile/bill/index.vue'),
+        meta: { title: '璐﹀崟', hidden: true, showInTabs: false, isMobile: true, hideMobileNavbar: true },
+      },
+      {
         path: 'subject',
         name: 'MobileSubject',
         component: () => import('@/views/mobile/subject/index.vue'),

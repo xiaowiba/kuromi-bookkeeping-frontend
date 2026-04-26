@@ -10,6 +10,26 @@
       </div>
     </section>
 
+    <section class="mobile-panel mobile-me-shortcuts">
+      <div class="mobile-me-shortcuts__header">
+        <h3 class="mobile-section-title">常用功能</h3>
+        <p class="mobile-me-shortcuts__desc">明细、报表和账单入口都放在这里，随时可直接进入。</p>
+      </div>
+      <div class="mobile-me-shortcuts__grid">
+        <button
+          v-for="item in shortcutItems"
+          :key="item.path"
+          type="button"
+          class="mobile-me-shortcuts__item"
+          @click="handleShortcutClick(item.path)"
+        >
+          <span class="mobile-me-shortcuts__icon">{{ item.badge }}</span>
+          <strong class="mobile-me-shortcuts__title">{{ item.title }}</strong>
+          <span class="mobile-me-shortcuts__text">{{ item.note }}</span>
+        </button>
+      </div>
+    </section>
+
     <section class="mobile-panel mobile-me-actions">
       <h3 class="mobile-section-title">账户设置</h3>
       <t-cell
@@ -144,6 +164,12 @@ const {
 let versionClickCount = 0
 let versionClickTimer: ReturnType<typeof window.setTimeout> | null = null
 
+const shortcutItems = [
+  { title: '明细管理', note: '按月查看流水', badge: '明', path: '/m/bookkeeping/detail' },
+  { title: '报表中心', note: '看收支趋势', badge: '报', path: '/m/report' },
+  { title: '账单管理', note: '看月账单年账单', badge: '账', path: '/m/bill' },
+] as const
+
 const avatarText = computed(() => {
   return (userStore.userInfo.nickname || userStore.userInfo.username || '我').slice(0, 1).toUpperCase()
 })
@@ -189,6 +215,10 @@ const handleLogout = async () => {
   if (success) {
     router.replace('/login')
   }
+}
+
+const handleShortcutClick = (path: string) => {
+  router.push(path)
 }
 
 onUnmounted(() => {
@@ -240,6 +270,67 @@ onUnmounted(() => {
 .mobile-me-actions {
   margin-top: 14px;
   padding: 18px 16px;
+}
+
+.mobile-me-shortcuts {
+  margin-top: 14px;
+  padding: 18px 16px;
+}
+
+.mobile-me-shortcuts__header {
+  margin-bottom: 14px;
+}
+
+.mobile-me-shortcuts__desc {
+  margin: -6px 0 0;
+  color: var(--color-text-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.mobile-me-shortcuts__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mobile-me-shortcuts__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 10px 14px;
+  border: 1px solid rgba(143, 99, 17, 0.08);
+  border-radius: 20px;
+  background: rgba(255, 252, 244, 0.86);
+  color: var(--color-text-1);
+  text-align: center;
+}
+
+.mobile-me-shortcuts__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffd764 0%, #e1ad24 100%);
+  box-shadow: 0 8px 18px rgba(197, 138, 18, 0.16);
+  color: #fffdf6;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.mobile-me-shortcuts__title {
+  color: var(--color-text-1);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.mobile-me-shortcuts__text {
+  color: var(--color-text-3);
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .mobile-me-actions :deep(.t-cell) {
@@ -339,5 +430,15 @@ onUnmounted(() => {
   box-shadow:
     0 0 0 4px rgba(197, 138, 18, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+@media (max-width: 420px) {
+  .mobile-me-shortcuts__grid {
+    gap: 8px;
+  }
+
+  .mobile-me-shortcuts__item {
+    padding-inline: 8px;
+  }
 }
 </style>

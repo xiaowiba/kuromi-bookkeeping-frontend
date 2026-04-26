@@ -88,10 +88,13 @@ const YES_NO_FALLBACK_OPTIONS: LabelValueState[] = [
 
 const formatSubjectTagOptionLabel = (tag: SubjectTagResp) => {
   const suffixList: string[] = []
-  if (tag.isDefault) {
+  const tagName = tag.name?.trim() ?? ''
+
+  // 名称本身已包含“默认/停用”时，不再重复拼接同义后缀，避免出现“默认（默认）”这类展示。
+  if (tag.isDefault && !tagName.includes('默认')) {
     suffixList.push('默认')
   }
-  if (tag.status === 2) {
+  if (tag.status === 2 && !tagName.includes('停用')) {
     suffixList.push('停用')
   }
   if (!suffixList.length) {

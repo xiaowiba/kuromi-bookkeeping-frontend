@@ -260,6 +260,9 @@ export type ReportDatePreset =
   | 'currentYear'
   | 'custom'
 
+/** 账单类型 */
+export type BillType = 'monthly' | 'yearly'
+
 /** 报表用户范围 */
 export type ReportUserScope = 'current' | 'all' | 'specific'
 
@@ -280,6 +283,81 @@ export interface ReportQuery {
   userId?: string
   hidden?: number | string
   privacyMode?: boolean
+}
+
+/** 账单查询条件 */
+export interface BillQuery {
+  category?: string
+  subjectId?: string
+  tagId?: string
+  paymentMethod?: string
+  paymentAccountId?: string
+  isNecessary?: number | string
+  userId?: string
+  hidden?: number | string
+  privacyMode?: boolean
+}
+
+/** 月账单查询条件 */
+export interface BillMonthlyQuery extends BillQuery {
+  year: number | string
+}
+
+/** 年账单查询条件 */
+export interface BillYearlyQuery extends BillQuery {}
+
+/** 账单筛选表单 */
+export interface BillFilterForm {
+  billType: BillType
+  year: string
+  category: string
+  subjectId: string
+  tagId: string
+  paymentMethod: string
+  paymentAccountId: string
+  isNecessary: number | string
+  userId: string
+  hidden: number | string
+}
+
+/** 账单汇总响应 */
+export interface BillSummaryResp {
+  totalIncome: number
+  totalExpense: number
+  balance: number
+  recordCount: number
+}
+
+/** 月账单项 */
+export interface BillMonthItemResp {
+  month: string
+  monthNumber: number
+  income: number
+  expense: number
+  balance: number
+  recordCount: number
+}
+
+/** 月账单响应 */
+export interface BillMonthlyResp {
+  year: number
+  summary: BillSummaryResp
+  months: BillMonthItemResp[]
+}
+
+/** 年账单项 */
+export interface BillYearItemResp {
+  year: number
+  income: number
+  expense: number
+  balance: number
+  recordCount: number
+}
+
+/** 年账单响应 */
+export interface BillYearlyResp {
+  summary: BillSummaryResp
+  years: BillYearItemResp[]
 }
 
 /** 报表分页查询条件 */

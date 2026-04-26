@@ -216,10 +216,13 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  margin-inline: -16px;
+  padding-top: 0;
 }
 
 .mobile-report-hero {
   padding: 18px 16px;
+  border-radius: 0;
 }
 
 .mobile-report-hero__preset-group {
@@ -241,7 +244,7 @@ onMounted(async () => {
   min-height: 34px;
   padding: 0 14px;
   border: 1px solid rgba(143, 99, 17, 0.1);
-  border-radius: 999px;
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.86);
   color: #6f5b37;
   font-size: 13px;
@@ -275,7 +278,7 @@ onMounted(async () => {
   min-height: 30px;
   padding: 0 12px;
   border: 1px solid rgba(143, 99, 17, 0.08);
-  border-radius: 999px;
+  border-radius: 0;
   background: rgba(255, 248, 223, 0.78);
   color: #6b4a0d;
   font-size: 12px;
@@ -295,5 +298,25 @@ onMounted(async () => {
   color: #7d6a47;
   font-size: 13px;
   line-height: 1.7;
+}
+
+.mobile-report-page :deep(.mobile-panel) {
+  border-radius: 0;
+}
+
+.mobile-report-page :deep(.mobile-report-summary__card) {
+  border-radius: 0;
+}
+
+.mobile-report-page :deep(.mobile-report-category-list__item) {
+  border-radius: 0;
+}
+
+.mobile-report-page :deep(.mobile-report-insight__item) {
+  border-radius: 0;
+}
+
+.mobile-report-page :deep(.mobile-report-insight__index) {
+  border-radius: 0;
 }
 </style>

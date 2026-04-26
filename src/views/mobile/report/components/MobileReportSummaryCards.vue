@@ -9,7 +9,7 @@
         <span>总收入</span>
         <strong>{{ formatReportCurrency(overview.totalIncome) }}</strong>
       </article>
-      <article class="mobile-report-summary__card">
+      <article class="mobile-report-summary__card" :class="overview.balance >= 0 ? 'is-income' : 'is-expense'">
         <span>结余</span>
         <strong>{{ formatReportCurrency(overview.balance, { signed: overview.balance > 0 }) }}</strong>
       </article>
@@ -71,6 +71,14 @@ defineProps<{
   color: #3b2a16;
   font-size: 18px;
   font-weight: 800;
+}
+
+.mobile-report-summary__card.is-expense strong {
+  color: var(--amount-expense-primary);
+}
+
+.mobile-report-summary__card.is-income strong {
+  color: var(--amount-income-primary);
 }
 
 .mobile-report-summary__meta {

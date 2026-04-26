@@ -14,7 +14,7 @@
           <p class="report-summary-card__label">{{ item.label }}</p>
         </div>
         <strong class="report-summary-card__value" :class="item.valueClass">{{ item.value }}</strong>
-        <p class="report-summary-card__meta">{{ item.meta }}</p>
+        <p class="report-summary-card__meta" :class="item.metaClass">{{ item.meta }}</p>
       </a-spin>
     </article>
   </div>
@@ -35,6 +35,7 @@ interface SummaryCard {
   icon: Component
   iconClass: string
   valueClass?: string
+  metaClass?: string
 }
 
 const props = withDefaults(defineProps<{
@@ -114,6 +115,7 @@ const cards = computed<SummaryCard[]>(() => [
       : '暂无数据',
     icon: IconTag,
     iconClass: 'is-expense-top',
+    metaClass: 'is-negative',
   },
   {
     key: 'income-top',
@@ -124,6 +126,7 @@ const cards = computed<SummaryCard[]>(() => [
       : '暂无数据',
     icon: IconBook,
     iconClass: 'is-income-top',
+    metaClass: 'is-positive',
   },
 ])
 </script>
@@ -165,15 +168,15 @@ const cards = computed<SummaryCard[]>(() => [
 .report-summary-card__icon.is-expense,
 .report-summary-card__icon.is-balance-negative,
 .report-summary-card__icon.is-expense-top {
-  color: #f53f3f;
-  background: rgba(245, 63, 63, 0.1);
+  color: var(--amount-expense-primary);
+  background: var(--amount-expense-bg);
 }
 
 .report-summary-card__icon.is-income,
 .report-summary-card__icon.is-balance-positive,
 .report-summary-card__icon.is-income-top {
-  color: #00b42a;
-  background: rgba(0, 180, 42, 0.1);
+  color: var(--amount-income-primary);
+  background: var(--amount-income-bg);
 }
 
 .report-summary-card__icon.is-count,
@@ -201,11 +204,11 @@ const cards = computed<SummaryCard[]>(() => [
 }
 
 .report-summary-card__value.is-negative {
-  color: #f53f3f;
+  color: var(--amount-expense-primary);
 }
 
 .report-summary-card__value.is-positive {
-  color: #00b42a;
+  color: var(--amount-income-primary);
 }
 
 .report-summary-card__meta {

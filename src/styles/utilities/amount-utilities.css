@@ -1,0 +1,56 @@
+/**
+ * 收支金额样式工具类
+ *
+ * @author Wangsongsong
+ * @date 2026-04-26
+ */
+
+/* ========== 文本颜色类 ========== */
+
+.text-income,
+.is-income {
+  color: var(--amount-income-primary) !important;
+}
+
+.text-expense,
+.is-expense {
+  color: var(--amount-expense-primary) !important;
+}
+
+.text-positive,
+.is-positive {
+  color: var(--amount-positive) !important;
+}
+
+.text-negative,
+.is-negative {
+  color: var(--amount-negative) !important;
+}
+
+/* ========== 背景颜色类 ========== */
+
+.bg-income {
+  background-color: var(--amount-income-bg) !important;
+}
+
+.bg-expense {
+  background-color: var(--amount-expense-bg) !important;
+}
+
+.bg-income-hover:hover {
+  background-color: var(--amount-income-bg-hover) !important;
+}
+
+.bg-expense-hover:hover {
+  background-color: var(--amount-expense-bg-hover) !important;
+}
+
+/* ========== 边框颜色类 ========== */
+
+.border-income {
+  border-color: var(--amount-income-primary) !important;
+}
+
+.border-expense {
+  border-color: var(--amount-expense-primary) !important;
+}

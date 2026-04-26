@@ -247,7 +247,7 @@
         </div>
       </template>
       <template #amount="{ record }">
-        <span :style="{ color: record.amount < 0 ? '#f53f3f' : '#00b42a', fontWeight: 'bold' }">
+        <span :class="record.amount >= 0 ? 'text-income' : 'text-expense'" style="font-weight: bold">
           {{ record.amount < 0 ? record.amount.toFixed(2) : `+${record.amount.toFixed(2)}` }}
         </span>
         <a-tag v-if="privacyStore.isPrivacyMode && record.hidden === 1" color="orangered" size="small" style="margin-left: 4px">隐</a-tag>
@@ -1341,11 +1341,11 @@ onUnmounted(() => {
     }
 
     &.expense .value {
-      color: #f53f3f;
+      color: var(--amount-expense-primary);
     }
 
     &.income .value {
-      color: #00b42a;
+      color: var(--amount-income-primary);
     }
 
     &.count .value {

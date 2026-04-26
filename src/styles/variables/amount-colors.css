@@ -1,0 +1,27 @@
+/**
+ * 收支金额颜色变量
+ * 中国标准：红色=收入，绿色=支出
+ *
+ * @author Wangsongsong
+ * @date 2026-04-26
+ */
+
+:root {
+  /* 收入颜色（红色系） */
+  --amount-income-primary: #f5222d;
+  --amount-income-light: #ff4d4f;
+  --amount-income-dark: #cf1322;
+  --amount-income-bg: #fff1f0;
+  --amount-income-bg-hover: #ffccc7;
+
+  /* 支出颜色（绿色系） */
+  --amount-expense-primary: #52c41a;
+  --amount-expense-light: #73d13d;
+  --amount-expense-dark: #389e0d;
+  --amount-expense-bg: #f6ffed;
+  --amount-expense-bg-hover: #d9f7be;
+
+  /* 语义化别名（兼容现有代码） */
+  --amount-positive: var(--amount-income-primary);
+  --amount-negative: var(--amount-expense-primary);
+}

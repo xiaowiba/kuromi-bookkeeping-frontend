@@ -210,7 +210,7 @@ const getMediaStyle = (layer: any) => {
   left: 0;
   right: 0;
   height: 40px;
-  background: linear-gradient(to bottom, transparent, var(--vp-c-bg, #f7f0e3));
+  background: linear-gradient(to bottom, transparent, var(--login-page-blend, #f7f0e3));
   pointer-events: none;
   z-index: 100;
 }

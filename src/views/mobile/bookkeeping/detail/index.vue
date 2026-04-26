@@ -216,7 +216,7 @@
               <h3 class="mobile-detail-group__title">{{ group.title }}</h3>
               <p class="mobile-detail-group__week">{{ group.weekText }}</p>
             </div>
-            <p class="mobile-detail-group__summary">{{ formatGroupSummary(group) }}</p>
+            <p class="mobile-detail-group__summary" v-html="formatGroupSummary(group)"></p>
           </header>
 
           <div class="mobile-detail-group__panel">
@@ -829,13 +829,14 @@ const formatListAmount = (value: number) => {
 }
 const formatBalanceNumber = (value: number) => `${value < 0 ? '-' : ''}¥${formatNumber(Math.abs(value))}`
 const formatGroupSummary = (group: DetailGroup) => {
-  if (group.totalIncome > 0 && group.totalExpense > 0) {
-    return `收 ¥${formatNumber(group.totalIncome)}  支 ¥${formatNumber(group.totalExpense)}`
-  }
+  const parts: string[] = []
   if (group.totalIncome > 0) {
-    return `收 ¥${formatNumber(group.totalIncome)}`
+    parts.push(`<span class="summary-income">收 ¥${formatNumber(group.totalIncome)}</span>`)
   }
-  return `支 ¥${formatNumber(group.totalExpense)}`
+  if (group.totalExpense > 0) {
+    parts.push(`<span class="summary-expense">支 ¥${formatNumber(group.totalExpense)}</span>`)
+  }
+  return parts.join('  ')
 }
 
 const findPaymentMethodItem = (value: string) =>
@@ -1079,11 +1080,11 @@ onUnmounted(() => {
 }
 
 .mobile-detail-hero__summary-item .is-income {
-  color: #0f7d47;
+  color: var(--amount-income-primary);
 }
 
 .mobile-detail-hero__summary-item .is-expense {
-  color: #bc4a28;
+  color: var(--amount-expense-primary);
 }
 
 .mobile-detail-shortcuts {
@@ -1288,6 +1289,14 @@ onUnmounted(() => {
   text-align: right;
 }
 
+.mobile-detail-group__summary :deep(.summary-income) {
+  color: var(--amount-income-primary);
+}
+
+.mobile-detail-group__summary :deep(.summary-expense) {
+  color: var(--amount-expense-primary);
+}
+
 .mobile-detail-group__panel {
   width: 100%;
   box-sizing: border-box;
@@ -1365,15 +1374,13 @@ onUnmounted(() => {
 }
 
 .mobile-detail-row__badge.is-expense {
-  background: #f5f1e6;
-  //color: #5d4a2a;
-  color: rgb(245, 63, 63);
+  background: var(--amount-expense-bg);
+  color: var(--amount-expense-primary);
 }
 
 .mobile-detail-row__badge.is-income {
-  background: #eef8f2;
-  //color: #0f8a59;
-  color: rgb(0, 180, 42);
+  background: var(--amount-income-bg);
+  color: var(--amount-income-primary);
 }
 
 .mobile-detail-row__badge.is-neutral {
@@ -1502,13 +1509,11 @@ onUnmounted(() => {
 }
 
 .mobile-detail-row__amount.is-income {
-  //color: #0f8a59;
-  color: rgb(0, 180, 42);
+  color: var(--amount-income-primary);
 }
 
 .mobile-detail-row__amount.is-expense {
-  //color: #54505a;
-  color: rgb(245, 63, 63);
+  color: var(--amount-expense-primary);
 }
 
 .mobile-detail-row__more {
@@ -1686,11 +1691,11 @@ onUnmounted(() => {
 }
 
 .mobile-bottom-sheet__detail-row .is-income {
-  color: rgb(0, 180, 42);
+  color: var(--amount-income-primary);
 }
 
 .mobile-bottom-sheet__detail-row .is-expense {
-  color: rgb(245, 63, 63);
+  color: var(--amount-expense-primary);
 }
 
 .mobile-bottom-sheet__readonly-tip {

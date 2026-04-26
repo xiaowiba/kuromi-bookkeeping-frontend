@@ -1,6 +1,7 @@
 import type { EChartsOption } from 'echarts'
 import { computed, toValue } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
+import { AmountColors } from '@/constants/amount-colors'
 import {
   REPORT_MOBILE_RANK_LIMIT,
 } from './reportConstants'
@@ -41,8 +42,8 @@ interface ReportColorScheme {
 
 /** 默认暖色系配色（移动端使用） */
 const REPORT_COLORS: ReportColorScheme = {
-  expense: '#d97706',
-  income: '#0f766e',
+  expense: AmountColors.expense.primary,
+  income: AmountColors.income.primary,
   primary: '#ca8a04',
   accent: '#f59e0b',
   secondary: '#7c5a0a',
@@ -53,9 +54,9 @@ const REPORT_COLORS: ReportColorScheme = {
   subText: '#8a7857',
   grid: 'rgba(148, 126, 87, 0.12)',
   tooltipBg: 'rgba(62, 46, 18, 0.92)',
-  pieColors: ['#ca8a04', '#f59e0b', '#d97706', '#fbbf24', '#0f766e', '#3b7a57', '#8a7857'],
-  expenseArea: 'rgba(217, 119, 6, 0.12)',
-  incomeArea: 'rgba(15, 118, 110, 0.1)',
+  pieColors: ['#ca8a04', '#f59e0b', AmountColors.expense.primary, '#fbbf24', AmountColors.income.primary, '#3b7a57', '#8a7857'],
+  expenseArea: AmountColors.expense.bg,
+  incomeArea: AmountColors.income.bg,
 }
 
 /**
@@ -65,8 +66,8 @@ const REPORT_COLORS: ReportColorScheme = {
  * @date 2026-04-17
  */
 export const REPORT_COLORS_TECH_BLUE: ReportColorScheme = {
-  expense: '#3b82f6',
-  income: '#06b6d4',
+  expense: AmountColors.expense.primary,
+  income: AmountColors.income.primary,
   primary: '#2563eb',
   accent: '#60a5fa',
   secondary: '#1e40af',
@@ -77,9 +78,9 @@ export const REPORT_COLORS_TECH_BLUE: ReportColorScheme = {
   subText: '#64748b',
   grid: 'rgba(59, 130, 246, 0.08)',
   tooltipBg: 'rgba(15, 23, 42, 0.92)',
-  pieColors: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#06b6d4', '#0ea5e9', '#7dd3fc'],
-  expenseArea: 'rgba(59, 130, 246, 0.12)',
-  incomeArea: 'rgba(6, 182, 212, 0.1)',
+  pieColors: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', AmountColors.income.primary, AmountColors.expense.primary, '#7dd3fc'],
+  expenseArea: AmountColors.expense.bg,
+  incomeArea: AmountColors.income.bg,
 }
 
 const toChartNumber = (value: number | string | undefined | null) => {
@@ -291,7 +292,6 @@ export const buildCategoryShareOption = (
   }
 
   return {
-    color: colors.pieColors || ['#ca8a04', '#f59e0b', '#d97706', '#fbbf24', '#0f766e', '#3b7a57', '#8a7857'],
     tooltip: {
       trigger: 'item',
       backgroundColor: colors.tooltipBg || 'rgba(62, 46, 18, 0.92)',
@@ -336,10 +336,55 @@ export const buildCategoryShareOption = (
         data: source.map((item) => ({
           name: item.name,
           value: toChartNumber(item.amount),
+          itemStyle: {
+            color: item.key === 'income' ? colors.income : item.key === 'expense' ? colors.expense : colors.muted,
+          },
         })),
       },
     ],
   }
+}
+
+/**
+ * 生成多彩颜色系列
+ * 为柱状图生成丰富多彩的颜色，提升视觉辨识度
+ */
+const generateColorfulColors = (count: number): string[] => {
+  // 精心挑选的多彩色系，确保视觉和谐且辨识度高
+  const colorPalette = [
+    '#1890ff', // 蓝色
+    '#52c41a', // 绿色
+    '#faad14', // 金色
+    '#f5222d', // 红色
+    '#722ed1', // 紫色
+    '#13c2c2', // 青色
+    '#fa8c16', // 橙色
+    '#eb2f96', // 粉色
+    '#2f54eb', // 靛蓝
+    '#a0d911', // 青柠绿
+    '#fa541c', // 火焰橙
+    '#9254de', // 淡紫
+    '#ffc53d', // 亮金
+    '#40a9ff', // 天蓝
+    '#73d13d', // 草绿
+    '#ff7a45', // 珊瑚橙
+    '#597ef7', // 极光蓝
+    '#95de64', // 嫩绿
+    '#ffd666', // 柠檬黄
+    '#ff85c0', // 樱花粉
+  ]
+
+  // 如果数量少于等于色板长度，直接返回
+  if (count <= colorPalette.length) {
+    return colorPalette.slice(0, count)
+  }
+
+  // 如果数量多于色板长度，循环使用
+  const colors: string[] = []
+  for (let i = 0; i < count; i++) {
+    colors.push(colorPalette[i % colorPalette.length])
+  }
+  return colors
 }
 
 const buildHorizontalBarOption = (
@@ -352,6 +397,9 @@ const buildHorizontalBarOption = (
   if (!source.length) {
     return buildEmptyOption(emptyText, colors)
   }
+
+  // 生成多彩颜色系列
+  const barColors = generateColorfulColors(source.length)
 
   return {
     tooltip: {
@@ -399,7 +447,6 @@ const buildHorizontalBarOption = (
         type: 'bar',
         barWidth: mode.compact ? 12 : 14,
         itemStyle: {
-          color,
           borderRadius: [0, 999, 999, 0],
         },
         label: {
@@ -409,7 +456,12 @@ const buildHorizontalBarOption = (
           fontSize: mode.compact ? 11 : 12,
           formatter: ({ value }: any) => formatReportAmount(value, { compact: true }),
         },
-        data: source,
+        data: source.map((item, index) => ({
+          ...item,
+          itemStyle: {
+            color: barColors[index],
+          },
+        })),
       },
     ],
   }

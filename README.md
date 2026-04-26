@@ -11,9 +11,9 @@
 5. Web 报表中心、Web 日历报表、移动端报表页面已落地。
 6. 验证码、隐私模式、用户管理、在线用户展示等配套能力已打通。
 
-当前移动端展示版本号：
+当前前端展示版本号：
 
-`v1.1.15`
+`v1.2.0`
 
 ---
 
@@ -151,7 +151,7 @@
 kuromi-bookkeeping-frontend
 ├─ public
 ├─ scripts
-│  └─ bump-mobile-version.mjs
+│  └─ bump-version.mjs
 ├─ src
 │  ├─ apis
 │  │  ├─ auth
@@ -377,11 +377,11 @@ pnpm lint
 pnpm lint:fix
 ```
 
-### 🔢 移动端展示版本号递增
+### 🔢 前端展示版本号递增
 
 ```bash
-pnpm mobile:version:patch
-pnpm mobile:version:minor
+pnpm version:patch
+pnpm version:minor
 ```
 
 使用规则：
@@ -391,9 +391,11 @@ pnpm mobile:version:minor
 2. `minor`
    - 阶段性功能升级
 
-移动端展示版本号统一维护在：
+前端展示版本号统一维护在：
 
-- `src/config/app-version.ts`
+- `package.json` 的 `version`
+
+移动端展示版本通过 `src/config/app-version.ts` 读取同一版本源。
 
 ---
 

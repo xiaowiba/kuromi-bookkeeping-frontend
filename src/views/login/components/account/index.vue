@@ -271,7 +271,7 @@ onMounted(async () => {
   font-size: 13px;
   background: var(--login-surface-soft, #fff8e6);
   border-color: var(--login-accent-border, rgba(197, 138, 18, 0.2));
-  box-shadow: 0 8px 20px rgba(130, 90, 22, 0.06);
+  box-shadow: var(--login-input-shadow, 0 8px 20px rgba(130, 90, 22, 0.06));
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
@@ -291,12 +291,12 @@ onMounted(async () => {
 }
 
 .arco-input-wrapper :deep(.arco-input::placeholder) {
-  color: rgba(110, 89, 50, 0.56);
+  color: var(--login-placeholder, rgba(110, 89, 50, 0.56));
 }
 
 .arco-input-wrapper:hover {
   border-color: var(--login-accent, #d8a117);
-  background: #fffdf5;
+  background: var(--login-input-hover-bg, #fffdf5);
 }
 
 .captcha {
@@ -309,22 +309,22 @@ onMounted(async () => {
   height: 40px;
   border: none;
   border-radius: 12px;
-  color: #6a4300;
+  color: var(--login-button-text, #6a4300);
   font-weight: 700;
   letter-spacing: 0.04em;
-  background: linear-gradient(135deg, #ffe082 0%, #f6c33f 100%);
-  box-shadow: 0 12px 24px rgba(197, 138, 18, 0.22);
+  background: var(--login-button-bg, linear-gradient(135deg, #ffe082 0%, #f6c33f 100%));
+  box-shadow: var(--login-button-shadow, 0 12px 24px rgba(197, 138, 18, 0.22));
 }
 
 .btn:hover {
-  color: #6a4300;
-  background: linear-gradient(135deg, #ffe7a6 0%, #f8cb58 100%);
-  box-shadow: 0 14px 28px rgba(197, 138, 18, 0.28);
+  color: var(--login-button-text, #6a4300);
+  background: var(--login-button-bg-hover, linear-gradient(135deg, #ffe7a6 0%, #f8cb58 100%));
+  box-shadow: var(--login-button-shadow-hover, 0 14px 28px rgba(197, 138, 18, 0.28));
 }
 
 .btn:active {
-  color: #6a4300;
-  background: linear-gradient(135deg, #f7d56f 0%, #e8b62b 100%);
+  color: var(--login-button-text, #6a4300);
+  background: var(--login-button-bg-active, linear-gradient(135deg, #f7d56f 0%, #e8b62b 100%));
 }
 
 :deep(.arco-checkbox-checked .arco-checkbox-icon),
@@ -346,13 +346,13 @@ onMounted(async () => {
 :deep(.arco-input-wrapper-focus),
 :deep(.arco-input-wrapper.arco-input-focus) {
   border-color: var(--login-accent, #d8a117);
-  background: #fffdf5;
-  box-shadow: 0 0 0 3px rgba(216, 161, 23, 0.14);
+  background: var(--login-input-hover-bg, #fffdf5);
+  box-shadow: var(--login-focus-ring, 0 0 0 3px rgba(216, 161, 23, 0.14));
 }
 
 :deep(.arco-input-wrapper .arco-input-suffix),
 :deep(.arco-input-wrapper .arco-input-password-icon) {
-  color: rgba(110, 89, 50, 0.7);
+  color: var(--login-text-secondary, rgba(110, 89, 50, 0.7));
 }
 
 .captcha-container {

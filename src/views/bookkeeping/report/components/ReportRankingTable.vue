@@ -231,11 +231,11 @@ const handleTableChange = (_data: unknown[], extra: TableChangeExtra) => {
 }
 
 .report-ranking-table__amount--income {
-  color: #00b42a;
+  color: var(--amount-income-primary);
 }
 
 .report-ranking-table__amount--expense {
-  color: #f53f3f;
+  color: var(--amount-expense-primary);
 }
 
 .report-ranking-table :deep(.gi-table) {

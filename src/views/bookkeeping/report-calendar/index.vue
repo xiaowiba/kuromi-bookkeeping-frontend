@@ -1004,6 +1004,22 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+.report-calendar-summary__item.expense .report-calendar-summary__value {
+  color: var(--amount-expense-primary);
+}
+
+.report-calendar-summary__item.income .report-calendar-summary__value {
+  color: var(--amount-income-primary);
+}
+
+.report-calendar-summary__item.positive .report-calendar-summary__value {
+  color: var(--amount-income-primary);
+}
+
+.report-calendar-summary__item.negative .report-calendar-summary__value {
+  color: var(--amount-expense-primary);
+}
+
 .report-calendar-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
@@ -1210,33 +1226,33 @@ onMounted(async () => {
 .report-calendar-metric-chip.expense,
 .report-calendar-mini-month__meta .expense,
 .report-calendar-detail__summary-item.expense .value {
-  color: #f53f3f;
+  color: var(--amount-expense-primary);
 }
 
 .report-calendar-metric-chip.income,
 .report-calendar-mini-month__meta .income,
 .report-calendar-detail__summary-item.income .value {
-  color: #00b42a;
+  color: var(--amount-income-primary);
 }
 
 .report-calendar-metric-chip.balance.is-positive,
 .report-calendar-detail__summary-item.balance.is-positive {
-  color: #00b42a;
-  background: rgba(232, 255, 237, 0.95);
+  color: var(--amount-income-primary);
+  background: var(--amount-income-bg);
 }
 
 .report-calendar-mini-month__meta .balance.is-positive {
-  color: #00b42a;
+  color: var(--amount-income-primary);
 }
 
 .report-calendar-metric-chip.balance.is-negative,
 .report-calendar-detail__summary-item.balance.is-negative {
-  color: #f53f3f;
-  background: rgba(255, 236, 232, 0.95);
+  color: var(--amount-expense-primary);
+  background: var(--amount-expense-bg);
 }
 
 .report-calendar-mini-month__meta .balance.is-negative {
-  color: #f53f3f;
+  color: var(--amount-expense-primary);
 }
 
 .report-calendar-metric-chip.balance.is-neutral,
@@ -1429,6 +1445,14 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+.report-calendar-detail__summary-item.balance.is-positive .value {
+  color: var(--amount-income-primary);
+}
+
+.report-calendar-detail__summary-item.balance.is-negative .value {
+  color: var(--amount-expense-primary);
+}
+
 .report-calendar-detail__list {
   display: flex;
   flex-direction: column;
@@ -1486,11 +1510,11 @@ onMounted(async () => {
 }
 
 .report-calendar-detail__item-amount.expense {
-  color: #f53f3f;
+  color: var(--amount-expense-primary);
 }
 
 .report-calendar-detail__item-amount.income {
-  color: #00b42a;
+  color: var(--amount-income-primary);
 }
 
 .report-calendar-detail__empty {

@@ -1,5 +1,5 @@
 <template>
-  <div class="login pc">
+  <div class="login pc" :class="{ 'login--dark': isDark }">
     <div class="login-hero">
       <LoginHeroBanner class="login-banner" />
     </div>
@@ -51,7 +51,7 @@
     <Background />
   </div>
 
-  <div class="login h5">
+  <div class="login h5" :class="{ 'login--dark': isDark }">
     <div class="login-logo">
       <img v-if="logo" :src="logo" alt="logo" />
       <img v-else src="/logo.svg" alt="logo" />
@@ -122,6 +122,7 @@ const tenantStore = useTenantStore()
 const title = computed(() => appStore.getTitle())
 const logo = computed(() => appStore.getLogo())
 const copyrightText = computed(() => `${appStore.getCopyright()}${appStore.getForRecord() ? ` | ${appStore.getForRecord()}` : ''}`)
+const isDark = computed(() => appStore.theme === 'dark')
 
 const isEmailLogin = ref(false)
 const activeTab = ref('1')
@@ -163,6 +164,69 @@ onMounted(() => {
   --login-surface: rgba(255, 252, 244, 0.96);
   --login-surface-soft: #fff8e6;
   --login-shadow: 0 16px 42px rgba(130, 90, 22, 0.12);
+  --login-card-shadow:
+    0 28PX 60PX rgba(130, 90, 22, 0.16),
+    0 8PX 18PX rgba(130, 90, 22, 0.06);
+  --login-input-shadow: 0 8px 20px rgba(130, 90, 22, 0.06);
+  --login-focus-ring: 0 0 0 3px rgba(216, 161, 23, 0.14);
+  --login-page-bg:
+    radial-gradient(circle at top left, rgba(255, 224, 130, 0.24) 0%, transparent 34%),
+    linear-gradient(180deg, #fffaf0 0%, #f7f0e3 100%);
+  --login-page-bg-mobile:
+    radial-gradient(circle at top left, rgba(255, 223, 120, 0.34) 0%, transparent 38%),
+    linear-gradient(180deg, #fffaf0 0%, #f8f1e4 100%);
+  --login-mobile-hero-bg:
+    linear-gradient(120deg, rgba(255, 248, 225, 0.94) 0%, rgba(255, 220, 124, 0.44) 100%),
+    url('/src/assets/images/login_h5.jpg');
+  --login-mobile-header-shadow: inset 0 -1PX 0 rgba(197, 138, 18, 0.12);
+  --login-text-main: #121314;
+  --login-text-secondary: rgba(110, 89, 50, 0.72);
+  --login-placeholder: rgba(110, 89, 50, 0.56);
+  --login-input-hover-bg: #fffdf5;
+  --login-button-text: #6a4300;
+  --login-button-bg: linear-gradient(135deg, #ffe082 0%, #f6c33f 100%);
+  --login-button-bg-hover: linear-gradient(135deg, #ffe7a6 0%, #f8cb58 100%);
+  --login-button-bg-active: linear-gradient(135deg, #f7d56f 0%, #e8b62b 100%);
+  --login-button-shadow: 0 12px 24px rgba(197, 138, 18, 0.22);
+  --login-button-shadow-hover: 0 14px 28px rgba(197, 138, 18, 0.28);
+  --login-page-blend: #f7f0e3;
+}
+
+.login--dark {
+  --login-accent: #f0c65a;
+  --login-accent-hover: #ffd97a;
+  --login-accent-deep: #f6dda0;
+  --login-accent-soft: rgba(240, 198, 90, 0.16);
+  --login-accent-border: rgba(240, 198, 90, 0.24);
+  --login-surface: rgba(24, 26, 31, 0.92);
+  --login-surface-soft: rgba(255, 223, 141, 0.08);
+  --login-shadow: 0 16px 42px rgba(0, 0, 0, 0.26);
+  --login-card-shadow:
+    0 28PX 60PX rgba(0, 0, 0, 0.42),
+    0 8PX 18PX rgba(0, 0, 0, 0.24);
+  --login-input-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  --login-focus-ring: 0 0 0 3px rgba(240, 198, 90, 0.16);
+  --login-page-bg:
+    radial-gradient(circle at top left, rgba(240, 198, 90, 0.12) 0%, transparent 34%),
+    linear-gradient(180deg, #17191f 0%, #101116 100%);
+  --login-page-bg-mobile:
+    radial-gradient(circle at top left, rgba(240, 198, 90, 0.16) 0%, transparent 40%),
+    linear-gradient(180deg, #17191f 0%, #101116 100%);
+  --login-mobile-hero-bg:
+    linear-gradient(120deg, rgba(34, 29, 18, 0.92) 0%, rgba(93, 70, 18, 0.5) 100%),
+    url('/src/assets/images/login_h5.jpg');
+  --login-mobile-header-shadow: inset 0 -1PX 0 rgba(240, 198, 90, 0.16);
+  --login-text-main: #f6f3eb;
+  --login-text-secondary: rgba(236, 225, 190, 0.72);
+  --login-placeholder: rgba(236, 225, 190, 0.42);
+  --login-input-hover-bg: rgba(255, 223, 141, 0.12);
+  --login-button-text: #2f2207;
+  --login-button-bg: linear-gradient(135deg, #f5d47a 0%, #dca632 100%);
+  --login-button-bg-hover: linear-gradient(135deg, #f8dea0 0%, #e6b64d 100%);
+  --login-button-bg-active: linear-gradient(135deg, #e8c45e 0%, #c89326 100%);
+  --login-button-shadow: 0 12px 24px rgba(0, 0, 0, 0.32);
+  --login-button-shadow-hover: 0 14px 28px rgba(0, 0, 0, 0.38);
+  --login-page-blend: #101116;
 }
 
 @media screen and (max-width: 570PX) {
@@ -177,10 +241,8 @@ onMounted(() => {
     flex-direction: column;
     justify-content: start;
     align-items: center;
-    background:
-      radial-gradient(circle at top left, rgba(255, 223, 120, 0.34) 0%, transparent 38%),
-      linear-gradient(180deg, #fffaf0 0%, #f8f1e4 100%);
-    color: #121314;
+    background: var(--login-page-bg-mobile);
+    color: var(--login-text-main);
 
     &-logo {
       width: 100%;
@@ -192,13 +254,12 @@ onMounted(() => {
       padding: 0 20PX;
       align-items: center;
       justify-content: start;
-      background-image:
-        linear-gradient(120deg, rgba(255, 248, 225, 0.94) 0%, rgba(255, 220, 124, 0.44) 100%),
-        url('/src/assets/images/login_h5.jpg');
+      color: var(--login-text-main);
+      background-image: var(--login-mobile-hero-bg);
       background-size: 100% 100%;
       background-position: center;
       box-sizing: border-box;
-      box-shadow: inset 0 -1PX 0 rgba(197, 138, 18, 0.12);
+      box-shadow: var(--login-mobile-header-shadow);
 
       img {
         width: 34PX;
@@ -344,7 +405,7 @@ onMounted(() => {
 
     &__copyright {
       margin-top: 20PX;
-      color: rgba(110, 89, 50, 0.72);
+      color: var(--login-text-secondary);
       font-size: 12PX;
       line-height: 20PX;
       text-align: center;
@@ -401,9 +462,7 @@ onMounted(() => {
     justify-content: flex-start;
     align-items: stretch;
     overflow: hidden;
-    background:
-      radial-gradient(circle at top left, rgba(255, 224, 130, 0.24) 0%, transparent 34%),
-      linear-gradient(180deg, #fffaf0 0%, #f7f0e3 100%);
+    background: var(--login-page-bg);
 
     &-box {
       position: relative;
@@ -439,9 +498,7 @@ onMounted(() => {
     box-sizing: border-box;
     border: 1PX solid var(--login-accent-border);
     border-radius: 30PX;
-    box-shadow:
-      0 28PX 60PX rgba(130, 90, 22, 0.16),
-      0 8PX 18PX rgba(130, 90, 22, 0.06);
+    box-shadow: var(--login-card-shadow);
     backdrop-filter: blur(14px);
 
     &__brand {
@@ -585,7 +642,7 @@ onMounted(() => {
 
     &__copyright {
       margin-top: 20PX;
-      color: rgba(110, 89, 50, 0.72);
+      color: var(--login-text-secondary);
       font-size: 12PX;
       line-height: 20PX;
       text-align: center;

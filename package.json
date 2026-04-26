@@ -1,7 +1,7 @@
 {
   "name": "kuromi-bookkeeping-frontend",
   "type": "module",
-  "version": "4.2.0-SNAPSHOT",
+  "version": "v1.2.0",
   "private": "true",
   "scripts": {
     "bootstrap": "pnpm install --registry=https://registry.npmmirror.com",
@@ -10,8 +10,8 @@
     "build:test": "vue-tsc --noEmit && vite build --mode test",
     "preview": "vite preview --port 5050",
     "typecheck": "vue-tsc --noEmit",
-    "mobile:version:patch": "node scripts/bump-mobile-version.mjs patch",
-    "mobile:version:minor": "node scripts/bump-mobile-version.mjs minor",
+    "version:patch": "node scripts/bump-version.mjs patch",
+    "version:minor": "node scripts/bump-version.mjs minor",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

@@ -35,6 +35,7 @@
         </a-dropdown>
         <ColumnSetting
           v-if="showSettingColumnBtn"
+          :key="columnSettingKey"
           ref="columnSettingRef"
           v-model:columns="innerColumns"
           :disabled-keys="disabledColumnKeys"
@@ -189,10 +190,8 @@ const innerColumns = ref<TableColumnData[]>([])
 
 /** 鐩戝惉 props.columns 鍙樺寲 */
 watch(() => props.columns, (newColumns) => {
-  if (newColumns && innerColumns.value.length === 0) {
-    innerColumns.value = [...newColumns]
-  }
-}, { immediate: true })
+  innerColumns.value = newColumns ? [...newColumns] : []
+}, { immediate: true, flush: 'sync' })
 
 /** 瀹為檯鏄剧ず鐨勫垪锛堢敱 ColumnSetting 缁勪欢璁＄畻锛?*/
 const tableColumns = ref<TableColumnData[]>([])
@@ -226,23 +225,29 @@ const resolveColumnKey = (column: TableColumnData) => {
   return ''
 }
 
+const columnSettingKey = computed(() => (props.columns ?? [])
+  .map(resolveColumnKey)
+  .join('|'))
+
 /** 鐢ㄦ渶鏂扮殑鍒楀畾涔夊悓姝ユ湰鍦板凡閫夊垪锛岄伩鍏嶆帓搴忕姸鎬佺瓑鍔ㄦ€佸睘鎬у仠鐣欏湪鏃ц涓娿€? */
 const mergeVisibleColumns = (latestColumns: TableColumnData[], currentColumns: TableColumnData[]) => {
-  const latestColumnMap = new Map(
-    latestColumns.map(column => [resolveColumnKey(column), column]),
+  const currentColumnMap = new Map(
+    currentColumns.map(column => [resolveColumnKey(column), column]),
   )
 
-  return currentColumns
+  return latestColumns
     .map((column) => {
-      const latestColumn = latestColumnMap.get(resolveColumnKey(column))
-      if (!latestColumn) {
+      const currentColumn = currentColumnMap.get(resolveColumnKey(column))
+      if (!currentColumn) {
         return column
       }
       return {
-        ...latestColumn,
-        fixed: column.fixed ?? latestColumn.fixed,
-        width: column.width ?? latestColumn.width,
-        show: column.show ?? latestColumn.show,
+        ...column,
+        fixed: currentColumn.fixed ?? column.fixed,
+        width: props.disabledColumnKeys?.includes(resolveColumnKey(column))
+          ? column.width
+          : (currentColumn.width ?? column.width),
+        show: currentColumn.show ?? column.show,
       }
     })
     .filter(column => column.show !== false)

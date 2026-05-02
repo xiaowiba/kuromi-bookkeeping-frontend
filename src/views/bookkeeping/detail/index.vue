@@ -452,6 +452,8 @@ const {
   },
 })
 
+const canShowHiddenColumn = computed(() => privacyStore.isPrivacyMode && (hasHidePermission.value || isAdmin.value))
+
 const tagQueryOptions = computed<Array<{ label: string, value: string | number, disabled?: boolean }>>(() => {
   const options = [...baseTagQueryOptions.value]
 
@@ -978,7 +980,7 @@ const columns = computed<TableInstance['columns']>(() => [
     render: ({ rowIndex }) => h('span', {}, rowIndex + 1 + currentTableOffset.value),
     show: false,
   },
-  { title: '科目 / 明细', dataIndex: 'subjectDetail', slotName: 'subjectDetail', width: 240, show: true },
+  { title: '科目 / 明细', dataIndex: 'subjectDetail', slotName: 'subjectDetail', width: 160, show: true },
   {
     title: '所属用户',
      dataIndex: 'userNickname',
@@ -1004,34 +1006,36 @@ const columns = computed<TableInstance['columns']>(() => [
     title: '明细日期',
     dataIndex: 'detailDate',
     slotName: 'detailDate',
-    width: 240,
+    width: 200,
     align: 'center',
     show: true,
   },
   {
-    title: '是否必要',
+    title: '必要',
     dataIndex: 'isNecessary',
     slotName: 'isNecessary',
-    width: 92,
+    width: 60,
     align: 'center',
     show: true,
   },
   {
     title: '备注',
     dataIndex: 'remark',
-    width: 60,
+    width: 80,
     ellipsis: true,
     tooltip: true,
     show: true,
   },
-  {
-    title: '隐藏',
-    dataIndex: 'hidden',
-    slotName: 'hidden',
-    width: 60,
-    align: 'center',
-    show: ((has.hasPermOr(['bk:hide-target:manage']) && privacyStore.isPrivacyMode) || isAdmin.value),
-  },
+  ...(canShowHiddenColumn.value
+    ? [{
+        title: '隐藏',
+        dataIndex: 'hidden',
+        slotName: 'hidden',
+        width: 60,
+        align: 'center',
+        show: true,
+      }]
+    : []),
   { title: '创建人', dataIndex: 'createUserString', width: 100, ellipsis: true, tooltip: true, show: false },
   { title: '创建时间', dataIndex: 'createTime', width: 160, show: false },
   { title: '修改人', dataIndex: 'updateUserString', width: 100, ellipsis: true, tooltip: true, show: false },

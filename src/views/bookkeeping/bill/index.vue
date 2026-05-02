@@ -147,7 +147,7 @@ import { createEmptyMonthlyBillResp, createEmptyYearlyBillResp, getMonthlyBill, 
 import type * as T from '@/apis/bookkeeping/type'
 import type { ColumnItem } from '@/components/GiForm'
 import { useResetReactive } from '@/hooks'
-import { usePrivacyStore, useUserStore } from '@/stores'
+import { useUserStore } from '@/stores'
 import type { LabelValueState } from '@/types/global'
 import { useBookkeepingCommonFilters } from '@/views/bookkeeping/shared/useBookkeepingCommonFilters'
 
@@ -159,7 +159,6 @@ const amountFormatter = new Intl.NumberFormat('zh-CN', {
 })
 
 const userStore = useUserStore()
-const privacyStore = usePrivacyStore()
 const currentYear = String(new Date().getFullYear())
 const currentUserId = computed(() => String(userStore.userInfo.id ?? ''))
 
@@ -404,9 +403,7 @@ function resolveBalanceClass(value: number | string | undefined | null) {
 }
 
 function buildBaseQuery(): T.BillQuery {
-  const query: T.BillQuery = {
-    privacyMode: privacyStore.isPrivacyMode,
-  }
+  const query: T.BillQuery = {}
 
   if (queryForm.category) {
     query.category = queryForm.category
@@ -481,13 +478,6 @@ function handleYearChange() {
   }
   void searchMethod()
 }
-
-watch(
-  () => privacyStore.isPrivacyMode,
-  () => {
-    void searchMethod()
-  },
-)
 
 onMounted(async () => {
   await loadCommonFilterOptions()

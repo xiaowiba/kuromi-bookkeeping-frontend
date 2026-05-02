@@ -13,7 +13,6 @@
     <section class="mobile-panel mobile-me-shortcuts">
       <div class="mobile-me-shortcuts__header">
         <h3 class="mobile-section-title">常用功能</h3>
-        <p class="mobile-me-shortcuts__desc">明细、报表和账单入口都放在这里，随时可直接进入。</p>
       </div>
       <div class="mobile-me-shortcuts__grid">
         <button
@@ -23,9 +22,10 @@
           class="mobile-me-shortcuts__item"
           @click="handleShortcutClick(item.path)"
         >
-          <span class="mobile-me-shortcuts__icon">{{ item.badge }}</span>
+          <span class="mobile-me-shortcuts__icon">
+            <BookkeepingSubjectIcon :icon="shortcutIconMap[item.path]" mode="mobile" :size="24" />
+          </span>
           <strong class="mobile-me-shortcuts__title">{{ item.title }}</strong>
-          <span class="mobile-me-shortcuts__text">{{ item.note }}</span>
         </button>
       </div>
     </section>
@@ -39,12 +39,30 @@
         bordered
       />
       <t-cell
+        title="切换账户"
+        arrow
+        bordered
+        @click="handleSwitchAccount"
+      >
+        <template #leftIcon>
+          <span class="mobile-me-action-icon">
+            <GiSvgIcon name="swap" :size="18" color="#7a4f00" />
+          </span>
+        </template>
+      </t-cell>
+      <t-cell
         title="退出登录"
         note=""
         arrow
         bordered
         @click="handleLogout"
-      />
+      >
+        <template #leftIcon>
+          <span class="mobile-me-action-icon is-danger">
+            <GiSvgIcon name="poweroff" :size="18" color="#8f2d1a" />
+          </span>
+        </template>
+      </t-cell>
     </section>
 
     <div
@@ -137,9 +155,13 @@
 <script setup lang="ts">
 import { computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ActionSheetPlugin, Toast } from 'tdesign-mobile-vue'
 import { MOBILE_DISPLAY_VERSION } from '@/config/app-version'
+import BookkeepingSubjectIcon from '@/components/BookkeepingSubjectIcon/index.vue'
+import GiSvgIcon from '@/components/GiSvgIcon/index.vue'
 import { usePrivacyStore, useUserStore } from '@/stores'
 import { usePrivacyEntry } from '@/views/bookkeeping/shared/usePrivacyEntry'
+import { listSwitchableAccounts, type SwitchableAccount } from '@/apis/bookkeeping/follow'
 
 defineOptions({ name: 'MobileMe' })
 
@@ -165,10 +187,16 @@ let versionClickCount = 0
 let versionClickTimer: ReturnType<typeof window.setTimeout> | null = null
 
 const shortcutItems = [
-  { title: '明细管理', note: '按月查看流水', badge: '明', path: '/m/bookkeeping/detail' },
-  { title: '报表中心', note: '看收支趋势', badge: '报', path: '/m/report' },
-  { title: '账单管理', note: '看月账单年账单', badge: '账', path: '/m/bill' },
+  { title: '明细管理', path: '/m/bookkeeping/detail' },
+  { title: '报表中心', path: '/m/report' },
+  { title: '账单管理', path: '/m/bill' },
 ] as const
+
+const shortcutIconMap = {
+  '/m/bookkeeping/detail': 'storage',
+  '/m/report': 'project',
+  '/m/bill': 'income',
+} as const
 
 const avatarText = computed(() => {
   return (userStore.userInfo.nickname || userStore.userInfo.username || '我').slice(0, 1).toUpperCase()
@@ -221,6 +249,60 @@ const handleShortcutClick = (path: string) => {
   router.push(path)
 }
 
+const handleSwitchAccount = async () => {
+  let accounts: SwitchableAccount[] = []
+
+  try {
+    const { data } = await listSwitchableAccounts()
+    accounts = data ?? []
+  } catch (error) {
+    Toast.error('查询失败')
+    return
+  }
+
+  if (accounts.length === 0) {
+    Toast('暂无可切换的账户')
+    return
+  }
+
+  ActionSheetPlugin.show({
+    cancelText: '取消',
+    description: '请选择要切换的账户',
+    items: accounts.map(account => ({
+      label: account.nickname,
+      description: `@${account.username}`,
+    })),
+    onSelected: (_, index) => {
+      const selectedAccount = accounts[index]
+      if (selectedAccount) {
+        handleConfirmSwitch(selectedAccount)
+      }
+      ActionSheetPlugin.close()
+    },
+    onCancel: () => {
+      ActionSheetPlugin.close()
+    },
+    onClose: (trigger: { trigger?: string }) => {
+      if (trigger?.trigger === 'overlay') {
+        ActionSheetPlugin.close(trigger)
+      }
+    },
+  })
+}
+
+const handleConfirmSwitch = async (account: SwitchableAccount) => {
+  try {
+    Toast.loading('切换中...')
+    await userStore.entryLogin(account.entryKey, { persist: false })
+    Toast.success('切换成功')
+    setTimeout(() => {
+      window.location.reload()
+    }, 500)
+  } catch (error) {
+    Toast.error('切换失败')
+  }
+}
+
 onUnmounted(() => {
   resetVersionClickState()
 })
@@ -231,13 +313,22 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  padding: 0 0 28px;
+
+  :deep(.mobile-panel) {
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
 }
 
 .mobile-me-profile {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 20px 18px;
+  padding: 20px 16px;
 }
 
 .mobile-me-profile__avatar {
@@ -311,14 +402,17 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #ffd764 0%, #e1ad24 100%);
   box-shadow: 0 8px 18px rgba(197, 138, 18, 0.16);
-  color: #fffdf6;
-  font-size: 15px;
-  font-weight: 800;
+  color: #7a4f00;
+}
+
+.mobile-me-shortcuts__icon :deep(.t-icon),
+.mobile-me-shortcuts__icon :deep(.svg-icon) {
+  font-size: 24px;
 }
 
 .mobile-me-shortcuts__title {
@@ -327,15 +421,30 @@ onUnmounted(() => {
   line-height: 1.4;
 }
 
-.mobile-me-shortcuts__text {
-  color: var(--color-text-3);
-  font-size: 11px;
-  line-height: 1.5;
-}
-
 .mobile-me-actions :deep(.t-cell) {
   background: rgba(255, 252, 244, 0.8);
   border-color: rgba(143, 99, 17, 0.08);
+}
+
+.mobile-me-actions :deep(.t-cell__left),
+.mobile-me-actions :deep(.t-cell__left-icon),
+.mobile-me-actions :deep(.t-cell__title),
+.mobile-me-actions :deep(.t-cell__title-text) {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-me-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+}
+
+.mobile-me-action-icon :deep(.svg-icon) {
+  display: block;
 }
 
 .mobile-me-footer {

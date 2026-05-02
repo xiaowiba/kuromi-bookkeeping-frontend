@@ -32,7 +32,8 @@ withDefaults(defineProps<{
 .bookkeeping-subject-detail-cell {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  width: 100%;
   min-width: 0;
 }
 
@@ -40,9 +41,9 @@ withDefaults(defineProps<{
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
   border-radius: 50%;
   background: rgba(254, 243, 199, 0.8);
   color: #8b5e00;
@@ -51,6 +52,7 @@ withDefaults(defineProps<{
 .bookkeeping-subject-detail-cell__meta {
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-width: 0;
 }
 

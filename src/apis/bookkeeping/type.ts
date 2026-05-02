@@ -185,6 +185,8 @@ export interface FollowResp {
   userNickname: string
   followUserId: string
   followUserNickname: string
+  allowSwitch?: boolean
+  mutualFollow?: boolean
   createTime: string
 }
 
@@ -201,6 +203,15 @@ export interface FollowPageQuery extends FollowQuery, PageQuery {}
 export interface FollowReq {
   userId: string | number
   followUserIds: Array<string | number>
+}
+
+/** 可切换账户 */
+export interface SwitchableAccount {
+  userId: string
+  username: string
+  nickname: string
+  avatar: string
+  entryKey: string
 }
 
 /** 隐藏对象配置响应类型 */

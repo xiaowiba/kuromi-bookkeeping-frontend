@@ -148,7 +148,7 @@
  * @author Codex
  * @date 2026-04-26
  */
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
 import type * as T from '@/apis/bookkeeping/type'
 import {
@@ -157,7 +157,7 @@ import {
   getMonthlyBill,
   getYearlyBill,
 } from '@/apis/bookkeeping/bill'
-import { usePrivacyStore } from '@/stores'
+import { useUserStore } from '@/stores'
 import { mobileToast } from '@/utils/mobile-toast'
 
 defineOptions({ name: 'MobileBill' })
@@ -172,8 +172,9 @@ const billTypeOptions: Array<{ label: string, value: T.BillType }> = [
   { label: '年账单', value: 'yearly' },
 ]
 
-const privacyStore = usePrivacyStore()
+const userStore = useUserStore()
 const currentYear = String(new Date().getFullYear())
+const currentUserId = computed(() => String(userStore.userInfo.id ?? ''))
 
 const loading = ref(false)
 const activeBillType = ref<T.BillType>('monthly')
@@ -200,7 +201,7 @@ const listTitle = computed(() => (activeBillType.value === 'monthly' ? `${select
 
 function buildBaseQuery(): T.BillQuery {
   return {
-    privacyMode: privacyStore.isPrivacyMode,
+    userId: currentUserId.value,
   }
 }
 
@@ -302,13 +303,6 @@ async function handleResetCurrentYear() {
   selectedYear.value = currentYear
   await loadMonthlyBill()
 }
-
-watch(
-  () => privacyStore.isPrivacyMode,
-  async () => {
-    await loadActiveBill()
-  },
-)
 
 onMounted(async () => {
   await loadActiveBill()

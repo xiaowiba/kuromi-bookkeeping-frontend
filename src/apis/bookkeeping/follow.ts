@@ -43,3 +43,13 @@ export function deleteFollow(ids: Array<string | number>) {
 export function listFollowUserOptions() {
   return http.get<LabelValueState[]>(`${BASE_URL}/user-options`)
 }
+
+/** @desc 查询可切换账户列表 */
+export function listSwitchableAccounts() {
+  return http.get<T.SwitchableAccount[]>(`${BASE_URL}/switchable-list`)
+}
+
+/** @desc 切换授权状态 */
+export function toggleAllowSwitch(followId: string | number, allowSwitch: boolean) {
+  return http.put(`${BASE_URL}/toggle-switch/${followId}`, { allowSwitch })
+}

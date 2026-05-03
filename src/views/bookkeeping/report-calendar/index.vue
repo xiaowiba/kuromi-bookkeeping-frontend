@@ -979,12 +979,12 @@ onMounted(async () => {
 
 .report-calendar-summary__item.expense,
 .report-calendar-summary__item.negative {
-  background: linear-gradient(135deg, rgba(255, 236, 232, 0.9), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(135deg, var(--amount-expense-bg), rgba(255, 255, 255, 0.98));
 }
 
 .report-calendar-summary__item.income,
 .report-calendar-summary__item.positive {
-  background: linear-gradient(135deg, rgba(232, 255, 237, 0.92), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(135deg, var(--amount-income-bg), rgba(255, 255, 255, 0.98));
 }
 
 .report-calendar-summary__item.neutral {
@@ -1120,13 +1120,15 @@ onMounted(async () => {
 }
 
 .report-calendar-cell--positive {
-  background: linear-gradient(180deg, rgba(232, 255, 237, 0.96), rgba(255, 255, 255, 1));
-  border-color: rgba(0, 180, 42, 0.2);
+  background: linear-gradient(180deg, var(--amount-income-bg), rgba(255, 255, 255, 1));
+  border-color: var(--amount-income-primary);
+  border-color: color-mix(in srgb, var(--amount-income-primary) 20%, transparent);
 }
 
 .report-calendar-cell--negative {
-  background: linear-gradient(180deg, rgba(255, 236, 232, 0.96), rgba(255, 255, 255, 1));
-  border-color: rgba(245, 63, 63, 0.2);
+  background: linear-gradient(180deg, var(--amount-expense-bg), rgba(255, 255, 255, 1));
+  border-color: var(--amount-expense-primary);
+  border-color: color-mix(in srgb, var(--amount-expense-primary) 20%, transparent);
 }
 
 .report-calendar-cell--neutral {
@@ -1364,13 +1366,13 @@ onMounted(async () => {
 }
 
 .report-calendar-mini-cell--positive {
-  color: #0f7b1d;
-  background: rgba(0, 180, 42, 0.16);
+  color: var(--amount-income-dark);
+  background: color-mix(in srgb, var(--amount-income-bg) 80%, transparent);
 }
 
 .report-calendar-mini-cell--negative {
-  color: #b71d18;
-  background: rgba(245, 63, 63, 0.16);
+  color: var(--amount-expense-dark);
+  background: color-mix(in srgb, var(--amount-expense-bg) 80%, transparent);
 }
 
 .report-calendar-mini-cell--neutral {

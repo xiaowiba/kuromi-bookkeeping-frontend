@@ -507,19 +507,19 @@ onMounted(async () => {
 }
 
 .bill-summary__card.is-income {
-  background: linear-gradient(135deg, rgba(232, 255, 237, 0.92), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(135deg, var(--amount-income-bg), rgba(255, 255, 255, 0.98));
 }
 
 .bill-summary__card.is-expense {
-  background: linear-gradient(135deg, rgba(255, 236, 232, 0.9), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(135deg, var(--amount-expense-bg), rgba(255, 255, 255, 0.98));
 }
 
 .bill-summary__card.is-positive {
-  background: linear-gradient(135deg, rgba(232, 255, 237, 0.92), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(135deg, var(--amount-income-bg), rgba(255, 255, 255, 0.98));
 }
 
 .bill-summary__card.is-negative {
-  background: linear-gradient(135deg, rgba(255, 236, 232, 0.9), rgba(255, 255, 255, 0.98));
+  background: linear-gradient(135deg, var(--amount-expense-bg), rgba(255, 255, 255, 0.98));
 }
 
 .bill-summary__card.is-neutral {

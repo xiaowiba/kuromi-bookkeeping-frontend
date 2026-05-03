@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.cache
 .DS_Store
 dist/
 dist-ssr
@@ -32,3 +33,4 @@ coverage
 *.njsproj
 *.sln
 *.sw?
+/docs/build

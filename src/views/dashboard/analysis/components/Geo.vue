@@ -9,7 +9,7 @@
       </template>
       <div class="content">
         <div class="mapChart">
-          <Chart ref="chartRef" :option="chartOption" style="height: 468px" />
+          <MapChart ref="chartRef" map-name="china" :option="chartOption" style="height: 468px" />
         </div>
         <div class="dataShow">
           <div v-for="item in topData" :key="item.name" class="dataItem">

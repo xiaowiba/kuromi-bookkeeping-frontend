@@ -45,15 +45,17 @@
 </template>
 
 <script setup lang="ts">
-import VueOfficePdf from '@vue-office/pdf'
-import VueOfficeDocx from '@vue-office/docx'
+import { defineAsyncComponent } from 'vue'
 import '@vue-office/docx/lib/index.css'
-import VueOfficeExcel from '@vue-office/excel'
 import '@vue-office/excel/lib/index.css'
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
 import type { FilePreview } from '@/components/FilePreview/type'
 import { ExcelTypes, WordTypes } from '@/constant/file'
+
+const VueOfficePdf = defineAsyncComponent(() => import('@vue-office/pdf'))
+const VueOfficeDocx = defineAsyncComponent(() => import('@vue-office/docx'))
+const VueOfficeExcel = defineAsyncComponent(() => import('@vue-office/excel'))
 
 const visible = ref<boolean>(false)
 const loading = ref<boolean>(false)

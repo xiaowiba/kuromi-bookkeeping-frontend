@@ -30,8 +30,7 @@
     <div class="footer">
       <div class="beian">
         <div class="below text">
-          {{ appStore.getCopyright() }}{{ appStore.getForRecord() ? ` ·
-                    ${appStore.getForRecord()}` : '' }}
+          {{ copyrightText }}
         </div>
       </div>
     </div>
@@ -66,6 +65,7 @@
 import Background from '../components/background/index.vue'
 import ModifyPassword from '../components/modifyPassword/index.vue'
 import { useAppStore } from '@/stores'
+import { APP_DISPLAY_VERSION } from '@/config/app-version'
 
 defineOptions({ name: 'PwdExpired' })
 
@@ -79,6 +79,7 @@ defineOptions({ name: 'PwdExpired' })
 const appStore = useAppStore()
 const title = computed(() => appStore.getTitle())
 const logo = computed(() => appStore.getLogo())
+const copyrightText = computed(() => `${appStore.getCopyright()} ${APP_DISPLAY_VERSION}${appStore.getForRecord() ? ` · ${appStore.getForRecord()}` : ''}`)
 </script>
 
 <style scoped lang="scss">

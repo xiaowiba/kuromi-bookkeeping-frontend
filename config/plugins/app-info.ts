@@ -1,6 +1,7 @@
 import boxen from 'boxen'
 import picocolors from 'picocolors'
 import type { Plugin } from 'vite'
+import { version } from '../../package.json'
 
 export default function appInfo(): Plugin {
   return {
@@ -8,7 +9,7 @@ export default function appInfo(): Plugin {
     apply: 'serve',
     async buildStart() {
       const { bold, green, cyan, bgGreen, underline } = picocolors
-      const title = bold(green(bgGreen('Kuromi Bookkeeping Frontend v4.2.0-SNAPSHOT')))
+      const title = bold(green(bgGreen(`Kuromi Bookkeeping Frontend ${version}`)))
       const repo = `${cyan('项目仓库：')}${underline('https://github.com/xiaowiba/kuromi-bookkeeping-frontend')}`
       const readme = `${cyan('README：')}${underline('https://github.com/xiaowiba/kuromi-bookkeeping-frontend#readme')}`
       // const issues = `${cyan('Issues：')}${underline('https://github.com/xiaowiba/kuromi-bookkeeping-frontend/issues')}`

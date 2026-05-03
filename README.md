@@ -382,14 +382,23 @@ pnpm lint:fix
 ```bash
 pnpm version:patch
 pnpm version:minor
+pnpm version:major
+pnpm version:timestamp
+pnpm version:patch-timestamp
+pnpm version:minor-timestamp
+pnpm version:major-timestamp
 ```
 
 使用规则：
 
-1. `patch`
-   - 小范围修复或样式调整
-2. `minor`
-   - 阶段性功能升级
+1. `version:patch`：补丁版本递增，例如 `v1.2.0` -> `v1.2.1`
+2. `version:minor`：小版本递增，例如 `v1.2.0` -> `v1.3.0`
+3. `version:major`：大版本递增，例如 `v1.2.0` -> `v2.0.0`
+4. `version:timestamp`：只追加或刷新日期时间戳，例如 `v1.2.0` -> `v1.2.0.2026.0503.0744`
+5. `version:patch-timestamp`：补丁版本递增后追加日期时间戳，例如 `v1.2.0` -> `v1.2.1.2026.0503.0744`
+6. `version:minor-timestamp`：小版本递增后追加日期时间戳
+7. `version:major-timestamp`：大版本递增后追加日期时间戳
+8. 指定目标版本：`node scripts/bump-version.mjs set:v1.3.0`
 
 前端展示版本号统一维护在：
 

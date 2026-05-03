@@ -48,7 +48,7 @@
 
     <div v-if="false" class="footer">
       <div class="beian">
-        <div class="below text">{{ appStore.getCopyright() }}{{ appStore.getForRecord() ? ` · ${appStore.getForRecord()}` : '' }}</div>
+        <div class="below text">{{ copyrightText }}</div>
       </div>
     </div>
 
@@ -110,6 +110,7 @@ import { socialAuth } from '@/apis/auth'
 import { useAppStore } from '@/stores'
 import { useTenantStore } from '@/stores/modules/tenant'
 import { getTenantIdByDomain, getTenantStatus } from '@/apis'
+import { APP_DISPLAY_VERSION } from '@/config/app-version'
 
 defineOptions({ name: 'Login' })
 
@@ -129,7 +130,7 @@ const tenantStore = useTenantStore()
 
 const title = computed(() => appStore.getTitle())
 const logo = computed(() => appStore.getLogo())
-const copyrightText = computed(() => `${appStore.getCopyright()}${appStore.getForRecord() ? ` | ${appStore.getForRecord()}` : ''}`)
+const copyrightText = computed(() => `${appStore.getCopyright()} ${APP_DISPLAY_VERSION}${appStore.getForRecord() ? ` | ${appStore.getForRecord()}` : ''}`)
 const isDark = computed(() => appStore.theme === 'dark')
 
 const isEmailLogin = ref(false)

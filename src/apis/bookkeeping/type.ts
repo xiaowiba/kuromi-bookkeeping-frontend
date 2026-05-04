@@ -489,6 +489,10 @@ export interface ReportDashboardResp {
   insight: string[]
 }
 
+export interface ReportEarliestDateResp {
+  date?: string
+}
+
 /** 报表表格行 */
 export interface ReportRankingTableResp {
   detailId: string

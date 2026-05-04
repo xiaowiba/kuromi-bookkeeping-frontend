@@ -29,24 +29,26 @@ import {
 } from '@/utils/auth'
 import { resetHasRouteFlag } from '@/router/guard'
 
+const createDefaultUserInfo = (): UserInfo => ({
+  id: '',
+  username: '',
+  nickname: '',
+  gender: 0,
+  email: '',
+  phone: '',
+  avatar: '',
+  pwdResetTime: '',
+  pwdExpired: false,
+  registrationDate: '',
+  deptName: '',
+  roles: [],
+  roleNames: [],
+  permissions: [],
+})
+
 const storeSetup = () => {
   const tenantStore = useTenantStore()
-  const userInfo = reactive<UserInfo>({
-    id: '',
-    username: '',
-    nickname: '',
-    gender: 0,
-    email: '',
-    phone: '',
-    avatar: '',
-    pwdResetTime: '',
-    pwdExpired: false,
-    registrationDate: '',
-    deptName: '',
-    roles: [],
-    roleNames: [],
-    permissions: [],
-  })
+  const userInfo = reactive<UserInfo>(createDefaultUserInfo())
   const nickname = computed(() => userInfo.nickname)
   const username = computed(() => userInfo.username)
   const avatar = computed(() => userInfo.avatar)
@@ -173,12 +175,10 @@ const storeSetup = () => {
   // 获取用户信息
   const getInfo = async () => {
     const res = await getUserInfoApi()
-    Object.assign(userInfo, res.data)
+    Object.assign(userInfo, createDefaultUserInfo(), res.data)
     userInfo.avatar = res.data.avatar
-    if (res.data.roles && res.data.roles.length) {
-      roles.value = res.data.roles
-      permissions.value = res.data.permissions
-    }
+    roles.value = Array.isArray(res.data.roles) ? res.data.roles : []
+    permissions.value = Array.isArray(res.data.permissions) ? res.data.permissions : []
   }
 
   return {

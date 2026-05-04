@@ -294,6 +294,8 @@ const handleConfirmSwitch = async (account: SwitchableAccount) => {
   try {
     Toast.loading('切换中...')
     await userStore.entryLogin(account.entryKey, { persist: false })
+    privacyStore.exitPrivacyMode()
+    userStore.clearEntryLoginState()
     Toast.success('切换成功')
     setTimeout(() => {
       window.location.reload()

@@ -9,7 +9,12 @@
       <template v-else>
         <div ref="bodyRef" class="mobile-direct-create__body">
           <div class="mobile-direct-create__intro">
-            <p class="mobile-direct-create__eyebrow">{{ popupEyebrow }}</p>
+            <div class="mobile-direct-create__eyebrow-row">
+              <p class="mobile-direct-create__eyebrow">{{ popupEyebrow }}</p>
+              <span v-if="currentLoginDisplayName" class="mobile-direct-create__user-tag">
+                当前登录：{{ currentLoginDisplayName }}
+              </span>
+            </div>
             <h3 class="mobile-direct-create__title">{{ popupTitle }}</h3>
           </div>
 
@@ -514,6 +519,11 @@ const currentDetailId = computed(() => props.detailId || '')
 const isUpdate = computed(() => !!currentDetailId.value)
 const popupEyebrow = computed(() => (isUpdate.value ? '移动端编辑明细' : '移动端新增明细'))
 const popupTitle = computed(() => (isUpdate.value ? '编辑明细' : '填写明细'))
+const currentLoginDisplayName = computed(() => {
+  const nickname = String(userStore.userInfo.nickname || '').trim()
+  const username = String(userStore.userInfo.username || '').trim()
+  return nickname || username
+})
 const submitButtonText = computed(() => (isUpdate.value ? '保存' : '完成'))
 
 const optionsLoading = ref(false)
@@ -1008,11 +1018,33 @@ watch(
   padding: 0;
 }
 
+.mobile-direct-create__eyebrow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.16rem;
+  flex-wrap: wrap;
+}
+
 .mobile-direct-create__eyebrow {
   margin: 0;
   color: #b47b00;
   font-size: 0.26rem;
   font-weight: 600;
+}
+
+.mobile-direct-create__user-tag {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0.06rem 0.18rem;
+  border: 0.02rem solid rgba(180, 123, 0, 0.18);
+  border-radius: 999rem;
+  background: rgba(255, 248, 214, 0.92);
+  color: #8a5e00;
+  font-size: 0.22rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .mobile-direct-create__title {

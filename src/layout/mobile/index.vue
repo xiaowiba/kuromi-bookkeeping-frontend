@@ -1,5 +1,5 @@
 <template>
-  <div class="mobile-layout">
+  <div class="mobile-layout" :class="{ 'mobile-layout--bill': isBillRoute }">
     <t-navbar
       v-if="showNavbar"
       fixed
@@ -10,7 +10,7 @@
       @left-click="handleBack"
     />
 
-    <main class="mobile-layout__body">
+    <main class="mobile-layout__body" :class="{ 'mobile-layout__body--bill': isBillRoute }">
       <router-view v-slot="{ Component }">
         <Suspense>
           <component :is="Component" />
@@ -84,6 +84,7 @@ let cleanupMobileRemResize: (() => void) | null = null
 const pageTitle = computed(() => (route.meta.title as string) || '移动端')
 const showNavbar = computed(() => !route.meta.hideMobileNavbar)
 const showBack = computed(() => !rootPaths.includes(route.path))
+const isBillRoute = computed(() => route.path.startsWith('/m/bill'))
 const routeSkeletonVariant = computed(() => {
   if (route.path.startsWith('/m/report')) {
     return 'report'
@@ -157,6 +158,12 @@ onUnmounted(() => {
     linear-gradient(180deg, #fffaf0 0%, #f5eee2 100%);
 }
 
+.mobile-layout--bill {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
 .mobile-layout__navbar {
   :deep(.t-navbar) {
     background: rgba(255, 249, 236, 0.9);
@@ -181,6 +188,19 @@ onUnmounted(() => {
   flex: 1;
   min-height: 0;
   overflow: visible;
+}
+
+.mobile-layout__body--bill {
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@supports not (height: 100dvh) {
+  .mobile-layout--bill {
+    height: 100vh;
+    min-height: 100vh;
+  }
 }
 
 </style>

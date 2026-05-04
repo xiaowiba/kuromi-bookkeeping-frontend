@@ -364,10 +364,29 @@ pnpm typecheck
 pnpm build
 ```
 
+发版构建（含类型检查）：
+
+```bash
+pnpm build:release
+```
+
+快速本地打包（不做类型检查）：
+
+```bash
+pnpm build:dev
+pnpm build:only
+```
+
 测试环境打包：
 
 ```bash
 pnpm build:test
+```
+
+测试环境快速打包（不做类型检查）：
+
+```bash
+pnpm build:test:only
 ```
 
 ### 🧹 代码检查

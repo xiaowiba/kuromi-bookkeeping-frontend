@@ -1,6 +1,7 @@
 <template>
   <div class="mobile-page mobile-bill-page">
-    <section class="mobile-panel mobile-bill-hero">
+    <div class="mobile-bill-page__fixed">
+      <section class="mobile-panel mobile-bill-hero">
       <div class="mobile-bill-hero__tab-group">
         <button
           v-for="item in billTypeOptions"
@@ -20,7 +21,6 @@
         </button>
         <div class="mobile-bill-hero__year-value">
           <span>{{ selectedYear }}</span>
-          <small>自然年</small>
         </div>
         <button type="button" class="mobile-bill-hero__year-btn" @click="handleYearChange(1)">
           下一年
@@ -36,15 +36,12 @@
       </div>
 
       <!-- 删除描述文字 -->
-    </section>
+      </section>
 
-    <MobilePageSkeleton v-if="loading" variant="report" />
-
-    <template v-else>
-      <section class="mobile-panel mobile-bill-summary">
+      <section v-if="!loading" class="mobile-panel mobile-bill-summary">
         <div class="mobile-bill-overview">
           <div class="mobile-bill-overview__head">
-            <div>
+            <div class="mobile-bill-overview__headline">
               <p class="mobile-bill-overview__label">{{ overviewBalanceLabel }}</p>
               <strong
                 class="mobile-bill-overview__balance"
@@ -53,15 +50,14 @@
                 {{ formatBalance(currentSummary.balance) }}
               </strong>
             </div>
-            <span class="mobile-bill-overview__chip">{{ currentSummary.recordCount || 0 }} 笔</span>
           </div>
 
           <div class="mobile-bill-overview__stats">
-            <div class="mobile-bill-overview__stat">
+            <div class="mobile-bill-overview__stat is-income">
               <span>{{ overviewIncomeLabel }}</span>
               <strong>{{ formatAmount(currentSummary.totalIncome) }}</strong>
             </div>
-            <div class="mobile-bill-overview__stat">
+            <div class="mobile-bill-overview__stat is-expense">
               <span>{{ overviewExpenseLabel }}</span>
               <strong>{{ formatAmount(currentSummary.totalExpense) }}</strong>
             </div>
@@ -70,7 +66,10 @@
           <div class="mobile-bill-overview__watermark">¥</div>
         </div>
       </section>
+      <MobilePageSkeleton v-else variant="report" />
+    </div>
 
+    <div v-if="!loading" class="mobile-bill-page__scroll">
       <section class="mobile-panel mobile-bill-list">
         <div class="mobile-bill-list__header is-compact">
           <div>
@@ -137,7 +136,7 @@
           当前暂无年账单数据。
         </div>
       </section>
-    </template>
+    </div>
   </div>
 </template>
 
@@ -312,37 +311,59 @@ onMounted(async () => {
 <style scoped lang="scss">
 .mobile-bill-page {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
   margin-inline: -16px;
   padding-top: 0;
-  padding-bottom: 16px;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+.mobile-bill-page__fixed {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.mobile-bill-page__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(56px + env(safe-area-inset-bottom));
 }
 
 .mobile-bill-hero {
-  padding: 16px 14px 14px;
-  border-radius: 0;
+  padding: 14px 12px 12px;
+  border-radius: 0 0 20px 20px;
 }
 
 .mobile-bill-hero__tab-group {
   display: inline-flex;
   gap: 6px;
   padding: 3px;
-  border-radius: 0;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 2px 8px rgba(197, 138, 18, 0.08);
 }
 
 .mobile-bill-hero__tab {
-  min-width: 88px;
-  min-height: 36px;
-  padding: 0 18px;
+  min-width: 82px;
+  min-height: 34px;
+  padding: 0 16px;
   border: none;
-  border-radius: 0;
+  border-radius: 14px;
   background: transparent;
   color: #8b7350;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  backdrop-filter: blur(8px);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -357,18 +378,18 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, auto));
   gap: 6px;
-  margin-top: 12px;
+  margin-top: 10px;
   align-items: center;
 }
 
 .mobile-bill-hero__year-btn {
-  min-height: 32px;
-  padding: 0 12px;
+  min-height: 30px;
+  padding: 0 10px;
   border: 1px solid rgba(197, 138, 18, 0.12);
-  border-radius: 0;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.92);
   color: #7a6542;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
   transition: all 0.2s ease;
@@ -394,10 +415,10 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 82px;
-  min-height: 32px;
-  padding: 0 14px;
-  border-radius: 0;
+  min-width: 78px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 18px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 252, 244, 0.95) 100%);
   box-shadow: 0 2px 8px rgba(197, 138, 18, 0.08);
   color: #4f3910;
@@ -405,16 +426,9 @@ onMounted(async () => {
 }
 
 .mobile-bill-hero__year-value span {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.2;
   letter-spacing: 0.3px;
-}
-
-.mobile-bill-hero__year-value small {
-  margin-top: 1px;
-  color: rgba(91, 66, 18, 0.58);
-  font-size: 10px;
-  font-weight: 600;
 }
 
 .mobile-bill-summary {
@@ -430,7 +444,7 @@ onMounted(async () => {
 .mobile-bill-overview {
   position: relative;
   overflow: hidden;
-  padding: 16px 16px 14px;
+  padding: 12px 12px 10px;
   border-radius: 0;
   background: linear-gradient(135deg, #ffd84d 0%, #ffc835 52%, #ffbd24 100%);
   box-shadow: 0 10px 24px rgba(217, 169, 42, 0.22);
@@ -440,26 +454,36 @@ onMounted(async () => {
   position: relative;
   z-index: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+}
+
+.mobile-bill-overview__headline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
 }
 
 .mobile-bill-overview__label {
   margin: 0;
   color: rgba(92, 57, 0, 0.74);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .mobile-bill-overview__balance {
-  display: block;
-  margin-top: 6px;
+  display: inline-block;
+  margin-top: 0;
   color: #3d2b00;
-  font-size: 38px;
+  font-size: 24px;
   font-weight: 800;
-  line-height: 1.08;
+  line-height: 1;
   letter-spacing: -0.4px;
+  white-space: nowrap;
 }
 
 .mobile-bill-overview__balance.is-income {
@@ -474,60 +498,63 @@ onMounted(async () => {
   color: #3d2b00;
 }
 
-.mobile-bill-overview__chip {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border-radius: 0;
-  background: rgba(255, 255, 255, 0.28);
-  color: rgba(84, 49, 0, 0.82);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 .mobile-bill-overview__stats {
   position: relative;
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.mobile-bill-overview__stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
 }
 
 .mobile-bill-overview__stat span {
-  display: block;
+  display: inline-block;
   color: rgba(91, 56, 0, 0.62);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .mobile-bill-overview__stat strong {
-  display: block;
-  margin-top: 4px;
+  display: inline-block;
+  margin-top: 0;
   color: #4a3200;
-  font-size: 21px;
+  font-size: 15px;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.mobile-bill-overview__stat.is-income strong {
+  color: var(--amount-income-primary);
+}
+
+.mobile-bill-overview__stat.is-expense strong {
+  color: var(--amount-expense-primary);
 }
 
 .mobile-bill-overview__watermark {
   position: absolute;
-  right: 12px;
-  top: 2px;
+  right: 10px;
+  top: 0;
   color: rgba(255, 255, 255, 0.22);
-  font-size: 88px;
+  font-size: 72px;
   font-weight: 800;
   line-height: 1;
   pointer-events: none;
 }
 
 .mobile-bill-list {
-  padding: 12px 14px 14px;
+  padding: 0 12px 12px;
   border-radius: 0;
 }
 
@@ -536,16 +563,22 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -12px 0;
+  padding: 8px 12px 8px;
+  background: rgba(255, 250, 240, 0.96);
+  backdrop-filter: blur(10px);
 }
 
 .mobile-bill-list__header.is-compact {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .mobile-bill-list__header.is-compact .mobile-section-title {
   margin-bottom: 0;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .mobile-bill-list__note {
@@ -570,26 +603,26 @@ onMounted(async () => {
 }
 
 .mobile-bill-list .mobile-chip {
-  border-radius: 0;
+  border-radius: 14px;
 }
 
 .mobile-bill-table__head,
 .mobile-bill-table__row {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.08fr);
-  column-gap: 8px;
+  column-gap: 6px;
   align-items: center;
 }
 
 .mobile-bill-table__head {
-  min-height: 28px;
-  padding: 0 12px;
+  min-height: 26px;
+  padding: 0 10px;
   background: rgba(255, 249, 237, 0.92);
 }
 
 .mobile-bill-table__row {
-  min-height: 32px;
-  padding: 0 12px;
+  min-height: 28px;
+  padding: 0 10px;
   border-top: 1px solid rgba(238, 223, 194, 0.68);
 }
 
@@ -599,13 +632,13 @@ onMounted(async () => {
 
 .mobile-bill-table.is-yearly .mobile-bill-table__head,
 .mobile-bill-table.is-yearly .mobile-bill-table__row {
-  grid-template-columns: 54px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.08fr);
+  grid-template-columns: 50px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.08fr);
 }
 
 .mobile-bill-table__cell {
   min-width: 0;
   color: #58472b;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   line-height: 1.2;
   text-align: right;
@@ -615,7 +648,7 @@ onMounted(async () => {
 
 .mobile-bill-table__head .mobile-bill-table__cell {
   color: rgba(102, 77, 35, 0.62);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -751,15 +784,15 @@ onMounted(async () => {
   }
 
   .mobile-bill-overview {
-    padding: 14px 14px 12px;
+    padding: 10px 10px 9px;
   }
 
   .mobile-bill-overview__balance {
-    font-size: 34px;
+    font-size: 22px;
   }
 
   .mobile-bill-overview__stat strong {
-    font-size: 18px;
+    font-size: 13px;
   }
 
   .mobile-bill-table__head,
@@ -775,15 +808,15 @@ onMounted(async () => {
 
   .mobile-bill-table__head,
   .mobile-bill-table__row {
-    padding: 0 10px;
+    padding: 0 8px;
   }
 
   .mobile-bill-table__cell {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .mobile-bill-table__head .mobile-bill-table__cell {
-    font-size: 10px;
+    font-size: 9px;
   }
 }
 </style>

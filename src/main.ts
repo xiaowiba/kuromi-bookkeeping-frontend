@@ -13,6 +13,7 @@ import router from './router'
 import { syncMobileRemByPath } from '@/utils/mobile-rem'
 
 // 使用动画库
+import 'animate.css/animate.min.css'
 
 // 自定义过渡动画
 import '@/styles/css/transition.css'

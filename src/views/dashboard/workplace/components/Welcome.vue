@@ -4,7 +4,6 @@
       <div class="workplace-welcome__main">
         <Avatar :src="userStore.avatar" :name="displayName" :size="72" />
         <div class="workplace-welcome__copy">
-          <p class="workplace-welcome__eyebrow">记账工作台</p>
           <h2 class="workplace-welcome__title">{{ goodTimeText() }}，{{ displayName }}</h2>
         </div>
       </div>
@@ -76,14 +75,6 @@ const usernameText = computed(() => userStore.userInfo.username || '未设置')
 
 .workplace-welcome__copy {
   min-width: 0;
-}
-
-.workplace-welcome__eyebrow {
-  margin: 0 0 8px;
-  color: rgb(var(--primary-6));
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
 }
 
 .workplace-welcome__title {

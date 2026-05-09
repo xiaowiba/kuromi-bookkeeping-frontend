@@ -1,11 +1,14 @@
+import { h } from 'vue'
 import { Button, Message, Notification, Space } from '@arco-design/web-vue'
+import { DialogPlugin } from 'tdesign-mobile-vue'
 import NProgress from 'nprogress'
 import type { Router } from 'vue-router'
 import { setRouteEmitter } from '@/hooks'
 import { useRouteStore, useUserStore } from '@/stores'
 import { getToken } from '@/utils/auth'
 import { isHttp } from '@/utils/validate'
-import { getDefaultTerminalHomePath, resolveTerminalTargetPath } from '@/router/terminal'
+import { getDefaultTerminalHomePath, resolveTerminalTargetPath, isMobileTerminalPath } from '@/router/terminal'
+import { version } from '../../package.json'
 import 'nprogress/nprogress.css'
 
 NProgress.configure({
@@ -18,6 +21,17 @@ NProgress.configure({
 
 // 版本更新
 let versionTag: string | null = null // 版本标识
+
+/**
+ * 获取当前版本号
+ * @returns {string} 当前版本号，如 "v1.2.0.2026.0503.0806"
+ * @author Wangsongsong
+ * @date 2026-05-07
+ */
+const getCurrentVersion = () => {
+  return version
+}
+
 // 更新
 const onUpdateSystem = (id: string) => {
   Notification.remove(id)
@@ -27,13 +41,20 @@ const onUpdateSystem = (id: string) => {
 const onCloseUpdateSystem = (id: string) => {
   Notification.remove(id)
 }
-// 提示用户更新弹窗
-const handleNotification = () => {
+
+/**
+ * Web 端更新提示（非强制，展示版本号）
+ * @author Wangsongsong
+ * @date 2026-05-07
+ */
+const handleWebNotification = () => {
   const id = 'updateModel'
+  const currentVersion = getCurrentVersion()
+
   Notification.info({
     id,
     title: '新版本更新',
-    content: '当前系统检测到有新的版本，请及时更新',
+    content: `检测到新版本，当前版本：${currentVersion}，建议及时更新`,
     duration: 0,
     closable: true,
     position: 'bottomRight',
@@ -44,6 +65,47 @@ const handleNotification = () => {
       }, '更新'), h(Button, { type: 'secondary', onClick: () => onCloseUpdateSystem(id) }, '关闭')])
     },
   })
+}
+
+/**
+ * 移动端更新提示（强制更新，展示版本号）
+ * @author Wangsongsong
+ * @date 2026-05-07
+ */
+const handleMobileNotification = () => {
+  const currentVersion = getCurrentVersion()
+
+  DialogPlugin({
+    title: '新版本更新',
+    content: `系统已发布新版本\n\n当前版本：${currentVersion}\n\n请立即更新后继续使用`,
+    confirmBtn: {
+      content: '立即更新',
+      theme: 'primary',
+    },
+    // 强制更新配置
+    closeBtn: false,           // 隐藏关闭按钮
+    closeOnOverlayClick: false, // 禁止点击遮罩层关闭
+    showOverlay: true,          // 显示遮罩层
+    preventScrollThrough: true, // 阻止背景滚动
+    onConfirm: () => {
+      window.location.reload()
+    },
+  })
+}
+
+/**
+ * 提示用户更新
+ * 根据当前路由路径判断使用 Web 端还是移动端提示
+ * @author Wangsongsong
+ * @date 2026-05-07
+ */
+const handleNotification = () => {
+  const currentPath = window.location.pathname
+  if (isMobileTerminalPath(currentPath)) {
+    handleMobileNotification() // 移动端：强制更新
+  } else {
+    handleWebNotification()    // Web 端：非强制
+  }
 }
 
 /**
@@ -59,14 +121,23 @@ const getVersionTag = async () => {
 
 /**
  * 比较当前的 ETag 或 Last-Modified 值与最新获取的值
+ * @author Wangsongsong
+ * @date 2026-05-07
+ * @update 2026-05-07 @Wangsongsong
+ * @desc 添加异常处理，确保版本检测失败不影响路由跳转
  */
 const compareTag = async () => {
-  const newVersionTag = await getVersionTag()
-  if (versionTag === null) {
-    versionTag = newVersionTag
-  } else if (versionTag !== newVersionTag) {
-    // 如果 ETag 或 Last-Modified 发生变化，则认为有更新
-    handleNotification()
+  try {
+    const newVersionTag = await getVersionTag()
+    if (versionTag === null) {
+      versionTag = newVersionTag
+    } else if (versionTag !== newVersionTag) {
+      // 如果 ETag 或 Last-Modified 发生变化，则认为有更新
+      handleNotification()
+    }
+  } catch (error) {
+    // 静默失败，不影响路由跳转
+    console.warn('版本检测失败:', error)
   }
 }
 

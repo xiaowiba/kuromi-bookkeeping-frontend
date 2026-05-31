@@ -240,25 +240,23 @@
           {{ record.isNecessary === 1 ? '必要' : '非必要' }}
         </a-tag>
       </template>
-        <!-- 报销状态列 -->
-        <template #reimburseStatus="{ record }">
-          <!-- 垫付方 -->
-          <template v-if="record.isAdvance === 1">
-            <a-tag v-if="record.isReimbursed === 1" color="green" size="small">
-              已报销 → {{ record.linkedUserNickname }}
-            </a-tag>
-            <a-tag v-else color="orange" size="small">待报销</a-tag>
-          </template>
-          <!-- 报销方 -->
-          <template v-else-if="record.isReimburseOther === 1">
-            <a-tag v-if="record.linkedDetailId" color="blue" size="small">
-              报销 ← {{ record.linkedUserNickname }}
-            </a-tag>
-            <a-tag v-else color="purple" size="small">待关联</a-tag>
-          </template>
-          <!-- 普通 -->
-          <span v-else class="text-muted">—</span>
-        </template>
+      <template #reimburseStatus="{ record }">
+        <a-tooltip
+          v-if="record.linkedDetailId"
+          :content="formatLinkedDetailSummary(record)"
+          mini
+        >
+          <a-tag v-if="record.isAdvance === 1" color="green" size="small">
+            已报销 -> {{ record.linkedUserNickname }}
+          </a-tag>
+          <a-tag v-else-if="record.isReimburseOther === 1" color="blue" size="small">
+            报销 -> {{ record.linkedUserNickname }}
+          </a-tag>
+        </a-tooltip>
+        <a-tag v-else-if="record.isAdvance === 1" color="orange" size="small">待报销</a-tag>
+        <a-tag v-else-if="record.isReimburseOther === 1" color="purple" size="small">待关联</a-tag>
+        <span v-else class="text-muted">--</span>
+      </template>
       <template #detailDate="{ record }">
         <div class="detail-date-inline">
           <span class="detail-date-inline__text">{{ record.detailDate }}</span>
@@ -354,7 +352,7 @@
  */
 import dayjs from 'dayjs'
 import type { TableInstance } from '@arco-design/web-vue'
-import { Message } from '@arco-design/web-vue'
+import { Message, Modal } from '@arco-design/web-vue'
 import { computed, h, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryValue } from 'vue-router'
 import BookkeepingSubjectDetailCell from '../shared/components/BookkeepingSubjectDetailCell.vue'
@@ -1190,20 +1188,38 @@ function onLinkAdvance(record: DetailResp) {
   LinkAdvanceModalRef.value?.open()
 }
 
+/** 关联明细摘要 */
+function formatLinkedDetailSummary(record: DetailResp) {
+  const summary = [
+    record.linkedDetailName ? `关联明细：${record.linkedDetailName}` : '',
+    record.linkedDetailAmount != null ? `金额：${Math.abs(record.linkedDetailAmount).toFixed(2)}` : '',
+    record.linkedDetailDate ? `日期：${record.linkedDetailDate}` : '',
+  ].filter(Boolean)
+  return summary.length ? summary.join(' | ') : '已关联明细'
+}
+
 /** 解除关联 */
 async function onUnlink(record: DetailResp) {
-  try {
-    await unlinkReimburse({ detailId: String(record.id) })
-    Message.success('已解除关联')
-    search()
-  } catch (e) {
-    // 错误由 http 拦截器处理
-  }
+  Modal.warning({
+    title: '确认解除关联',
+    content: `是否确认解除明细“${record.name}”的报销关联？`,
+    hideCancel: false,
+    onBeforeOk: async () => {
+      try {
+        await unlinkReimburse({ detailId: String(record.id) })
+        Message.success('已解除关联')
+        await searchMethod()
+        return true
+      } catch {
+        return false
+      }
+    },
+  })
 }
 
 /** 关联成功回调 */
 function onLinkSuccess() {
-  search()
+  searchMethod()
 }
 
 // ==================== 隐私模式相关 ====================

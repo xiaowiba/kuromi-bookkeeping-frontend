@@ -51,7 +51,7 @@ import { useDetailUserOptions } from '../shared/useDetailUserOptions'
 import { addDetail, getDetail, updateDetail } from '@/apis/bookkeeping/detail'
 import { listSubject } from '@/apis/bookkeeping/subject'
 import { listSubjectTagAll } from '@/apis/bookkeeping/subject-tag'
-import { listMyPaymentAccount } from '@/apis/bookkeeping/payment-account'
+import { listMyPaymentAccount, listPaymentAccount } from '@/apis/bookkeeping/payment-account'
 import { type ColumnItem, GiForm } from '@/components/GiForm'
 import { useResetReactive } from '@/hooks'
 import { useDict } from '@/hooks/app'
@@ -88,6 +88,14 @@ const visible = ref(false)
 const isUpdate = computed(() => !!dataId.value)
 const title = computed(() => (isUpdate.value ? '修改明细' : '新增明细'))
 const formRef = ref<InstanceType<typeof GiForm>>()
+
+interface AddForUserOptions {
+  userId: string | number
+  category?: string
+  isAdvance?: number
+  isReimburseOther?: number
+  isReimbursed?: number
+}
 
 /** 全部科目数据（原始） */
 const allSubjects = ref<any[]>([])
@@ -336,9 +344,16 @@ const loadSubjectOptions = async () => {
  * @author Wangsongsong
  * @date 2026-04-21
  */
-const loadPaymentAccountOptions = async () => {
+const loadPaymentAccountOptions = async (targetUserId?: string | number) => {
   try {
-    const { data } = await listMyPaymentAccount()
+    const response = targetUserId
+      ? await listPaymentAccount({
+          userId: String(targetUserId),
+          page: 1,
+          size: 200,
+        } as any)
+      : await listMyPaymentAccount()
+    const data = targetUserId ? response.data?.list ?? [] : response.data ?? []
     paymentAccountOptions.value = [
       { label: '不选择', value: '' },
       ...(data ?? []).map((item) => ({ label: item.name, value: String(item.id) })),
@@ -405,6 +420,19 @@ watch(() => form.subjectId, async (subjectId) => {
   await loadSubjectTagOptions(subjectId, form.tagId)
 })
 
+watch(() => form.userId, async (userId) => {
+  if (!isAdmin.value || isUpdate.value || !visible.value) {
+    return
+  }
+  if (!userId) {
+    paymentAccountOptions.value = [{ label: '不选择', value: '' }]
+    form.paymentAccountId = ''
+    return
+  }
+  await loadPaymentAccountOptions(userId)
+  form.paymentAccountId = ''
+})
+
 
 // 是否报销他人切换时（互斥清除）
 watch(() => form.isReimburseOther, (val) => {
@@ -465,7 +493,10 @@ const save = async () => {
 const onAdd = async () => {
   reset()
   dataId.value = ''
-  const tasks: Promise<any>[] = [loadSubjectOptions(), loadPaymentAccountOptions()]
+  const tasks: Promise<any>[] = [loadSubjectOptions()]
+  if (!isAdmin.value) {
+    tasks.push(loadPaymentAccountOptions())
+  }
   if (isAdmin.value) {
     tasks.push(loadUserOptions())
   }
@@ -483,16 +514,35 @@ const onAdd = async () => {
   visible.value = true
 }
 
+/** 为指定用户新增 */
+const onAddForUser = async (options: AddForUserOptions) => {
+  reset()
+  dataId.value = ''
+  const tasks: Promise<any>[] = [loadSubjectOptions(), loadPaymentAccountOptions(options.userId)]
+  if (isAdmin.value) {
+    tasks.push(loadUserOptions())
+  }
+  await Promise.all(tasks)
+
+  form.userId = String(options.userId)
+  form.category = options.category || 'expense'
+  form.isAdvance = Number(options.isAdvance ?? 0)
+  form.isReimburseOther = Number(options.isReimburseOther ?? 0)
+  form.isReimbursed = Number(options.isReimbursed ?? 0)
+  visible.value = true
+}
+
 /** 修改 */
 const onUpdate = async (id: string) => {
   reset()
   dataId.value = id
-  const tasks: Promise<any>[] = [loadSubjectOptions(), loadPaymentAccountOptions()]
+  const tasks: Promise<any>[] = [loadSubjectOptions()]
   if (isAdmin.value) {
     tasks.push(loadUserOptions())
   }
   await Promise.all(tasks)
   const { data } = await getDetail(id)
+  await loadPaymentAccountOptions(data.userId)
   // 金额取绝对值回显（后端存储带正负号）
   if (data.amount != null) {
     data.amount = Math.abs(data.amount) as any
@@ -516,7 +566,7 @@ const onUpdate = async (id: string) => {
   visible.value = true
 }
 
-defineExpose({ onAdd, onUpdate })
+defineExpose({ onAdd, onAddForUser, onUpdate })
 </script>
 
 <style scoped lang="scss">

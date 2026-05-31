@@ -640,7 +640,13 @@ function openAddForUser() {
     Message.warning('请先选择要报销的用户')
     return
   }
-  addModalRef.value?.onAdd()
+  addModalRef.value?.onAddForUser({
+    userId: selectedAdvanceUserId.value,
+    category: 'expense',
+    isAdvance: 1,
+    isReimburseOther: 0,
+    isReimbursed: 0,
+  })
 }
 
 defineExpose({ open })
@@ -811,4 +817,3 @@ defineExpose({ open })
   }
 }
 </style>
-

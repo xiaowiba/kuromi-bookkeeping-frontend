@@ -642,7 +642,13 @@ function openAddForUser() {
     Message.warning('请先选择公户')
     return
   }
-  addModalRef.value?.onAdd()
+  addModalRef.value?.onAddForUser({
+    userId: selectedPublicUserId.value,
+    category: 'expense',
+    isReimburseOther: 1,
+    isAdvance: 0,
+    isReimbursed: 0,
+  })
 }
 
 defineExpose({ open })
@@ -813,4 +819,3 @@ defineExpose({ open })
   }
 }
 </style>
-

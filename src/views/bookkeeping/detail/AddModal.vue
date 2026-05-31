@@ -4,9 +4,8 @@
     :title="title"
     :mask-closable="false"
     :esc-to-close="false"
-    :width="modalWidth"
+    fullscreen
     :class="{ 'mobile-modal': isMobile() }"
-    draggable
     @before-ok="save"
     @close="reset"
   >
@@ -37,9 +36,13 @@
  * @update 2026-03-22 @Wangsongsong
  * @desc 修复编辑明细时名称被科目联动逻辑覆盖的问题，自动填充仅在新增态生效
  * @update 2026-03-23 @Wangsongsong
- * @desc 新增支付方式单选字段，必填且默认值为“默认”
+ * @desc 新增支付方式单选字段，必填且默认值为"默认"
  * @update 2026-04-23
  * @desc 支付账号字段改为与所属科目一致的单选按钮组
+ * @update 2026-05-30 @Wangsongsong
+ * @desc 新增报销相关字段：是否报销他人、是否垫付、是否已报销
+ * @update 2026-05-30 @Wangsongsong
+ * @desc 优化并合并分类切换的 Watcher 监听逻辑，消除冗余订阅并增强代码鲁棒性
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
@@ -90,7 +93,7 @@ const formRef = ref<InstanceType<typeof GiForm>>()
 const allSubjects = ref<any[]>([])
 /** 当前分类下的科目选项 */
 const subjectOptions = ref<LabelValueState[]>([])
-/** 当前科目下的标签选项，首项固定为“不选择标签” */
+/** 当前科目下的标签选项，首项固定为"不选择标签" */
 const subjectTagOptions = ref<Array<LabelValueState & { disabled?: boolean }>>([
   { label: '不选择标签', value: '' },
 ])
@@ -110,6 +113,18 @@ const isNecessaryOptions = computed<LabelValueState[]>(() => {
   }))
 })
 const necessaryFieldLabel = computed(() => (form.category === 'income' ? '是否必要收入' : '是否必要支出'))
+
+// 报销相关选项（复用 common_yes_no 字典）
+const isReimburseOtherOptions = computed<LabelValueState[]>(() => {
+  const options = common_yes_no.value?.length ? common_yes_no.value : yesNoFallbackOptions
+  return options.map((item) => ({
+    label: String(item.label ?? ''),
+    value: Number(item.value ?? 0),
+  }))
+})
+const isAdvanceOptions = isReimburseOtherOptions  // 同样的是/否选项
+const isReimbursedOptions = isReimburseOtherOptions  // 同样的是/否选项
+
 const [form, resetForm] = useResetReactive({
   detailDate: new Date().toISOString().slice(0, 10),
   category: '',
@@ -117,6 +132,9 @@ const [form, resetForm] = useResetReactive({
   paymentAccountId: '',
   tagId: '',
   isNecessary: 1,
+  isReimburseOther: 0,
+  isAdvance: 0,
+  isReimbursed: 0,
   hidden: 0,
 })
 
@@ -222,6 +240,33 @@ const columns: ColumnItem[] = reactive([
       options: isNecessaryOptions,
     },
   },
+  // ======== 报销相关字段 ========
+  {
+    label: '是否报销他人',
+    field: 'isReimburseOther',
+    type: 'radio-group',
+    span: 24,
+    show: () => form.category === 'expense',
+    props: { options: isReimburseOtherOptions },
+  },
+  // 分支B：报销他人=是 → 显示关联垫付操作（占位，后续 TP5 实现弹窗）
+  // 分支A：报销他人=否 → 显示垫付流程
+  {
+    label: '是否垫付',
+    field: 'isAdvance',
+    type: 'radio-group',
+    span: 24,
+    show: () => form.category === 'expense' && form.isReimburseOther !== 1,
+    props: { options: isAdvanceOptions },
+  },
+  {
+    label: '是否已报销',
+    field: 'isReimbursed',
+    type: 'radio-group',
+    span: 24,
+    show: () => form.category === 'expense' && form.isReimburseOther !== 1 && form.isAdvance === 1,
+    props: { options: isReimbursedOptions },
+  },
   {
     label: '备注',
     field: 'remark',
@@ -264,6 +309,13 @@ watch(() => form.category, (val) => {
   form.subjectId = undefined
   form.tagId = ''
   subjectTagOptions.value = [{ label: '不选择标签', value: '' }]
+
+  // 切换分类时重置报销相关字段
+  if (val !== 'expense') {
+    form.isReimburseOther = 0
+    form.isAdvance = 0
+    form.isReimbursed = 0
+  }
 })
 
 /**
@@ -341,7 +393,7 @@ const loadSubjectTagOptions = async (
 /**
  * 监听科目变化并加载标签选项。
  *
- * 标签是“可选单选”，因此首项始终保留“不选择标签”；
+ * 标签是"可选单选"，因此首项始终保留"不选择标签"；
  * 若编辑态回显的是已停用标签，会保留该项但禁止新选中其他停用标签。
  */
 watch(() => form.subjectId, async (subjectId) => {
@@ -351,6 +403,23 @@ watch(() => form.subjectId, async (subjectId) => {
     return
   }
   await loadSubjectTagOptions(subjectId, form.tagId)
+})
+
+
+// 是否报销他人切换时（互斥清除）
+watch(() => form.isReimburseOther, (val) => {
+  if (val === 1) {
+    // 报销他人 → 清除垫付相关
+    form.isAdvance = 0
+    form.isReimbursed = 0
+  }
+})
+
+// 是否垫付切换时
+watch(() => form.isAdvance, (val) => {
+  if (val !== 1) {
+    form.isReimbursed = 0
+  }
 })
 
 /** 重置 */
@@ -370,6 +439,9 @@ const save = async () => {
       tagId: form.tagId ? form.tagId : null,
       paymentAccountId: form.paymentAccountId ? form.paymentAccountId : null,
       isNecessary: Number(form.isNecessary ?? 1),
+      isReimburseOther: form.category === 'expense' ? Number(form.isReimburseOther ?? 0) : 0,
+      isAdvance: (form.category === 'expense' && form.isReimburseOther !== 1) ? Number(form.isAdvance ?? 0) : 0,
+      isReimbursed: form.isAdvance === 1 ? Number(form.isReimbursed ?? 0) : 0,
     }
     // 非管理员自动设置当前用户 ID
     if (!isAdmin.value) {

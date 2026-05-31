@@ -111,6 +111,24 @@ export interface DetailResp {
   paymentAccountName?: string
   paymentAccountDeleted?: boolean
   isNecessary: number
+  /** 是否垫付（0：否；1：是） */
+  isAdvance: number
+  /** 是否报销他人（0：否；1：是） */
+  isReimburseOther: number
+  /** 是否已报销（0：否；1：是） */
+  isReimbursed: number
+  /** 关联明细 ID */
+  linkedDetailId?: string
+  /** 关联用户 ID */
+  linkedUserId?: string
+  /** 关联用户昵称 */
+  linkedUserNickname?: string
+  /** 关联明细名称 */
+  linkedDetailName?: string
+  /** 关联明细金额 */
+  linkedDetailAmount?: number
+  /** 关联明细日期 */
+  linkedDetailDate?: string
   remark: string
   hidden: number
   createUserString: string
@@ -141,6 +159,14 @@ export interface DetailQuery {
   unselectedTagOnly?: boolean
   paymentMethod?: string
   isNecessary?: number | string
+  /** 是否垫付 */
+  isAdvance?: number | string
+  /** 是否报销他人 */
+  isReimburseOther?: number | string
+  /** 是否已报销 */
+  isReimbursed?: number | string
+  /** 备注模糊查询 */
+  remark?: string
   timeMode?: DetailTimeMode
   datePreset?: DetailDatePreset
   startDate?: string

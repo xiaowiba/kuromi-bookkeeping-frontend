@@ -240,6 +240,25 @@
           {{ record.isNecessary === 1 ? '必要' : '非必要' }}
         </a-tag>
       </template>
+        <!-- 报销状态列 -->
+        <template #reimburseStatus="{ record }">
+          <!-- 垫付方 -->
+          <template v-if="record.isAdvance === 1">
+            <a-tag v-if="record.isReimbursed === 1" color="green" size="small">
+              已报销 → {{ record.linkedUserNickname }}
+            </a-tag>
+            <a-tag v-else color="orange" size="small">待报销</a-tag>
+          </template>
+          <!-- 报销方 -->
+          <template v-else-if="record.isReimburseOther === 1">
+            <a-tag v-if="record.linkedDetailId" color="blue" size="small">
+              报销 ← {{ record.linkedUserNickname }}
+            </a-tag>
+            <a-tag v-else color="purple" size="small">待关联</a-tag>
+          </template>
+          <!-- 普通 -->
+          <span v-else class="text-muted">—</span>
+        </template>
       <template #detailDate="{ record }">
         <div class="detail-date-inline">
           <span class="detail-date-inline__text">{{ record.detailDate }}</span>
@@ -259,6 +278,23 @@
       <template #action="{ record }">
         <a-space>
           <a-link v-permission="['bookkeeping:detail:update']" title="修改" @click="onUpdate(record)">修改</a-link>
+
+          <!-- 垫付-未报销 → 关联报销 -->
+          <a-link v-if="record.isAdvance === 1 && record.isReimbursed === 0"
+            v-permission="['bookkeeping:detail:reimburse']"
+            @click="onLinkReimburse(record)">关联报销</a-link>
+
+          <!-- 报销他人-未关联 → 关联垫付 -->
+          <a-link v-if="record.isReimburseOther === 1 && !record.linkedDetailId"
+            v-permission="['bookkeeping:detail:reimburse']"
+            @click="onLinkAdvance(record)">关联垫付</a-link>
+
+          <!-- 已关联 → 解除关联 -->
+          <a-link v-if="record.linkedDetailId"
+            v-permission="['bookkeeping:detail:reimburse']"
+            status="warning"
+            @click="onUnlink(record)">解除关联</a-link>
+
           <a-link
             v-permission="['bookkeeping:detail:delete']"
             status="danger"
@@ -272,6 +308,13 @@
     </GiTable>
 
     <AddModal ref="AddModalRef" @save-success="onSaveSuccess" />
+
+    <!-- 关联报销弹窗 -->
+    <ReimburseModal v-if="currentLinkDetail" ref="ReimburseModalRef"
+      :source-detail="currentLinkDetail" @link-success="onLinkSuccess" />
+    <!-- 关联垫付弹窗 -->
+    <LinkAdvanceModal v-if="currentLinkDetail" ref="LinkAdvanceModalRef"
+      :source-detail="currentLinkDetail" @link-success="onLinkSuccess" />
 
     <!-- 密码验证弹窗 -->
     <a-modal v-model:visible="verifyModalVisible" title="请输入密码" :width="360" :mask-closable="false" simple @before-ok="onVerifyPassword" @close="verifyPassword = ''">
@@ -332,6 +375,8 @@ import {
 } from '../shared/detailTime'
 import { useBookkeepingCommonFilters } from '../shared/useBookkeepingCommonFilters'
 import AddModal from './AddModal.vue'
+import ReimburseModal from './ReimburseModal.vue'
+import LinkAdvanceModal from './LinkAdvanceModal.vue'
 import {
   type DetailResp,
   deleteDetail,
@@ -339,6 +384,7 @@ import {
   getDetailStatistics,
   listDetail,
   listDetailAll,
+  unlinkReimburse,
 } from '@/apis/bookkeeping/detail'
 import type { DetailDatePreset, DetailTimeMode } from '@/apis/bookkeeping/type'
 import { getPrivacyConfig, setPrivacyPassword, verifyPrivacyPassword } from '@/apis/bookkeeping/privacy'
@@ -406,6 +452,9 @@ const createDefaultDetailQueryForm = () => {
     paymentMethod: '',
     paymentAccountId: '',
     isNecessary: '',
+    isReimburseOther: '',
+    isAdvance: '',
+    remark: '',
     timeMode: DETAIL_DEFAULT_TIME_MODE as DetailTimeMode,
     datePreset: DETAIL_DEFAULT_DATE_PRESET as DetailDatePreset,
     startDate: presetRange.startDate,
@@ -848,6 +897,18 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.paymentMethodColumn,
   commonQueryColumns.paymentAccountColumn,
   commonQueryColumns.isNecessaryColumn,
+  // 是否报销他人
+  { ...commonQueryColumns.isReimburseOtherColumn, type: 'radio-group' },
+  // 是否垫付
+  { ...commonQueryColumns.isAdvanceColumn, type: 'radio-group' },
+  // 备注模糊查询（仅明细管理独有）
+  {
+    label: '备注',
+    field: 'remark',
+    type: 'input',
+    span: 24,
+    props: { placeholder: '备注关键字搜索', allowClear: true },
+  },
   {
     label: '是否隐藏',
     field: 'hidden',
@@ -1019,6 +1080,14 @@ const columns = computed<TableInstance['columns']>(() => [
     show: true,
   },
   {
+    title: '报销状态',
+    dataIndex: 'reimburseStatus',
+    slotName: 'reimburseStatus',
+    width: 130,
+    align: 'center',
+    show: true,
+  },
+  {
     title: '备注',
     dataIndex: 'remark',
     width: 80,
@@ -1084,6 +1153,10 @@ const onDelete = async (record: DetailResp) => {
 }
 
 const AddModalRef = ref<InstanceType<typeof AddModal>>()
+const ReimburseModalRef = ref<InstanceType<typeof ReimburseModal>>()
+const LinkAdvanceModalRef = ref<InstanceType<typeof LinkAdvanceModal>>()
+// 当前选中用于关联的明细
+const currentLinkDetail = ref<DetailResp | null>(null)
 
 /** 新增 */
 const onAdd = () => {
@@ -1103,6 +1176,34 @@ const onUpdate = (record: DetailResp) => {
  */
 const onSaveSuccess = () => {
   searchMethod()
+}
+
+/** 关联报销（垫付方发起） */
+function onLinkReimburse(record: DetailResp) {
+  currentLinkDetail.value = record
+  ReimburseModalRef.value?.open()
+}
+
+/** 关联垫付（报销方发起） */
+function onLinkAdvance(record: DetailResp) {
+  currentLinkDetail.value = record
+  LinkAdvanceModalRef.value?.open()
+}
+
+/** 解除关联 */
+async function onUnlink(record: DetailResp) {
+  try {
+    await unlinkReimburse({ detailId: String(record.id) })
+    Message.success('已解除关联')
+    search()
+  } catch (e) {
+    // 错误由 http 拦截器处理
+  }
+}
+
+/** 关联成功回调 */
+function onLinkSuccess() {
+  search()
 }
 
 // ==================== 隐私模式相关 ====================

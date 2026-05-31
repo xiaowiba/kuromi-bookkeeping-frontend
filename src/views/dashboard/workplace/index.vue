@@ -199,7 +199,7 @@ watch(
 
 <style scoped lang="scss">
 .workplace-page {
-  padding: 2px;
+  // padding 由全局 .gi_page 统一提供，不再单独覆盖
 }
 
 .workplace-grid {

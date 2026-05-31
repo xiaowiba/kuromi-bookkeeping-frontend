@@ -32,6 +32,8 @@ interface CommonFilterForm {
   paymentMethod?: string
   paymentAccountId?: string
   isNecessary?: string | number
+  isReimburseOther?: string | number
+  isAdvance?: string | number
 }
 
 type CommonFilterChangeValue = string | number | boolean
@@ -412,6 +414,32 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       },
     }
 
+    // 是否报销他人筛选
+    const isReimburseOtherColumn: ColumnItem = {
+      label: '是否报销他人',
+      field: 'isReimburseOther',
+      type: 'select',
+      span: { xs: 24, sm: 8, xxl: 6 },
+      props: {
+        options: isNecessaryQueryOptions,  // 复用全部/是/否选项
+        allowClear: true,
+        placeholder: '全部',
+      },
+    }
+
+    // 是否垫付筛选
+    const isAdvanceColumn: ColumnItem = {
+      label: '是否垫付',
+      field: 'isAdvance',
+      type: 'select',
+      span: { xs: 24, sm: 8, xxl: 6 },
+      props: {
+        options: isNecessaryQueryOptions,  // 复用全部/是/否选项
+        allowClear: true,
+        placeholder: '全部',
+      },
+    }
+
     return {
       userColumn,
       categoryColumn,
@@ -420,6 +448,8 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       paymentMethodColumn,
       paymentAccountColumn,
       isNecessaryColumn,
+      isReimburseOtherColumn,
+      isAdvanceColumn,
     }
   }
 

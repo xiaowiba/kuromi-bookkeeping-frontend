@@ -68,3 +68,23 @@ export function deleteDetail(id: string) {
 export function getDetailStatistics(query: T.DetailQuery) {
   return http.get<T.DetailStatisticsResp>(`${BASE_URL}/statistics`, query)
 }
+
+/** 查询公户支出明细列表（垫付方关联用） */
+export function listReimburseCandidates(query: T.DetailQuery) {
+  return http.get<T.DetailResp[]>(`${BASE_URL}/reimburse-candidates`, query)
+}
+
+/** 查询未报销的垫付明细列表（报销方关联用） */
+export function listAdvanceCandidates(query: T.DetailQuery) {
+  return http.get<T.DetailResp[]>(`${BASE_URL}/advance-candidates`, query)
+}
+
+/** 双向关联报销 */
+export function linkReimburse(data: { advanceDetailId: string; reimburseDetailId: string }) {
+  return http.post(`${BASE_URL}/link-reimburse`, data)
+}
+
+/** 解除报销关联 */
+export function unlinkReimburse(data: { detailId: string }) {
+  return http.post(`${BASE_URL}/unlink-reimburse`, data)
+}

@@ -150,6 +150,7 @@ export type DetailDatePreset =
 
 /** 明细查询条件 */
 export interface DetailQuery {
+  id?: string
   userId?: string
   name?: string
   category?: string

@@ -289,6 +289,10 @@
 
           <!-- 已关联 → 解除关联 -->
           <a-link v-if="record.linkedDetailId"
+            v-permission="['bookkeeping:detail:list']"
+            @click="onViewLinkedDetail(record)">查看关联</a-link>
+
+          <a-link v-if="record.linkedDetailId"
             v-permission="['bookkeeping:detail:reimburse']"
             status="warning"
             @click="onUnlink(record)">解除关联</a-link>
@@ -397,6 +401,7 @@ import { formatPaymentAccountName } from '@/utils/paymentAccountDisplay'
 defineOptions({ name: 'BookkeepingDetail' })
 
 const DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK = 'reportTagRank'
+const DETAIL_ROUTE_SOURCE_LINKED_DETAIL = 'linkedDetail'
 const DETAIL_ROUTE_TAG_MODE_UNSELECTED = 'unselected'
 const DETAIL_UNSELECTED_TAG_VALUE = '__UNSELECTED__'
 const DETAIL_DELETED_TAG_FALLBACK_NAME = '标签已删除'
@@ -442,6 +447,7 @@ const createDefaultDetailQueryForm = () => {
   return {
     sort: [...DETAIL_DEFAULT_SORT],
     sortMode: DETAIL_DEFAULT_SORT_MODE as DetailSortMode,
+    id: '',
     name: '',
     category: '',
     subjectId: '',
@@ -614,7 +620,7 @@ const applyDetailRouteTimeQuery = () => {
 }
 
 /**
- * 从报表标签排行跳转进来时，首次根据 route.query 回填筛选条件。
+ * 从外部跳转进来时，首次根据 route.query 回填筛选条件。
  *
  * 回填顺序必须保持稳定：
  * 1. 先回填时间
@@ -626,11 +632,20 @@ const applyDetailRouteTimeQuery = () => {
  */
 const applyDetailRouteQuery = async () => {
   const from = getSingleRouteQueryValue(route.query.from)
-  if (from !== DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK) {
-    return
+  if (from !== DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK && from !== DETAIL_ROUTE_SOURCE_LINKED_DETAIL) {
+    return false
   }
 
+  resetForm()
+  Object.assign(timePickerState, createDefaultDetailTimePickerState())
+  temporaryTagOption.value = null
   applyDetailRouteTimeQuery()
+
+  if (from === DETAIL_ROUTE_SOURCE_LINKED_DETAIL) {
+    queryForm.userId = getSingleRouteQueryValue(route.query.userId)
+    queryForm.id = getSingleRouteQueryValue(route.query.detailId)
+    return true
+  }
 
   queryForm.userId = getSingleRouteQueryValue(route.query.userId)
   queryForm.category = getSingleRouteQueryValue(route.query.category)
@@ -671,6 +686,7 @@ const applyDetailRouteQuery = async () => {
 
   const hidden = getSingleRouteQueryValue(route.query.hidden)
   queryForm.hidden = hidden === '' ? '' : Number(hidden)
+  return true
 }
 
 const handleTimeModeChange = (value: string | number | boolean) => {
@@ -956,6 +972,9 @@ const buildDetailQuery = () => {
     privacyMode: privacyStore.isPrivacyMode,
   }
   delete (query as typeof query & { sortMode?: DetailSortMode }).sortMode
+  if (!query.id) {
+    delete (query as typeof query & { id?: string }).id
+  }
   if (query.isNecessary !== '' && query.isNecessary !== null && query.isNecessary !== undefined) {
     query.isNecessary = Number(query.isNecessary)
   } else {
@@ -1224,6 +1243,34 @@ async function onLinkAdvance(record: DetailResp) {
   LinkAdvanceModalRef.value?.open()
 }
 
+/**
+ * 查看关联明细。
+ *
+ * 这里复用明细页的路由筛选协议，但改为新开标签页，
+ * 避免覆盖用户当前正在操作的明细列表页面。
+ * 同时额外带上 detailId 精确条件，避免同名、同金额、同日期的记录一起命中。
+ */
+function onViewLinkedDetail(record: DetailResp) {
+  if (!record.linkedDetailId || !record.linkedUserId || !record.linkedDetailDate) {
+    Message.warning('当前关联明细暂不可查看')
+    return
+  }
+
+  const targetRoute = router.resolve({
+    path: '/bookkeeping/detail',
+    query: {
+      from: DETAIL_ROUTE_SOURCE_LINKED_DETAIL,
+      detailId: String(record.linkedDetailId),
+      userId: String(record.linkedUserId),
+      timeMode: 'range',
+      startDate: record.linkedDetailDate,
+      endDate: record.linkedDetailDate,
+    },
+  })
+
+  window.open(targetRoute.href, '_blank', 'noopener')
+}
+
 /** 关联明细摘要 */
 function formatLinkedDetailSummary(record: DetailResp) {
   const summary = [
@@ -1406,6 +1453,18 @@ watch(
   () => privacyStore.isPrivacyMode,
   () => {
     void searchMethod()
+  },
+)
+
+watch(
+  () => route.fullPath,
+  () => {
+    void (async () => {
+      const applied = await applyDetailRouteQuery()
+      if (applied) {
+        await searchMethod()
+      }
+    })()
   },
 )
 

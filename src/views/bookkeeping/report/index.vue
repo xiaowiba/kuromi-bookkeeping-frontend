@@ -252,6 +252,12 @@ const buildDetailRouteQueryFromTagRank = (payload: T.ReportTagRankItemResp) => {
   if (dashboardQuery.isNecessary !== '' && dashboardQuery.isNecessary !== null && dashboardQuery.isNecessary !== undefined) {
     routeQuery.isNecessary = String(dashboardQuery.isNecessary)
   }
+  if (dashboardQuery.isReimburseOther !== '' && dashboardQuery.isReimburseOther !== null && dashboardQuery.isReimburseOther !== undefined) {
+    routeQuery.isReimburseOther = String(dashboardQuery.isReimburseOther)
+  }
+  if (dashboardQuery.isAdvance !== '' && dashboardQuery.isAdvance !== null && dashboardQuery.isAdvance !== undefined) {
+    routeQuery.isAdvance = String(dashboardQuery.isAdvance)
+  }
   if (dashboardQuery.hidden !== '' && dashboardQuery.hidden !== null && dashboardQuery.hidden !== undefined) {
     routeQuery.hidden = String(dashboardQuery.hidden)
   }

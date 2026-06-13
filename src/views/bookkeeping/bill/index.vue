@@ -171,6 +171,8 @@ const createDefaultBillQueryForm = (): T.BillFilterForm => ({
   paymentMethod: '',
   paymentAccountId: '',
   isNecessary: '',
+  isReimburseOther: '',
+  isAdvance: '',
   userId: currentUserId.value,
   hidden: '',
 })
@@ -237,6 +239,14 @@ const commonQueryColumns = createCommonQueryColumns({
     span: { xs: 24, sm: 24, xxl: 24 },
     useRadioGroup: true,
   },
+  isReimburseOther: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+  },
+  isAdvance: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+  },
 })
 
 const queryFormColumns: ColumnItem[] = [
@@ -266,6 +276,8 @@ const queryFormColumns: ColumnItem[] = [
   commonQueryColumns.paymentMethodColumn,
   commonQueryColumns.paymentAccountColumn,
   commonQueryColumns.isNecessaryColumn,
+  commonQueryColumns.isReimburseOtherColumn,
+  commonQueryColumns.isAdvanceColumn,
   {
     type: 'radio-group',
     label: '是否隐藏',
@@ -422,6 +434,12 @@ function buildBaseQuery(): T.BillQuery {
   }
   if (queryForm.isNecessary !== '' && queryForm.isNecessary !== null && queryForm.isNecessary !== undefined) {
     query.isNecessary = Number(queryForm.isNecessary)
+  }
+  if (queryForm.isReimburseOther !== '' && queryForm.isReimburseOther !== null && queryForm.isReimburseOther !== undefined) {
+    query.isReimburseOther = Number(queryForm.isReimburseOther)
+  }
+  if (queryForm.isAdvance !== '' && queryForm.isAdvance !== null && queryForm.isAdvance !== undefined) {
+    query.isAdvance = Number(queryForm.isAdvance)
   }
   if (queryForm.hidden !== '' && queryForm.hidden !== null && queryForm.hidden !== undefined) {
     query.hidden = Number(queryForm.hidden)

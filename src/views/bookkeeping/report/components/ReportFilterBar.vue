@@ -195,6 +195,28 @@
           />
         </div>
       </template>
+
+      <template #isReimburseOther>
+        <div class="subject-query-radio-scroll">
+          <a-radio-group
+            v-model="filterFormModel.isReimburseOther"
+            :options="isNecessaryOptions"
+            :disabled="loading"
+            @change="handleIsReimburseOtherChange"
+          />
+        </div>
+      </template>
+
+      <template #isAdvance>
+        <div class="subject-query-radio-scroll">
+          <a-radio-group
+            v-model="filterFormModel.isAdvance"
+            :options="isNecessaryOptions"
+            :disabled="loading"
+            @change="handleIsAdvanceChange"
+          />
+        </div>
+      </template>
     </GiForm>
   </a-card>
 </template>
@@ -325,6 +347,18 @@ const queryFormColumns: ColumnItem<ReportFilterForm>[] = reactive([
     type: 'radio-group',
     label: '是否必要',
     field: 'isNecessary',
+    span: { xs: 24, sm: 24, xxl: 24 },
+  },
+  {
+    type: 'radio-group',
+    label: '是否报销他人',
+    field: 'isReimburseOther',
+    span: { xs: 24, sm: 24, xxl: 24 },
+  },
+  {
+    type: 'radio-group',
+    label: '是否垫付',
+    field: 'isAdvance',
     span: { xs: 24, sm: 24, xxl: 24 },
   },
   {
@@ -499,6 +533,14 @@ const handlePaymentAccountChange = () => {
 }
 
 const handleIsNecessaryChange = () => {
+  triggerSearch()
+}
+
+const handleIsReimburseOtherChange = () => {
+  triggerSearch()
+}
+
+const handleIsAdvanceChange = () => {
   triggerSearch()
 }
 

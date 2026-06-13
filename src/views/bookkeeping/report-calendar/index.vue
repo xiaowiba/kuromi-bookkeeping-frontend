@@ -458,6 +458,8 @@ const {
  * 5. 第五行：支付方式
  * 6. 第六行：支付账号
  * 7. 第七行：是否必要
+ * 8. 第八行：是否报销他人
+ * 9. 第九行：是否垫付
  */
 const commonQueryColumns = createCommonQueryColumns({
   user: {
@@ -505,6 +507,16 @@ const commonQueryColumns = createCommonQueryColumns({
     placeholder: '请选择是否必要',
     onChange: () => triggerSearch(),
   },
+  isReimburseOther: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    onChange: () => triggerSearch(),
+  },
+  isAdvance: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    onChange: () => triggerSearch(),
+  },
 })
 
 const queryFormColumns: ColumnItem[] = reactive([
@@ -525,6 +537,8 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.paymentMethodColumn,
   commonQueryColumns.paymentAccountColumn,
   commonQueryColumns.isNecessaryColumn,
+  commonQueryColumns.isReimburseOtherColumn,
+  commonQueryColumns.isAdvanceColumn,
 ])
 
 const calendarWeekdays = CALENDAR_WEEKDAY_LABELS
@@ -679,6 +693,12 @@ const buildCalendarQuery = (overrides: Partial<T.ReportCalendarQuery> = {}): T.R
   }
   if (queryForm.isNecessary !== '' && queryForm.isNecessary !== null && queryForm.isNecessary !== undefined) {
     query.isNecessary = Number(queryForm.isNecessary)
+  }
+  if (queryForm.isReimburseOther !== '' && queryForm.isReimburseOther !== null && queryForm.isReimburseOther !== undefined) {
+    query.isReimburseOther = Number(queryForm.isReimburseOther)
+  }
+  if (queryForm.isAdvance !== '' && queryForm.isAdvance !== null && queryForm.isAdvance !== undefined) {
+    query.isAdvance = Number(queryForm.isAdvance)
   }
   if (queryForm.userId) {
     query.userId = queryForm.userId

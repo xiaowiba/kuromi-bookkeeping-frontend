@@ -70,6 +70,8 @@ export const createReportFilterForm = (
     paymentMethod: '',
     paymentAccountId: '',
     isNecessary: '',
+    isReimburseOther: '',
+    isAdvance: '',
     userScope,
     userId: userScope === 'all' ? '' : currentUserId,
     hidden: '',

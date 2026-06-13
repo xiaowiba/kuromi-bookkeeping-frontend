@@ -277,8 +277,8 @@
         <a-space>
           <a-link v-permission="['bookkeeping:detail:update']" title="修改" @click="onUpdate(record)">修改</a-link>
 
-          <!-- 垫付-未报销 → 关联报销 -->
-          <a-link v-if="record.isAdvance === 1 && record.isReimbursed === 0"
+          <!-- 垫付-未关联 → 关联报销 -->
+          <a-link v-if="record.isAdvance === 1 && !record.linkedDetailId"
             v-permission="['bookkeeping:detail:reimburse']"
             @click="onLinkReimburse(record)">关联报销</a-link>
 
@@ -620,7 +620,7 @@ const applyDetailRouteTimeQuery = () => {
  * 1. 先回填时间
  * 2. 再回填用户、分类、科目
  * 3. 等待科目下标签选项加载完成
- * 4. 最后再回填标签、支付方式、隐藏状态
+ * 4. 最后再回填标签、支付方式、支付账号、报销筛选和隐藏状态
  *
  * 否则标签值很容易在科目联动重新加载后被清空。
  */
@@ -661,8 +661,13 @@ const applyDetailRouteQuery = async () => {
   }
 
   queryForm.paymentMethod = getSingleRouteQueryValue(route.query.paymentMethod)
+  queryForm.paymentAccountId = getSingleRouteQueryValue(route.query.paymentAccountId)
   const isNecessary = getSingleRouteQueryValue(route.query.isNecessary)
   queryForm.isNecessary = isNecessary === '' ? '' : Number(isNecessary)
+  const isReimburseOther = getSingleRouteQueryValue(route.query.isReimburseOther)
+  queryForm.isReimburseOther = isReimburseOther === '' ? '' : Number(isReimburseOther)
+  const isAdvance = getSingleRouteQueryValue(route.query.isAdvance)
+  queryForm.isAdvance = isAdvance === '' ? '' : Number(isAdvance)
 
   const hidden = getSingleRouteQueryValue(route.query.hidden)
   queryForm.hidden = hidden === '' ? '' : Number(hidden)
@@ -792,6 +797,14 @@ const handleIsNecessaryQueryChange = () => {
   triggerQuerySearch()
 }
 
+const handleIsReimburseOtherQueryChange = () => {
+  triggerQuerySearch()
+}
+
+const handleIsAdvanceQueryChange = () => {
+  triggerQuerySearch()
+}
+
 const handleUserQueryChange = () => {
   triggerQuerySearch()
 }
@@ -859,6 +872,16 @@ const commonQueryColumns = createCommonQueryColumns({
     useRadioGroup: true,
     onChange: handleIsNecessaryQueryChange,
   },
+  isReimburseOther: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    onChange: handleIsReimburseOtherQueryChange,
+  },
+  isAdvance: {
+    span: { xs: 24, sm: 24, xxl: 24 },
+    useRadioGroup: true,
+    onChange: handleIsAdvanceQueryChange,
+  },
 })
 
 const queryFormColumns: ColumnItem[] = reactive([
@@ -895,10 +918,8 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.paymentMethodColumn,
   commonQueryColumns.paymentAccountColumn,
   commonQueryColumns.isNecessaryColumn,
-  // 是否报销他人
-  { ...commonQueryColumns.isReimburseOtherColumn, type: 'radio-group' },
-  // 是否垫付
-  { ...commonQueryColumns.isAdvanceColumn, type: 'radio-group' },
+  commonQueryColumns.isReimburseOtherColumn,
+  commonQueryColumns.isAdvanceColumn,
   // 备注模糊查询（仅明细管理独有）
   {
     label: '备注',
@@ -939,6 +960,16 @@ const buildDetailQuery = () => {
     query.isNecessary = Number(query.isNecessary)
   } else {
     delete (query as typeof query & { isNecessary?: string | number }).isNecessary
+  }
+  if (query.isReimburseOther !== '' && query.isReimburseOther !== null && query.isReimburseOther !== undefined) {
+    query.isReimburseOther = Number(query.isReimburseOther)
+  } else {
+    delete (query as typeof query & { isReimburseOther?: string | number }).isReimburseOther
+  }
+  if (query.isAdvance !== '' && query.isAdvance !== null && query.isAdvance !== undefined) {
+    query.isAdvance = Number(query.isAdvance)
+  } else {
+    delete (query as typeof query & { isAdvance?: string | number }).isAdvance
   }
   if (query.tagId === DETAIL_UNSELECTED_TAG_VALUE) {
     query.unselectedTagOnly = true
@@ -1116,6 +1147,7 @@ const columns = computed<TableInstance['columns']>(() => [
     fixed: 'right',
     show: has.hasPermOr([
       'bookkeeping:detail:update',
+      'bookkeeping:detail:reimburse',
       'bookkeeping:detail:delete',
     ]),
   },
@@ -1177,14 +1209,18 @@ const onSaveSuccess = () => {
 }
 
 /** 关联报销（垫付方发起） */
-function onLinkReimburse(record: DetailResp) {
+async function onLinkReimburse(record: DetailResp) {
   currentLinkDetail.value = record
+  // 弹窗由 currentLinkDetail 控制挂载，首次点击时需要等组件 ref 建立后再打开。
+  await nextTick()
   ReimburseModalRef.value?.open()
 }
 
 /** 关联垫付（报销方发起） */
-function onLinkAdvance(record: DetailResp) {
+async function onLinkAdvance(record: DetailResp) {
   currentLinkDetail.value = record
+  // 同上，避免首次点击时 ref 仍为空导致用户需要点第二次。
+  await nextTick()
   LinkAdvanceModalRef.value?.open()
 }
 

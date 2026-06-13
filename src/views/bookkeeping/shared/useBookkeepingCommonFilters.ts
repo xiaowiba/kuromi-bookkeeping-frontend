@@ -65,6 +65,8 @@ interface CreateCommonQueryColumnsOptions {
   paymentMethod?: CommonFilterColumnConfig
   paymentAccount?: CommonFilterColumnConfig
   isNecessary?: CommonFilterColumnConfig
+  isReimburseOther?: CommonFilterColumnConfig
+  isAdvance?: CommonFilterColumnConfig
 }
 
 interface UseBookkeepingCommonFiltersOptions<TForm extends CommonFilterForm> {
@@ -315,6 +317,18 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       allowClear: true,
       allowSearch: false,
     })
+    const isReimburseOtherConfig = resolveColumnConfig(columnOptions.isReimburseOther, {
+      label: '是否报销他人',
+      placeholder: '全部',
+      allowClear: true,
+      allowSearch: false,
+    })
+    const isAdvanceConfig = resolveColumnConfig(columnOptions.isAdvance, {
+      label: '是否垫付',
+      placeholder: '全部',
+      allowClear: true,
+      allowSearch: false,
+    })
 
     const userColumn: ColumnItem = {
       type: userConfig.useRadioGroup ? 'radio-group' : 'select',
@@ -416,27 +430,31 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
 
     // 是否报销他人筛选
     const isReimburseOtherColumn: ColumnItem = {
-      label: '是否报销他人',
+      type: isReimburseOtherConfig.useRadioGroup ? 'radio-group' : 'select',
+      label: isReimburseOtherConfig.label,
       field: 'isReimburseOther',
-      type: 'select',
-      span: { xs: 24, sm: 8, xxl: 6 },
+      span: isReimburseOtherConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
       props: {
-        options: isNecessaryQueryOptions,  // 复用全部/是/否选项
-        allowClear: true,
-        placeholder: '全部',
+        options: isNecessaryQueryOptions,
+        allowClear: isReimburseOtherConfig.allowClear,
+        allowSearch: isReimburseOtherConfig.allowSearch,
+        placeholder: isReimburseOtherConfig.placeholder,
+        onChange: isReimburseOtherConfig.onChange,
       },
     }
 
     // 是否垫付筛选
     const isAdvanceColumn: ColumnItem = {
-      label: '是否垫付',
+      type: isAdvanceConfig.useRadioGroup ? 'radio-group' : 'select',
+      label: isAdvanceConfig.label,
       field: 'isAdvance',
-      type: 'select',
-      span: { xs: 24, sm: 8, xxl: 6 },
+      span: isAdvanceConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
       props: {
-        options: isNecessaryQueryOptions,  // 复用全部/是/否选项
-        allowClear: true,
-        placeholder: '全部',
+        options: isNecessaryQueryOptions,
+        allowClear: isAdvanceConfig.allowClear,
+        allowSearch: isAdvanceConfig.allowSearch,
+        placeholder: isAdvanceConfig.placeholder,
+        onChange: isAdvanceConfig.onChange,
       },
     }
 

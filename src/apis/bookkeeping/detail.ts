@@ -69,22 +69,22 @@ export function getDetailStatistics(query: T.DetailQuery) {
   return http.get<T.DetailStatisticsResp>(`${BASE_URL}/statistics`, query)
 }
 
-/** 查询公户支出明细列表（垫付方关联用） */
+/** 查询可作为报销方候选的支出明细列表（垫付方关联用） */
 export function listReimburseCandidates(query: T.DetailQuery) {
   return http.get<T.DetailResp[]>(`${BASE_URL}/reimburse-candidates`, query)
 }
 
-/** 查询未报销的垫付明细列表（报销方关联用） */
+/** 查询可作为垫付方候选的支出明细列表（报销方关联用） */
 export function listAdvanceCandidates(query: T.DetailQuery) {
   return http.get<T.DetailResp[]>(`${BASE_URL}/advance-candidates`, query)
 }
 
-/** 双向关联报销 */
+/** 双向关联垫付明细与报销明细 */
 export function linkReimburse(data: { advanceDetailId: string; reimburseDetailId: string }) {
   return http.post(`${BASE_URL}/link-reimburse`, data)
 }
 
-/** 解除报销关联 */
+/** 解除双向关联，但保留双方原有业务角色 */
 export function unlinkReimburse(data: { detailId: string }) {
   return http.post(`${BASE_URL}/unlink-reimburse`, data)
 }

@@ -40,9 +40,11 @@
  * @update 2026-04-23
  * @desc 支付账号字段改为与所属科目一致的单选按钮组
  * @update 2026-05-30 @Wangsongsong
- * @desc 新增报销相关字段：是否报销他人、是否垫付、是否已报销
+ * @desc 新增报销相关字段：是否报销他人、是否垫付
  * @update 2026-05-30 @Wangsongsong
  * @desc 优化并合并分类切换的 Watcher 监听逻辑，消除冗余订阅并增强代码鲁棒性
+ * @update 2026-06-07 @Codex
+ * @desc 移除“是否已报销”手工录入入口，改为由后端基于真实关联关系自动派生
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'
@@ -94,7 +96,6 @@ interface AddForUserOptions {
   category?: string
   isAdvance?: number
   isReimburseOther?: number
-  isReimbursed?: number
 }
 
 /** 全部科目数据（原始） */
@@ -130,8 +131,7 @@ const isReimburseOtherOptions = computed<LabelValueState[]>(() => {
     value: Number(item.value ?? 0),
   }))
 })
-const isAdvanceOptions = isReimburseOtherOptions  // 同样的是/否选项
-const isReimbursedOptions = isReimburseOtherOptions  // 同样的是/否选项
+const isAdvanceOptions = isReimburseOtherOptions
 
 const [form, resetForm] = useResetReactive({
   detailDate: new Date().toISOString().slice(0, 10),
@@ -142,7 +142,6 @@ const [form, resetForm] = useResetReactive({
   isNecessary: 1,
   isReimburseOther: 0,
   isAdvance: 0,
-  isReimbursed: 0,
   hidden: 0,
 })
 
@@ -257,8 +256,8 @@ const columns: ColumnItem[] = reactive([
     show: () => form.category === 'expense',
     props: { options: isReimburseOtherOptions },
   },
-  // 分支B：报销他人=是 → 显示关联垫付操作（占位，后续 TP5 实现弹窗）
-  // 分支A：报销他人=否 → 显示垫付流程
+  // 表单只负责标记当前明细的报销角色；真正的双向关联在列表操作列中完成。
+  // 当选择“报销他人”时，垫付字段需要隐藏并由后端兜底清零，避免两个角色同时成立。
   {
     label: '是否垫付',
     field: 'isAdvance',
@@ -266,14 +265,6 @@ const columns: ColumnItem[] = reactive([
     span: 24,
     show: () => form.category === 'expense' && form.isReimburseOther !== 1,
     props: { options: isAdvanceOptions },
-  },
-  {
-    label: '是否已报销',
-    field: 'isReimbursed',
-    type: 'radio-group',
-    span: 24,
-    show: () => form.category === 'expense' && form.isReimburseOther !== 1 && form.isAdvance === 1,
-    props: { options: isReimbursedOptions },
   },
   {
     label: '备注',
@@ -322,7 +313,6 @@ watch(() => form.category, (val) => {
   if (val !== 'expense') {
     form.isReimburseOther = 0
     form.isAdvance = 0
-    form.isReimbursed = 0
   }
 })
 
@@ -439,14 +429,6 @@ watch(() => form.isReimburseOther, (val) => {
   if (val === 1) {
     // 报销他人 → 清除垫付相关
     form.isAdvance = 0
-    form.isReimbursed = 0
-  }
-})
-
-// 是否垫付切换时
-watch(() => form.isAdvance, (val) => {
-  if (val !== 1) {
-    form.isReimbursed = 0
   }
 })
 
@@ -462,19 +444,27 @@ const save = async () => {
   try {
     const isInvalid = await formRef.value?.formRef?.validate()
     if (isInvalid) return false
+    // 只提交 DetailReq 真正需要的字段，避免编辑态把详情响应里的展示/关联只读字段一并带回后端。
     const payload = {
-      ...form,
+      userId: form.userId,
+      subjectId: form.subjectId,
       tagId: form.tagId ? form.tagId : null,
+      name: form.name,
+      amount: form.amount,
+      detailDate: form.detailDate,
+      paymentMethod: form.paymentMethod,
       paymentAccountId: form.paymentAccountId ? form.paymentAccountId : null,
       isNecessary: Number(form.isNecessary ?? 1),
       isReimburseOther: form.category === 'expense' ? Number(form.isReimburseOther ?? 0) : 0,
       isAdvance: (form.category === 'expense' && form.isReimburseOther !== 1) ? Number(form.isAdvance ?? 0) : 0,
-      isReimbursed: form.isAdvance === 1 ? Number(form.isReimbursed ?? 0) : 0,
+      remark: form.remark,
+      hidden: Number(form.hidden ?? 0),
     }
-    // 非管理员自动设置当前用户 ID
-    if (!isAdmin.value) {
-      payload.userId = userStore.userInfo.id
-    }
+    // “是否已报销”已改为后端根据真实关联关系自动派生，前端不再手工提交该字段。
+    // 这里保留表单里的 userId：
+    // 1. 普通新增时 onAdd() 已预设为当前用户
+    // 2. 关联弹窗里的“立即新增”会预设为目标报销/垫付用户
+    // 3. 最终仍由后端按关注权限和编辑归属规则做兜底校验
     if (isUpdate.value) {
       await updateDetail(payload, dataId.value)
       Message.success('修改成功')
@@ -528,7 +518,6 @@ const onAddForUser = async (options: AddForUserOptions) => {
   form.category = options.category || 'expense'
   form.isAdvance = Number(options.isAdvance ?? 0)
   form.isReimburseOther = Number(options.isReimburseOther ?? 0)
-  form.isReimbursed = Number(options.isReimbursed ?? 0)
   visible.value = true
 }
 
@@ -555,7 +544,8 @@ const onUpdate = async (id: string) => {
   form.category = data.subjectCategory || ''
   // 等分类 watch 触发后再赋值科目和名称
   await new Promise((resolve) => setTimeout(resolve, 0))
-  Object.assign(form, data)
+  const { isReimbursed: _ignoredReimbursed, ...detailForm } = data
+  Object.assign(form, detailForm)
   if (form.subjectId) {
     await loadSubjectTagOptions(form.subjectId, form.tagId)
   }

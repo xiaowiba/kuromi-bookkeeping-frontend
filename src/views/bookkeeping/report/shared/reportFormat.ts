@@ -166,6 +166,12 @@ export const buildReportQuery = (
   if (form.isNecessary !== '' && form.isNecessary !== null && form.isNecessary !== undefined) {
     query.isNecessary = Number(form.isNecessary)
   }
+  if (form.isReimburseOther !== '' && form.isReimburseOther !== null && form.isReimburseOther !== undefined) {
+    query.isReimburseOther = Number(form.isReimburseOther)
+  }
+  if (form.isAdvance !== '' && form.isAdvance !== null && form.isAdvance !== undefined) {
+    query.isAdvance = Number(form.isAdvance)
+  }
   if (form.hidden !== '' && form.hidden !== null && form.hidden !== undefined) {
     query.hidden = Number(form.hidden)
   }

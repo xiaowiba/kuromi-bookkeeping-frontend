@@ -174,6 +174,7 @@ export interface DetailQuery {
   month?: string
   minAmount?: number
   maxAmount?: number
+  candidateAmount?: number
   hidden?: number | string
   privacyMode?: boolean
   sort: Array<string>
@@ -317,6 +318,8 @@ export interface ReportQuery {
   paymentMethod?: string
   paymentAccountId?: string
   isNecessary?: number | string
+  isReimburseOther?: number | string
+  isAdvance?: number | string
   userId?: string
   hidden?: number | string
   privacyMode?: boolean
@@ -330,6 +333,8 @@ export interface BillQuery {
   paymentMethod?: string
   paymentAccountId?: string
   isNecessary?: number | string
+  isReimburseOther?: number | string
+  isAdvance?: number | string
   userId?: string
   hidden?: number | string
   privacyMode?: boolean
@@ -353,6 +358,8 @@ export interface BillFilterForm {
   paymentMethod: string
   paymentAccountId: string
   isNecessary: number | string
+  isReimburseOther: number | string
+  isAdvance: number | string
   userId: string
   hidden: number | string
 }
@@ -415,6 +422,8 @@ export interface ReportFilterForm {
   paymentMethod: string
   paymentAccountId: string
   isNecessary: number | string
+  isReimburseOther: number | string
+  isAdvance: number | string
   userScope: ReportUserScope
   userId: string
   hidden: number | string
@@ -430,6 +439,8 @@ export interface ReportCalendarFilterForm {
   paymentMethod: string
   paymentAccountId: string
   isNecessary: number | string
+  isReimburseOther: number | string
+  isAdvance: number | string
   userId: string
 }
 

@@ -72,6 +72,8 @@ export const createDefaultReportCalendarForm = (): T.ReportCalendarFilterForm =>
   paymentMethod: '',
   paymentAccountId: '',
   isNecessary: '',
+  isReimburseOther: '',
+  isAdvance: '',
   userId: '',
 })
 

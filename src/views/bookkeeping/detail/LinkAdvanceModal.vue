@@ -238,6 +238,8 @@
  * @date 2026-05-30
  * @update 2026-05-30 @Wangsongsong
  * @desc 优化并对齐搜索条件至明细管理筛选项，支持多维度过滤和重置查询
+ * @update 2026-06-07 @Codex
+ * @desc 右侧快捷新增不再手工传 isReimbursed，关联完成后由后端按真实双向关系自动派生
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, ref, reactive } from 'vue'
@@ -287,6 +289,13 @@ const filteredUserOptions = computed(() => {
   return userOptions.value.filter((item: any) => String(item.value) !== String(props.sourceDetail.userId))
 })
 
+// 反向关联垫付时，同样先按当前报销明细金额做精确匹配，
+// 避免候选列表把同时间段下的全部支出都摊开给用户逐条翻找。
+const exactCandidateAmount = computed(() => {
+  const amount = Math.abs(Number(props.sourceDetail?.amount ?? 0))
+  return Number.isFinite(amount) && amount !== 0 ? amount : undefined
+})
+
 // 创建弹窗过滤表单默认状态
 const createDefaultFilterForm = () => {
   const presetRange = getDetailPresetRange(DETAIL_DEFAULT_DATE_PRESET)
@@ -326,6 +335,22 @@ const activeDateRangeText = computed(() => {
   }
   return `${filterForm.startDate} 至 ${filterForm.endDate}`
 })
+
+/**
+ * 同步候选列表选中项。
+ *
+ * 筛选条件变化后，旧的 selectedDetailId 可能已经不在当前候选列表中。
+ * 这里统一兜底清理，避免用户确认时关联到当前界面不可见的历史选中明细。
+ */
+function syncSelectedCandidate() {
+  if (!selectedDetailId.value) {
+    return
+  }
+  const exists = candidateList.value.some(item => String(item.id) === String(selectedDetailId.value))
+  if (!exists) {
+    selectedDetailId.value = ''
+  }
+}
 
 // 通用筛选项挂载
 const {
@@ -557,6 +582,7 @@ function onAdvanceUserChange() {
 async function loadCandidates() {
   if (!selectedAdvanceUserId.value) {
     candidateList.value = []
+    selectedDetailId.value = ''
     return
   }
   loading.value = true
@@ -572,6 +598,9 @@ async function loadCandidates() {
       remark: filterForm.remark || undefined,
       sort: ['detailDate,desc'],
     }
+    if (exactCandidateAmount.value != null) {
+      params.candidateAmount = exactCandidateAmount.value
+    }
     if (filterForm.isNecessary !== '') {
       params.isNecessary = Number(filterForm.isNecessary)
     }
@@ -580,7 +609,9 @@ async function loadCandidates() {
       params.endDate = filterForm.endDate
     }
     const res = await listAdvanceCandidates(params)
-    candidateList.value = res.data ?? res ?? []  } finally {
+    candidateList.value = res.data ?? res ?? []
+    syncSelectedCandidate()
+  } finally {
     loading.value = false
   }
 }
@@ -645,7 +676,6 @@ function openAddForUser() {
     category: 'expense',
     isAdvance: 1,
     isReimburseOther: 0,
-    isReimbursed: 0,
   })
 }
 

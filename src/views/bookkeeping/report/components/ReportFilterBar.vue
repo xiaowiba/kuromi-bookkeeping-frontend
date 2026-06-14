@@ -347,19 +347,19 @@ const queryFormColumns: ColumnItem<ReportFilterForm>[] = reactive([
     type: 'radio-group',
     label: '是否必要',
     field: 'isNecessary',
-    span: { xs: 24, sm: 24, xxl: 24 },
-  },
-  {
-    type: 'radio-group',
-    label: '是否报销他人',
-    field: 'isReimburseOther',
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
   },
   {
     type: 'radio-group',
     label: '是否垫付',
     field: 'isAdvance',
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
+  },
+  {
+    type: 'radio-group',
+    label: '是否报销他人',
+    field: 'isReimburseOther',
+    span: { xs: 24, sm: 8, xxl: 8 },
   },
   {
     type: 'radio-group',
@@ -373,11 +373,16 @@ const queryFormColumns: ColumnItem<ReportFilterForm>[] = reactive([
         { label: '正常', value: 0 },
         { label: '隐藏', value: 1 },
       ],
+      onChange: handleHiddenChange,
     },
   },
 ])
 
-const triggerSearch = () => {
+function handleHiddenChange() {
+  triggerSearch()
+}
+
+function triggerSearch() {
   nextTick(() => {
     emit('search')
   })

@@ -549,6 +549,14 @@ export interface ReportRankingTableResp {
   paymentAccountName?: string
   paymentAccountDeleted?: boolean
   isNecessary: number
+  isAdvance: number
+  isReimburseOther: number
+  isReimbursed: number
+  linkedDetailId?: string
+  linkedUserId?: string
+  linkedUserNickname?: string
+  linkedDetailName?: string
+  linkedDetailDate?: string
   userId: string
   userName: string
   amount: number

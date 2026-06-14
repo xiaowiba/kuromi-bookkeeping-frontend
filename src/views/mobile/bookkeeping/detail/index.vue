@@ -277,6 +277,16 @@
                     >
                       {{ isNecessaryLabel(item.isNecessary) }}
                     </t-tag>
+                    <t-tag
+                      v-for="tag in buildReimburseTags(item)"
+                      :key="`${item.id}-${tag.key}`"
+                      class="mobile-detail-row__payment-tag"
+                      size="small"
+                      variant="light"
+                      :theme="tag.theme"
+                    >
+                      {{ tag.label }}
+                    </t-tag>
                     <span
                       v-if="privacyStore.isPrivacyMode && item.hidden === 1"
                       class="mobile-detail-row__privacy"
@@ -449,6 +459,40 @@
                 >
                   {{ isNecessaryLabel(activeDetail.isNecessary) }}
                 </t-tag>
+              </strong>
+            </div>
+            <div
+              v-if="buildReimburseTags(activeDetail).length"
+              class="mobile-bottom-sheet__detail-row"
+            >
+              <span>报销状态</span>
+              <strong class="mobile-bottom-sheet__detail-tag-wrap mobile-bottom-sheet__detail-tag-wrap--multi">
+                <t-tag
+                  v-for="tag in buildReimburseTags(activeDetail)"
+                  :key="`popup-${activeDetail.id}-${tag.key}`"
+                  class="mobile-bottom-sheet__detail-tag"
+                  size="small"
+                  variant="light"
+                  :theme="tag.theme"
+                >
+                  {{ tag.label }}
+                </t-tag>
+              </strong>
+            </div>
+            <div
+              v-if="activeDetail.linkedDetailId"
+              class="mobile-bottom-sheet__detail-row"
+            >
+              <span>关联说明</span>
+              <strong class="mobile-bottom-sheet__linked-detail-box">
+                <span
+                  v-for="item in buildLinkedDetailInfo(activeDetail)"
+                  :key="`linked-${activeDetail.id}-${item.key}`"
+                  class="mobile-bottom-sheet__linked-detail-item"
+                >
+                  <i class="mobile-bottom-sheet__linked-detail-label">{{ item.label }}</i>
+                  <em class="mobile-bottom-sheet__linked-detail-value">{{ item.value }}</em>
+                </span>
               </strong>
             </div>
             <div class="mobile-bottom-sheet__detail-row">
@@ -850,6 +894,73 @@ const paymentMethodLabel = (value: string) => {
 const paymentMethodTheme = (value: string) => {
   const extra = findPaymentMethodItem(value)?.extra || 'default'
   return extra === 'error' ? 'danger' : extra
+}
+
+type MobileReimburseTagTheme = 'default' | 'primary' | 'success' | 'warning' | 'danger'
+
+interface MobileReimburseTag {
+  key: string
+  label: string
+  theme: MobileReimburseTagTheme
+}
+
+interface MobileLinkedDetailInfoItem {
+  key: string
+  label: string
+  value: string
+}
+
+/**
+ * 为移动端明细补充报销语义标签。
+ * 列表里优先展示“角色 + 关联状态”，让用户不进弹窗也能快速识别垫付/报销数据。
+ */
+const buildReimburseTags = (detail?: DetailResp | null): MobileReimburseTag[] => {
+  if (!detail) return []
+  const tags: MobileReimburseTag[] = []
+  const isAdvance = Number(detail.isAdvance) === 1
+  const isReimburseOther = Number(detail.isReimburseOther) === 1
+  const hasLinkedDetail = !!detail.linkedDetailId
+
+  if (isAdvance) {
+    tags.push({ key: 'advance-role', label: '垫付', theme: 'warning' })
+  }
+  if (isReimburseOther) {
+    tags.push({ key: 'reimburse-role', label: '报销他人', theme: 'primary' })
+  }
+  if (hasLinkedDetail) {
+    tags.push({
+      key: 'linked-status',
+      label: detail.linkedUserNickname ? `已关联·${detail.linkedUserNickname}` : '已关联',
+      theme: 'success',
+    })
+  } else if (isAdvance) {
+    tags.push({ key: 'advance-status', label: '待报销', theme: 'warning' })
+  } else if (isReimburseOther) {
+    tags.push({ key: 'reimburse-status', label: '待关联', theme: 'default' })
+  }
+  return tags
+}
+
+/** 将关联说明拆成对象/明细/日期三行，便于移动端纵向阅读。 */
+const buildLinkedDetailInfo = (detail?: DetailResp | null): MobileLinkedDetailInfoItem[] => {
+  if (!detail?.linkedDetailId) return []
+  return [
+    {
+      key: 'user',
+      label: '关联对象',
+      value: detail.linkedUserNickname || '未识别',
+    },
+    {
+      key: 'detail',
+      label: '关联明细',
+      value: detail.linkedDetailName || '未识别',
+    },
+    {
+      key: 'date',
+      label: '关联日期',
+      value: detail.linkedDetailDate || '未识别',
+    },
+  ]
 }
 
 const isNecessaryLabel = (value: number) => (Number(value) === 1 ? '必要' : '非必要')
@@ -1434,8 +1545,8 @@ onUnmounted(() => {
   gap: 6px;
   width: 100%;
   min-width: 0;
-  flex-wrap: nowrap;
-  overflow: hidden;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 
 .mobile-detail-row__payment-tag {
@@ -1586,16 +1697,28 @@ onUnmounted(() => {
 }
 
 .mobile-bottom-sheet {
-  padding: 0 0 calc(8px + env(safe-area-inset-bottom));
+  height: 100vh;
+  height: 100dvh;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .mobile-bottom-sheet__panel {
-  padding: 20px 16px 16px;
-  border-radius: 26px 26px 0 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  border-radius: 0;
   background:
     radial-gradient(circle at top right, rgba(249, 216, 109, 0.25) 0%, transparent 36%),
     linear-gradient(180deg, #fffdf8 0%, #f8f3eb 100%);
-  box-shadow: 0 -12px 28px rgba(65, 45, 11, 0.1);
+  box-shadow: none;
 }
 
 .mobile-bottom-sheet__header {
@@ -1630,6 +1753,7 @@ onUnmounted(() => {
 .mobile-bottom-sheet__stack {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  flex-shrink: 0;
   gap: 12px;
   margin-top: 14px;
   padding-top: 8px;
@@ -1669,11 +1793,52 @@ onUnmounted(() => {
   word-break: break-all;
 }
 
+.mobile-bottom-sheet__linked-detail-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  width: min(100%, 260px);
+  text-align: right;
+}
+
+.mobile-bottom-sheet__linked-detail-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.mobile-bottom-sheet__linked-detail-label {
+  color: #9a8666;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.mobile-bottom-sheet__linked-detail-value {
+  color: #3b2a16;
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
 .mobile-bottom-sheet__detail-tag-wrap {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   min-width: 0;
+}
+
+.mobile-bottom-sheet__detail-tag-wrap--multi {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .mobile-bottom-sheet__detail-tag {

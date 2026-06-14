@@ -16,13 +16,13 @@
       </a-space>
       <a-space wrap class="gi-table__toolbar-right" :size="[8, 8]">
         <slot name="toolbar-right"></slot>
-        <a-tooltip content="鍒锋柊">
+        <a-tooltip content="刷新">
           <a-button v-if="showRefreshBtn" @click="handleRefresh">
             <template #icon><icon-refresh /></template>
           </a-button>
         </a-tooltip>
         <a-dropdown v-if="showSizeBtn" @select="handleSizeChange">
-          <a-tooltip content="灏哄">
+          <a-tooltip content="尺寸">
             <a-button>
               <template #icon><icon-table-size style="width: 14px; height: 14px" /></template>
             </a-button>
@@ -42,7 +42,7 @@
           :table-id="tableId"
           @visible-columns-change="handleVisibleColumnsChange"
         />
-        <a-tooltip content="鍏ㄥ睆">
+        <a-tooltip content="全屏">
           <a-button v-if="showFullscreenBtn" @click="toggleFullscreen">
             <template #icon>
               <icon-fullscreen v-if="!isFullscreen" />
@@ -87,7 +87,7 @@ import ColumnSetting from './components/ColumnSetting.vue'
 
 defineOptions({ name: 'GiTable' })
 
-// Props 榛樿鍊?
+// Props 默认值
 const props = withDefaults(defineProps<Props>(), {
   title: '',
   disabledColumnKeys: () => [],
@@ -95,14 +95,14 @@ const props = withDefaults(defineProps<Props>(), {
   data: () => [],
 })
 
-/** Emits 绫诲瀷瀹氫箟 */
+/** Emits 类型定义 */
 const emit = defineEmits<{
   (e: 'refresh'): void
   (e: 'update:columns', columns: TableColumnData[]): void
   (e: 'change', ...args: any[]): void
 }>()
 
-/** Slots 绫诲瀷瀹氫箟 */
+/** Slots 类型定义 */
 defineSlots<{
   'th': (props: { column: TableColumnData }) => void
   'thead': () => void
@@ -126,24 +126,24 @@ defineSlots<{
   [propsName: string]: (props: { key: string, record: T, column: TableColumnData, rowIndex: number }) => void
 }>()
 
-/** Props 绫诲瀷瀹氫箟 */
+/** Props 类型定义 */
 interface Props extends TableProps {
-  /** 琛ㄦ牸鏍囬 */
+  /** 表格标题 */
   title?: string
-  /** 绂佹鎺у埗鏄剧ず闅愯棌鐨勫垪 */
+  /** 禁止在列设置中控制显示/隐藏的列 */
   disabledColumnKeys?: string[]
-  /** 绂佹鏄剧ず鐨勫伐鍏?*/
+  /** 禁止显示的工具 */
   disabledTools?: string[]
-  /** 琛ㄦ牸鏁版嵁 */
+  /** 表格数据 */
   data: T[]
-  /** 琛ㄦ牸鏍囪瘑锛岀敤浜庡瓨鍌ㄥ垪璁剧疆 */
+  /** 表格标识，用于存储列设置 */
   tableId?: string
 }
 
 const slots = useSlots()
 const attrs = useAttrs()
 
-/** 缁勪欢鐘舵€?*/
+/** 组件状态 */
 const tableRef = useTemplateRef('tableRef')
 const columnSettingRef = ref<InstanceType<typeof ColumnSetting> | null>(null)
 const stripe = ref(false)
@@ -151,27 +151,27 @@ const size = ref<TableInstance['size']>('large')
 const isBordered = ref(false)
 const isFullscreen = ref(false)
 
-/** 琛ㄦ牸灏哄閫夐」 */
+/** 表格尺寸选项 */
 const TABLE_SIZE_OPTIONS = [
-  { label: '杩蜂綘', value: 'mini' },
-  { label: '灏忓瀷', value: 'small' },
-  { label: '涓瓑', value: 'medium' },
-  { label: '澶у瀷', value: 'large' },
+  { label: '迷你', value: 'mini' },
+  { label: '小型', value: 'small' },
+  { label: '中等', value: 'medium' },
+  { label: '大型', value: 'large' },
 ] as const
 
-/** 澶勭悊琛ㄦ牸灏哄鍙樻洿 */
+/** 处理表格尺寸变更 */
 const handleSizeChange: DropdownInstance['onSelect'] = (value) => {
   if (value) {
     size.value = value as TableInstance['size']
   }
 }
 
-/** 澶勭悊琛ㄦ牸鍒锋柊 */
+/** 处理表格刷新 */
 const handleRefresh = () => {
   emit('refresh')
 }
 
-/** 鍒囨崲鍏ㄥ睆鐘舵€?*/
+/** 切换全屏状态 */
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value
 }
@@ -179,39 +179,40 @@ const toggleFullscreen = () => {
 const showRefreshBtn = computed(() => !props.disabledTools?.includes('refresh'))
 const showSizeBtn = computed(() => !props.disabledTools?.includes('size'))
 const showFullscreenBtn = computed(() => !props.disabledTools?.includes('fullscreen'))
-/** 鍒楄缃浉鍏抽€昏緫 */
+/** 列设置相关逻辑 */
 const showSettingColumnBtn = computed(() => {
   const columns = props.columns as TableColumnData[] | undefined
   return !props.disabledTools?.includes('setting') && Boolean(columns?.length)
 })
 
-/** 鍐呴儴缁存姢鍒楁暟鎹?*/
+/** 内部维护的列数据 */
 const innerColumns = ref<TableColumnData[]>([])
 
-/** 鐩戝惉 props.columns 鍙樺寲 */
+/** 监听 props.columns 变化 */
 watch(() => props.columns, (newColumns) => {
   innerColumns.value = newColumns ? [...newColumns] : []
 }, { immediate: true, flush: 'sync' })
 
-/** 瀹為檯鏄剧ず鐨勫垪锛堢敱 ColumnSetting 缁勪欢璁＄畻锛?*/
+/** 实际显示的列，由 ColumnSetting 组件计算 */
 const tableColumns = ref<TableColumnData[]>([])
 
-/** 澶勭悊鍒楄缃粍浠剁殑鍙鍒楀彉鍖?*/
+/** 处理列设置组件抛出的可见列变化 */
 const handleVisibleColumnsChange = (columns: TableColumnData[]) => {
   tableColumns.value = columns
 }
 
-/** 琛ㄦ牸灞炴€ц绠?*/
+/** 表格属性计算 */
 const tableProps = computed(() => ({
   ...omit(props, ['title', 'disabledColumnKeys', 'disabledTools']),
   ...attrs,
 }))
 
 /**
- * 鍒楀悎骞跺叧閿€笺€?
+ * 列合并的关键值
  *
- * 琛ㄦ牸鏀寔鍒楄缃€佹帓搴忕瓑鍔ㄦ€佸睍绀恒€傚綋鐖剁粍浠剁殑 columns 鍙戠敓鍙樺寲鏃讹紝
- * 闇€瑕佺敤鏈€鏂扮殑鍒楀畾涔夎鐩栨湰鍦板彲瑙佸垪锛屼絾淇濈暀鐢ㄦ埛宸插湪鍒楄缃腑璋冩暣鐨勯『搴忋€佸浐瀹氬拰瀹藉害銆? */
+ * 表格支持列设置、排序等动态展示。当父组件的 columns 发生变化时，
+ * 需要用最新的列定义覆盖本地可见列，但保留用户已在列设置中调整的顺序、固定和宽度。
+ */
 const resolveColumnKey = (column: TableColumnData) => {
   if (column.dataIndex) {
     return String(column.dataIndex)
@@ -229,7 +230,7 @@ const columnSettingKey = computed(() => (props.columns ?? [])
   .map(resolveColumnKey)
   .join('|'))
 
-/** 鐢ㄦ渶鏂扮殑鍒楀畾涔夊悓姝ユ湰鍦板凡閫夊垪锛岄伩鍏嶆帓搴忕姸鎬佺瓑鍔ㄦ€佸睘鎬у仠鐣欏湪鏃ц涓娿€? */
+/** 用最新的列定义同步本地已选列，避免排序状态等动态属性停留在旧列上。 */
 const mergeVisibleColumns = (latestColumns: TableColumnData[], currentColumns: TableColumnData[]) => {
   const currentColumnMap = new Map(
     currentColumns.map(column => [resolveColumnKey(column), column]),
@@ -253,7 +254,7 @@ const mergeVisibleColumns = (latestColumns: TableColumnData[], currentColumns: T
     .filter(column => column.show !== false)
 }
 
-/** 璁＄畻鏄剧ず鐨勫垪 */
+/** 计算显示的列 */
 const visibleColumns = computed(() => {
   const latestColumns = props.columns ?? []
   if (tableColumns.value.length > 0) {
@@ -263,9 +264,9 @@ const visibleColumns = computed(() => {
   return latestColumns.filter(col => col.show !== false)
 })
 
-// 澶勭悊琛ㄦ牸鍙樺寲鐨勫嚱鏁?
+// 处理表格变化的函数
 const handleTableChange = (...args: any[]) => {
-  // 灏嗘帴鏀跺埌鐨勫弬鏁颁紶閫掔粰鐖剁粍浠?
+  // 将接收到的参数透传给父组件
   emit('change', ...args)
 }
 

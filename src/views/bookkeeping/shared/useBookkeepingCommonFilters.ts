@@ -336,7 +336,9 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       field: 'userId',
       span: userConfig.span ?? { xs: 24, sm: 12, xxl: 6 },
       props: {
-        options: userQueryOptions,
+        get options() {
+          return userQueryOptions.value
+        },
         placeholder: userConfig.placeholder,
         allowClear: userConfig.allowClear,
         allowSearch: userConfig.allowSearch,
@@ -350,7 +352,9 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       field: 'category',
       span: categoryConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
       props: {
-        options: categoryQueryOptions,
+        get options() {
+          return categoryQueryOptions.value
+        },
         placeholder: categoryConfig.placeholder,
         allowClear: categoryConfig.allowClear,
         allowSearch: categoryConfig.allowSearch,
@@ -364,7 +368,9 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       field: 'subjectId',
       span: subjectConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
       props: {
-        options: subjectQueryOptions,
+        get options() {
+          return subjectQueryOptions.value
+        },
         placeholder: subjectConfig.placeholder,
         allowClear: subjectConfig.allowClear,
         allowSearch: subjectConfig.allowSearch,
@@ -378,7 +384,9 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       field: 'tagId',
       span: tagConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
       props: {
-        options: tagQueryOptions,
+        get options() {
+          return tagQueryOptions.value
+        },
         placeholder: tagConfig.placeholder,
         allowClear: tagConfig.allowClear,
         allowSearch: tagConfig.allowSearch,
@@ -392,7 +400,9 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       field: 'paymentMethod',
       span: paymentMethodConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
       props: {
-        options: paymentMethodQueryOptions,
+        get options() {
+          return paymentMethodQueryOptions.value
+        },
         placeholder: paymentMethodConfig.placeholder,
         allowClear: paymentMethodConfig.allowClear,
         allowSearch: paymentMethodConfig.allowSearch,
@@ -406,7 +416,9 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       field: 'paymentAccountId',
       span: paymentAccountConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
       props: {
-        options: paymentAccountQueryOptions,
+        get options() {
+          return paymentAccountQueryOptions.value
+        },
         placeholder: paymentAccountConfig.placeholder,
         allowClear: paymentAccountConfig.allowClear,
         allowSearch: paymentAccountConfig.allowSearch,
@@ -420,7 +432,9 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       field: 'isNecessary',
       span: isNecessaryConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
       props: {
-        options: isNecessaryQueryOptions,
+        get options() {
+          return isNecessaryQueryOptions.value
+        },
         placeholder: isNecessaryConfig.placeholder,
         allowClear: isNecessaryConfig.allowClear,
         allowSearch: isNecessaryConfig.allowSearch,
@@ -435,7 +449,9 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       field: 'isReimburseOther',
       span: isReimburseOtherConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
       props: {
-        options: isNecessaryQueryOptions,
+        get options() {
+          return isNecessaryQueryOptions.value
+        },
         allowClear: isReimburseOtherConfig.allowClear,
         allowSearch: isReimburseOtherConfig.allowSearch,
         placeholder: isReimburseOtherConfig.placeholder,
@@ -450,7 +466,9 @@ export const useBookkeepingCommonFilters = <TForm extends CommonFilterForm>(
       field: 'isAdvance',
       span: isAdvanceConfig.span ?? { xs: 24, sm: 8, xxl: 6 },
       props: {
-        options: isNecessaryQueryOptions,
+        get options() {
+          return isNecessaryQueryOptions.value
+        },
         allowClear: isAdvanceConfig.allowClear,
         allowSearch: isAdvanceConfig.allowSearch,
         placeholder: isAdvanceConfig.placeholder,

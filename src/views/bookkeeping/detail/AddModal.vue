@@ -9,7 +9,17 @@
     @before-ok="save"
     @close="reset"
   >
-    <GiForm ref="formRef" v-model="form" :columns="columns" :layout="formLayout" :size="formSize" />
+    <div class="detail-form-wrapper">
+      <a-alert
+        v-if="showReimburseRoleLockedNotice"
+        class="reimburse-role-lock-alert"
+        type="warning"
+        show-icon
+      >
+        该明细已存在报销关联，请先取消关联后再修改“是否报销他人”和“是否垫付”。
+      </a-alert>
+      <GiForm ref="formRef" v-model="form" :columns="columns" :layout="formLayout" :size="formSize" />
+    </div>
   </a-modal>
 </template>
 
@@ -90,6 +100,7 @@ const visible = ref(false)
 const isUpdate = computed(() => !!dataId.value)
 const title = computed(() => (isUpdate.value ? '修改明细' : '新增明细'))
 const formRef = ref<InstanceType<typeof GiForm>>()
+const linkedDetailId = ref('')
 
 interface AddForUserOptions {
   userId: string | number
@@ -132,6 +143,8 @@ const isReimburseOtherOptions = computed<LabelValueState[]>(() => {
   }))
 })
 const isAdvanceOptions = isReimburseOtherOptions
+// 已关联报销关系的明细不允许在编辑弹窗里直接改角色字段，避免前后关系被改乱。
+const showReimburseRoleLockedNotice = computed(() => isUpdate.value && !!linkedDetailId.value)
 
 const [form, resetForm] = useResetReactive({
   detailDate: new Date().toISOString().slice(0, 10),
@@ -254,6 +267,7 @@ const columns: ColumnItem[] = reactive([
     type: 'radio-group',
     span: 24,
     show: () => form.category === 'expense',
+    disabled: () => showReimburseRoleLockedNotice.value,
     props: { options: isReimburseOtherOptions },
   },
   // 表单只负责标记当前明细的报销角色；真正的双向关联在列表操作列中完成。
@@ -264,6 +278,7 @@ const columns: ColumnItem[] = reactive([
     type: 'radio-group',
     span: 24,
     show: () => form.category === 'expense' && form.isReimburseOther !== 1,
+    disabled: () => showReimburseRoleLockedNotice.value,
     props: { options: isAdvanceOptions },
   },
   {
@@ -436,6 +451,7 @@ watch(() => form.isReimburseOther, (val) => {
 const reset = () => {
   formRef.value?.formRef?.resetFields()
   resetForm()
+  linkedDetailId.value = ''
   subjectTagOptions.value = [{ label: '不选择标签', value: '' }]
 }
 
@@ -531,6 +547,7 @@ const onUpdate = async (id: string) => {
   }
   await Promise.all(tasks)
   const { data } = await getDetail(id)
+  linkedDetailId.value = String(data.linkedDetailId ?? '')
   await loadPaymentAccountOptions(data.userId)
   // 金额取绝对值回显（后端存储带正负号）
   if (data.amount != null) {
@@ -616,5 +633,15 @@ defineExpose({ onAdd, onAddForUser, onUpdate })
       }
     }
   }
+}
+
+.detail-form-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reimburse-role-lock-alert {
+  margin-bottom: 4px;
 }
 </style>

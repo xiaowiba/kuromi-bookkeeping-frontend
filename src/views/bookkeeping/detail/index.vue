@@ -825,6 +825,10 @@ const handleUserQueryChange = () => {
   triggerQuerySearch()
 }
 
+const handleHiddenQueryChange = () => {
+  triggerQuerySearch()
+}
+
 /**
  * 表头排序已移除，统一改为搜索区排序条件，避免排序入口分散。
  */
@@ -884,17 +888,17 @@ const commonQueryColumns = createCommonQueryColumns({
     onChange: handlePaymentAccountQueryChange,
   },
   isNecessary: {
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
     useRadioGroup: true,
     onChange: handleIsNecessaryQueryChange,
   },
   isReimburseOther: {
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
     useRadioGroup: true,
     onChange: handleIsReimburseOtherQueryChange,
   },
   isAdvance: {
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
     useRadioGroup: true,
     onChange: handleIsAdvanceQueryChange,
   },
@@ -904,21 +908,12 @@ const queryFormColumns: ColumnItem[] = reactive([
   {
     label: '时间范围',
     field: 'timeFilter',
-    span: { xs: 24, sm: 24, xl: 18, xxl: 18 },
-  },
-  {
-    type: 'input',
-    label: '明细名称',
-    field: 'name',
-    span: { xs: 24, sm: 24, xl: 6, xxl: 6 },
-    props: {
-      placeholder: '请输入明细名称',
-    },
+    span: { xs: 24, sm: 24, xxl: 24 },
   },
   {
     label: '排序方式',
     field: 'sortMode',
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
     type: 'radio-group',
     props: {
       options: detailSortModeOptions,
@@ -927,6 +922,23 @@ const queryFormColumns: ColumnItem[] = reactive([
       onChange: handleSortModeChange,
     },
   },
+  {
+    type: 'input',
+    label: '明细名称',
+    field: 'name',
+    span: { xs: 24, sm: 8, xxl: 8 },
+    props: {
+      placeholder: '请输入明细名称',
+    },
+  },
+  // 备注模糊查询（仅明细管理独有）
+  {
+    label: '备注',
+    field: 'remark',
+    type: 'input',
+    span: { xs: 24, sm: 8, xxl: 8 },
+    props: { placeholder: '备注关键字搜索', allowClear: true },
+  },
   commonQueryColumns.userColumn,
   commonQueryColumns.categoryColumn,
   commonQueryColumns.subjectColumn,
@@ -934,16 +946,8 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.paymentMethodColumn,
   commonQueryColumns.paymentAccountColumn,
   commonQueryColumns.isNecessaryColumn,
-  commonQueryColumns.isReimburseOtherColumn,
   commonQueryColumns.isAdvanceColumn,
-  // 备注模糊查询（仅明细管理独有）
-  {
-    label: '备注',
-    field: 'remark',
-    type: 'input',
-    span: 24,
-    props: { placeholder: '备注关键字搜索', allowClear: true },
-  },
+  commonQueryColumns.isReimburseOtherColumn,
   {
     label: '是否隐藏',
     field: 'hidden',
@@ -958,6 +962,7 @@ const queryFormColumns: ColumnItem[] = reactive([
       ],
       placeholder: '请选择',
       allowClear: true,
+      onChange: handleHiddenQueryChange,
     },
   },
 ])

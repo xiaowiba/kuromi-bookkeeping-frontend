@@ -338,6 +338,14 @@
                       <a-tag size="small" :color="item.isNecessary === 1 ? 'green' : 'gray'">
                         {{ item.isNecessary === 1 ? '必要' : '非必要' }}
                       </a-tag>
+                      <a-tag
+                        v-for="tag in buildDayDetailReimburseTags(item)"
+                        :key="`${item.id}-${tag.key}`"
+                        size="small"
+                        :color="tag.color"
+                      >
+                        {{ tag.label }}
+                      </a-tag>
                       <a-tag size="small">{{ item.userName }}</a-tag>
                       <a-tag v-if="privacyStore.isPrivacyMode && item.hidden === 1" size="small" color="orangered">隐</a-tag>
                     </div>
@@ -502,18 +510,18 @@ const commonQueryColumns = createCommonQueryColumns({
     onChange: () => triggerSearch(),
   },
   isNecessary: {
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
     useRadioGroup: true,
     placeholder: '请选择是否必要',
     onChange: () => triggerSearch(),
   },
   isReimburseOther: {
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
     useRadioGroup: true,
     onChange: () => triggerSearch(),
   },
   isAdvance: {
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
     useRadioGroup: true,
     onChange: () => triggerSearch(),
   },
@@ -537,8 +545,8 @@ const queryFormColumns: ColumnItem[] = reactive([
   commonQueryColumns.paymentMethodColumn,
   commonQueryColumns.paymentAccountColumn,
   commonQueryColumns.isNecessaryColumn,
-  commonQueryColumns.isReimburseOtherColumn,
   commonQueryColumns.isAdvanceColumn,
+  commonQueryColumns.isReimburseOtherColumn,
 ])
 
 const calendarWeekdays = CALENDAR_WEEKDAY_LABELS
@@ -662,6 +670,41 @@ const resolvedDayDetailItems = computed(() => {
     paymentMethodLabel: resolveReportPaymentMethodLabel(item.paymentMethod, item.paymentMethodLabel, paymentMethodQueryOptions.value),
   }))
 })
+
+interface DayDetailReimburseTag {
+  key: string
+  label: string
+  color: string
+}
+
+/**
+ * 为日历右侧单日明细补充报销语义标签，保持和明细管理页一致的角色/关联状态表达。
+ */
+const buildDayDetailReimburseTags = (item: T.ReportCalendarDayDetailItemResp): DayDetailReimburseTag[] => {
+  const tags: DayDetailReimburseTag[] = []
+  const isAdvance = Number(item.isAdvance) === 1
+  const isReimburseOther = Number(item.isReimburseOther) === 1
+  const hasLinkedDetail = !!item.linkedDetailId
+
+  if (isAdvance) {
+    tags.push({ key: 'advance-role', label: '垫付', color: 'orange' })
+  }
+  if (isReimburseOther) {
+    tags.push({ key: 'reimburse-role', label: '报销他人', color: 'arcoblue' })
+  }
+  if (hasLinkedDetail) {
+    tags.push({
+      key: 'linked-status',
+      label: item.linkedUserNickname ? `已关联·${item.linkedUserNickname}` : '已关联',
+      color: 'green',
+    })
+  } else if (isAdvance) {
+    tags.push({ key: 'advance-status', label: '待报销', color: 'gold' })
+  } else if (isReimburseOther) {
+    tags.push({ key: 'reimburse-status', label: '待关联', color: 'gray' })
+  }
+  return tags
+}
 
 /**
  * 组装日历报表查询参数。

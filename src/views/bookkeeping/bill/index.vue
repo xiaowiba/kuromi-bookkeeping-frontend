@@ -31,17 +31,17 @@
           </template>
           <template #userId>
             <div class="bill-query-radio-scroll">
-              <a-radio-group v-model="queryForm.userId" :options="userQueryOptions" />
+              <a-radio-group v-model="queryForm.userId" :options="userQueryOptions" @change="triggerQuerySearch" />
             </div>
           </template>
           <template #category>
             <div class="bill-query-radio-scroll">
-              <a-radio-group v-model="queryForm.category" :options="categoryQueryOptions" />
+              <a-radio-group v-model="queryForm.category" :options="categoryQueryOptions" @change="triggerQuerySearch" />
             </div>
           </template>
           <template #subjectId>
             <div class="bill-query-radio-scroll">
-              <a-radio-group v-model="queryForm.subjectId" :options="subjectQueryOptions" />
+              <a-radio-group v-model="queryForm.subjectId" :options="subjectQueryOptions" @change="triggerQuerySearch" />
             </div>
           </template>
           <template #tagId>
@@ -50,6 +50,7 @@
                 v-model="queryForm.tagId"
                 :options="tagQueryOptions"
                 :disabled="!queryForm.subjectId"
+                @change="triggerQuerySearch"
               />
             </div>
           </template>
@@ -58,6 +59,7 @@
               <a-radio-group
                 v-model="queryForm.paymentMethod"
                 :options="paymentMethodQueryOptions"
+                @change="triggerQuerySearch"
               />
             </div>
           </template>
@@ -66,6 +68,7 @@
               <a-radio-group
                 v-model="queryForm.paymentAccountId"
                 :options="paymentAccountQueryOptions"
+                @change="triggerQuerySearch"
               />
             </div>
           </template>
@@ -74,6 +77,7 @@
               <a-radio-group
                 v-model="queryForm.isNecessary"
                 :options="isNecessaryQueryOptions"
+                @change="triggerQuerySearch"
               />
             </div>
           </template>
@@ -82,6 +86,7 @@
               <a-radio-group
                 v-model="queryForm.hidden"
                 :options="hiddenQueryOptions"
+                @change="triggerQuerySearch"
               />
             </div>
           </template>
@@ -141,7 +146,7 @@
  * @date 2026-04-26
  */
 import { Message } from '@arco-design/web-vue'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import type { TableColumnData } from '@arco-design/web-vue'
 import { createEmptyMonthlyBillResp, createEmptyYearlyBillResp, getMonthlyBill, getYearlyBill } from '@/apis/bookkeeping/bill'
 import type * as T from '@/apis/bookkeeping/type'
@@ -214,38 +219,47 @@ const commonQueryColumns = createCommonQueryColumns({
   user: {
     span: { xs: 24, sm: 12, xxl: 12 },
     useRadioGroup: true,
+    onChange: triggerQuerySearch,
   },
   category: {
     span: { xs: 24, sm: 12, xxl: 12 },
     useRadioGroup: true,
+    onChange: triggerQuerySearch,
   },
   subject: {
     span: { xs: 24, sm: 24, xxl: 24 },
     useRadioGroup: true,
+    onChange: triggerQuerySearch,
   },
   tag: {
     span: { xs: 24, sm: 24, xxl: 24 },
     useRadioGroup: true,
+    onChange: triggerQuerySearch,
   },
   paymentMethod: {
     span: { xs: 24, sm: 24, xxl: 24 },
     useRadioGroup: true,
+    onChange: triggerQuerySearch,
   },
   paymentAccount: {
     span: { xs: 24, sm: 24, xxl: 24 },
     useRadioGroup: true,
+    onChange: triggerQuerySearch,
   },
   isNecessary: {
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
     useRadioGroup: true,
+    onChange: triggerQuerySearch,
   },
   isReimburseOther: {
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
     useRadioGroup: true,
+    onChange: triggerQuerySearch,
   },
   isAdvance: {
-    span: { xs: 24, sm: 24, xxl: 24 },
+    span: { xs: 24, sm: 8, xxl: 8 },
     useRadioGroup: true,
+    onChange: triggerQuerySearch,
   },
 })
 
@@ -276,8 +290,8 @@ const queryFormColumns: ColumnItem[] = [
   commonQueryColumns.paymentMethodColumn,
   commonQueryColumns.paymentAccountColumn,
   commonQueryColumns.isNecessaryColumn,
-  commonQueryColumns.isReimburseOtherColumn,
   commonQueryColumns.isAdvanceColumn,
+  commonQueryColumns.isReimburseOtherColumn,
   {
     type: 'radio-group',
     label: '是否隐藏',
@@ -484,6 +498,10 @@ function reset() {
     queryForm.userId = ''
   }
   searchMethod()
+}
+
+function triggerQuerySearch() {
+  void nextTick(() => searchMethod())
 }
 
 function handleBillTypeChange() {

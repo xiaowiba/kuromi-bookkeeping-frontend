@@ -243,18 +243,26 @@
       <!-- 右侧：新增明细表单 -->
       <div class="right-panel">
         <div class="panel-title">为公户新增明细</div>
-        <div class="add-action-area" style="text-align: center; padding: 40px 0;">
-          <a-space direction="vertical" align="center" fill>
-            <a-button type="outline" @click="openAddForUser">
-              <template #icon><icon-plus /></template>
-              立即新增公户明细
-            </a-button>
-            <span style="font-size: 12px; color: var(--color-text-3);">
-              新增后将自动出现在左侧候选列表中
-            </span>
-          </a-space>
-        </div>
-        <AddModal ref="addModalRef" @save-success="onAddSuccess" />
+        <a-spin :loading="loading" style="width: 100%;">
+          <template v-if="selectedPublicUserId">
+            <div class="inline-add-wrapper">
+              <a-alert type="info" :show-icon="false" class="inline-add-alert">
+                暂无可关联的垫付明细，请直接在下方录入：
+              </a-alert>
+              <div class="inline-add-form-container">
+                <DetailForm ref="inlineFormRef" @save-success="onAddSuccess" />
+                <div class="inline-action-bar">
+                  <a-space>
+                    <a-button type="primary" @click="submitInlineForm">保存并刷新</a-button>
+                  </a-space>
+                </div>
+              </div>
+            </div>
+          </template>
+          <div v-else class="empty-tip">
+            <a-empty description="请先在左侧选择需要报销关联的公户" />
+          </div>
+        </a-spin>
       </div>
     </div>
   </a-modal>
@@ -271,9 +279,9 @@
  * @update 2026-06-07 @Codex
  * @desc 右侧快捷新增不再手工传 isReimbursed，关联完成后由后端按真实双向关系自动派生
  */
-import { Message } from '@arco-design/web-vue'
-import { computed, ref, reactive } from 'vue'
-import AddModal from './AddModal.vue'
+import { Message, Modal } from '@arco-design/web-vue'
+import { computed, ref, reactive, watch, nextTick } from 'vue'
+import DetailForm from './DetailForm.vue'
 import { linkReimburse, listReimburseCandidates } from '@/apis/bookkeeping/detail'
 import type { DetailResp } from '@/apis/bookkeeping/type'
 import { useDetailUserOptions } from '../shared/useDetailUserOptions'
@@ -309,7 +317,29 @@ const selectedPublicUserId = ref('')
 const selectedDetailId = ref('')
 const selectedKeys = computed(() => selectedDetailId.value ? [selectedDetailId.value] : [])
 const candidateList = ref<DetailResp[]>([])
-const addModalRef = ref<InstanceType<typeof AddModal>>()
+const inlineFormRef = ref<InstanceType<typeof DetailForm>>()
+
+const submitInlineForm = async () => {
+  await inlineFormRef.value?.save()
+}
+
+// 当选择的公户变化时，重新初始化右侧的新增表单
+watch(() => selectedPublicUserId.value, (newId) => {
+  if (newId && visible.value) {
+    setTimeout(() => {
+      inlineFormRef.value?.onAddForUser({
+        userId: newId,
+        category: 'expense',
+        isAdvance: 0,
+        isReimburseOther: 1,
+        amount: Math.abs(Number(props.sourceDetail?.amount ?? 0)),
+        amountDisabled: true,
+        categoryDisabled: true,
+        isReimburseOtherDisabled: true,
+      })
+    }, 0)
+  }
+})
 
 // 用户选项
 const { userOptions, loadUserOptions } = useDetailUserOptions()
@@ -699,20 +729,6 @@ function open() {
   loadCommonFilterOptions()
 }
 
-/** 打开右侧新增表单 */
-function openAddForUser() {
-  if (!selectedPublicUserId.value) {
-    Message.warning('请先选择公户')
-    return
-  }
-  addModalRef.value?.onAddForUser({
-    userId: selectedPublicUserId.value,
-    category: 'expense',
-    isReimburseOther: 1,
-    isAdvance: 0,
-  })
-}
-
 defineExpose({ open })
 </script>
 
@@ -725,6 +741,7 @@ defineExpose({ open })
 
 .left-panel {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -732,9 +749,12 @@ defineExpose({ open })
 }
 
 .right-panel {
-  width: 380px;
+  flex: 1;
+  min-width: 0;
   border-left: 1px solid var(--color-border-2);
   padding-left: 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .panel-title {
@@ -986,6 +1006,28 @@ defineExpose({ open })
   .detail-time-filter__range-text {
     width: 100%;
     white-space: normal;
+  }
+}
+.inline-add-wrapper {
+  padding: 16px;
+  background-color: var(--color-bg-2);
+  border-radius: 4px;
+  border: 1px dashed var(--color-border-3);
+  
+  .inline-add-alert {
+    margin-bottom: 16px;
+  }
+  
+  .inline-add-form-container {
+    padding: 0 8px;
+    
+    .inline-action-bar {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 16px;
+      border-top: 1px solid var(--color-border-2);
+    }
   }
 }
 </style>

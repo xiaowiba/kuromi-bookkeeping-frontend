@@ -4,24 +4,54 @@
       <!-- 左侧：搜索 + 信息卡 + 候选列表 -->
       <div class="left-panel">
         <!-- 当前垫付明细信息卡 -->
-        <a-card class="info-card" :bordered="false">
-          <template #title>
-            <span class="card-title">当前垫付明细</span>
-          </template>
-          <a-descriptions :column="2" size="small">
-            <a-descriptions-item label="名称">{{ sourceDetail?.name }}</a-descriptions-item>
-            <a-descriptions-item label="金额">{{ Math.abs(sourceDetail?.amount || 0) }}</a-descriptions-item>
-            <a-descriptions-item label="日期">{{ sourceDetail?.detailDate }}</a-descriptions-item>
-            <a-descriptions-item label="科目">{{ sourceDetail?.subjectName }}</a-descriptions-item>
-          </a-descriptions>
-        </a-card>
+        <div class="source-detail-banner">
+          <div class="banner-title-group">
+            <icon-info-circle class="banner-icon" />
+            <span class="banner-title">当前垫付明细</span>
+          </div>
+          <div class="banner-divider"></div>
+          <div class="banner-content-inline">
+            <div class="info-item" title="日期">
+              <icon-calendar class="info-icon" />
+              <span class="info-value">{{ sourceDetail?.detailDate || '--' }}</span>
+            </div>
+            <div class="info-item" title="所属用户">
+              <icon-user class="info-icon" />
+              <span class="info-value">{{ sourceDetail?.userNickname || '--' }}</span>
+            </div>
+            <div class="info-item" title="标签">
+              <icon-tag class="info-icon" />
+              <span class="info-value tag-text">{{ sourceDetail?.tagName || '--' }}</span>
+            </div>
+            <div class="info-item" title="明细名称">
+              <icon-bookmark class="info-icon" />
+              <span class="info-value name-value" :title="sourceDetail?.name">{{ sourceDetail?.name || '--' }}</span>
+            </div>
+            <div class="info-item" title="金额">
+              <span class="info-icon amount-icon">¥</span>
+              <span class="info-value amount-value">{{ Math.abs(sourceDetail?.amount || 0).toFixed(2) }}</span>
+            </div>
+            <div class="info-item" title="备注">
+              <icon-message class="info-icon" />
+              <span class="info-value remark-value" :title="sourceDetail?.remark">{{ sourceDetail?.remark || '--' }}</span>
+            </div>
+          </div>
+        </div>
 
         <!-- 搜索区 -->
         <div class="search-area">
           <a-space direction="vertical" size="medium" fill>
             <!-- 顶层必须选择账户 -->
-            <a-select v-model="selectedPublicUserId" placeholder="请选择公户 (必须)" allow-clear allow-search
-              :options="filteredUserOptions" @change="onPublicUserChange" />
+            <div class="public-user-selector">
+              <div class="public-user-selector__label">请选择公户</div>
+              <div class="subject-query-radio-scroll">
+                <a-radio-group
+                  v-model="selectedPublicUserId"
+                  :options="filteredUserOptions"
+                  @change="onPublicUserChange"
+                />
+              </div>
+            </div>
               
             <!-- 过滤条件表单 -->
             <GiForm
@@ -415,27 +445,30 @@ const queryFormColumns = computed<ColumnItem[]>(() => [
     field: 'timeFilter',
     span: 24,
   },
-  {
-    type: 'input',
-    label: '明细名称',
-    field: 'name',
-    span: 24,
-    props: {
-      placeholder: '请输入明细名称',
-      allowClear: true,
-    },
-  },
   commonQueryColumns.categoryColumn,
   commonQueryColumns.subjectColumn,
   commonQueryColumns.tagColumn,
   commonQueryColumns.paymentMethodColumn,
   commonQueryColumns.paymentAccountColumn,
-  commonQueryColumns.isNecessaryColumn,
+  {
+    ...commonQueryColumns.isNecessaryColumn,
+    span: 8,
+  },
+  {
+    type: 'input',
+    label: '明细名称',
+    field: 'name',
+    span: 8,
+    props: {
+      placeholder: '请输入明细名称',
+      allowClear: true,
+    },
+  },
   {
     type: 'input',
     label: '备注',
     field: 'remark',
-    span: 24,
+    span: 8,
     props: {
       placeholder: '备注关键字搜索',
       allowClear: true,
@@ -711,21 +744,129 @@ defineExpose({ open })
   color: var(--color-text-1);
 }
 
-.info-card {
-  :deep(.arco-card-body) {
-    padding: 12px;
-  }
-}
+.source-detail-banner {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(to right, rgba(var(--primary-6), 0.08), rgba(var(--primary-6), 0.02));
+  border: 1px solid rgba(var(--primary-6), 0.15);
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
 
-.card-title {
-  font-size: 13px;
-  font-weight: 500;
+  &:hover {
+    box-shadow: 0 2px 8px rgba(var(--primary-6), 0.05);
+  }
+
+  .banner-title-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    
+    .banner-icon {
+      color: rgb(var(--primary-6));
+      font-size: 16px;
+    }
+    
+    .banner-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-text-1);
+    }
+  }
+
+  .banner-divider {
+    width: 1px;
+    height: 16px;
+    background-color: var(--color-border-2);
+    margin: 0 16px;
+    flex-shrink: 0;
+  }
+
+  .banner-content-inline {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex: 1;
+    min-width: 0;
+    
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      
+      .info-icon {
+        color: var(--color-text-3);
+        font-size: 14px;
+        flex-shrink: 0;
+
+        &.amount-icon {
+          color: rgb(var(--danger-6));
+          font-weight: bold;
+          font-family: Arial, sans-serif;
+        }
+      }
+      
+      .info-value {
+        font-size: 13px;
+        color: var(--color-text-1);
+        
+        &.amount-value {
+          color: rgb(var(--danger-6));
+          font-family: 'Din', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-weight: 600;
+          font-size: 15px;
+        }
+        
+        &.name-value {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 120px;
+          display: inline-block;
+          vertical-align: middle;
+        }
+
+        &.remark-value {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 150px;
+          display: inline-block;
+          vertical-align: middle;
+        }
+
+        &.tag-text {
+          color: rgb(var(--primary-6));
+          background: rgba(var(--primary-6), 0.1);
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+        }
+      }
+    }
+  }
 }
 
 .search-area {
   :deep(.arco-space) {
     width: 100%;
   }
+}
+
+.public-user-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.public-user-selector__label {
+  color: var(--color-text-2);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .candidate-list {

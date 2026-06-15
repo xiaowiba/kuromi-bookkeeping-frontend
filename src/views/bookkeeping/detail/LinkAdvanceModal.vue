@@ -42,8 +42,16 @@
         <div class="search-area">
           <a-space direction="vertical" size="medium" fill>
             <!-- 顶层必须选择账户 -->
-            <a-select v-model="selectedAdvanceUserId" placeholder="请选择要报销的用户 (必须)" allow-clear allow-search
-              :options="filteredUserOptions" @change="onAdvanceUserChange" />
+            <div class="public-user-selector">
+              <div class="public-user-selector__label">请选择要报销的用户</div>
+              <div class="subject-query-radio-scroll">
+                <a-radio-group
+                  v-model="selectedAdvanceUserId"
+                  :options="filteredUserOptions"
+                  @change="onAdvanceUserChange"
+                />
+              </div>
+            </div>
               
             <!-- 过滤条件表单 -->
             <GiForm
@@ -865,6 +873,19 @@ defineExpose({ open })
   :deep(.arco-space) {
     width: 100%;
   }
+}
+
+.public-user-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.public-user-selector__label {
+  color: var(--color-text-2);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .candidate-list {

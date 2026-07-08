@@ -1,3 +1,13 @@
+/**
+ * 报表中心常量与默认模型。
+ *
+ * 集中维护排序、分页、筛选默认值和空态数据，保证 Web 报表与移动端报表使用同一套初始口径。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充报表默认口径和空态模型说明
+ */
 import type * as T from '@/apis/bookkeeping/type'
 import type { LabelValueState } from '@/types/global'
 import {

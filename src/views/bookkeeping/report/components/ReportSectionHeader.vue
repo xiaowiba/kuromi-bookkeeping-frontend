@@ -14,6 +14,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 报表分区标题组件。
+ *
+ * 统一图标、标题、描述和徽标展示，保持报表页面各区块标题样式一致。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充报表分区标题组件职责说明
+ */
 import type { Component } from 'vue'
 
 defineOptions({ name: 'ReportSectionHeader' })

@@ -17,6 +17,11 @@ import { useBookkeepingCommonFilters } from '@/views/bookkeeping/shared/useBookk
  * 1. Web 端报表中心会复用明细管理的筛选展示形式
  * 2. 移动端仍沿用既有 userScope / datePreset 交互，不在当前迭代内改造
  * 3. 因此这里同时维护“统一查询口径字段”和“移动端历史交互字段”
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充跨端筛选状态兼容说明
  */
 export const useReportFilters = () => {
   const userStore = useUserStore()

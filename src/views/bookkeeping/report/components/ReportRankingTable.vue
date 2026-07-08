@@ -91,6 +91,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 报表明细排行表。
+ *
+ * 展示当前筛选口径下的明细排行，并把分页、页大小和排序变化回传给父级重新查询。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充排行表分页和排序事件职责说明
+ */
 import type { TableChangeExtra, TableInstance } from '@arco-design/web-vue'
 import {computed, h} from 'vue'
 import GiCellTag from '@/components/GiCell/GiCellTag.vue'

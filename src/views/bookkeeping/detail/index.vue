@@ -184,21 +184,43 @@
       <template #toolbar-right>
         <!-- 统计数据展示 -->
         <div class="statistics-container">
-          <div class="statistics-item expense">
-            <span class="label">总支出：</span>
-            <span class="value">{{ statistics.totalExpense.toFixed(2) }}</span>
+          <div class="statistics-row actual">
+            <span class="statistics-row-title">实际</span>
+            <div class="statistics-item expense">
+              <span class="label">实际总支出：</span>
+              <span class="value">{{ statistics.actualTotalExpense.toFixed(2) }}</span>
+            </div>
+            <div class="statistics-item income">
+              <span class="label">实际总收入：</span>
+              <span class="value">{{ statistics.actualTotalIncome.toFixed(2) }}</span>
+            </div>
+            <div class="statistics-item" :class="statistics.actualNetIncome >= 0 ? 'income' : 'expense'">
+              <span class="label">实际总结余：</span>
+              <span class="value">{{ statistics.actualNetIncome.toFixed(2) }}</span>
+            </div>
+            <div class="statistics-item count">
+              <span class="label">实际总条数：</span>
+              <span class="value">{{ statistics.actualTotalCount }}</span>
+            </div>
           </div>
-          <div class="statistics-item income">
-            <span class="label">总收入：</span>
-            <span class="value">{{ statistics.totalIncome.toFixed(2) }}</span>
-          </div>
-          <div class="statistics-item" :class="statistics.netIncome >= 0 ? 'income' : 'expense'">
-            <span class="label">结余：</span>
-            <span class="value">{{ statistics.netIncome.toFixed(2) }}</span>
-          </div>
-          <div class="statistics-item count">
-            <span class="label">条数：</span>
-            <span class="value">{{ detailRecordCount }}</span>
+          <div class="statistics-row total">
+            <span class="statistics-row-title">全部</span>
+            <div class="statistics-item expense">
+              <span class="label">总支出：</span>
+              <span class="value">{{ statistics.totalExpense.toFixed(2) }}</span>
+            </div>
+            <div class="statistics-item income">
+              <span class="label">总收入：</span>
+              <span class="value">{{ statistics.totalIncome.toFixed(2) }}</span>
+            </div>
+            <div class="statistics-item" :class="statistics.netIncome >= 0 ? 'income' : 'expense'">
+              <span class="label">总结余：</span>
+              <span class="value">{{ statistics.netIncome.toFixed(2) }}</span>
+            </div>
+            <div class="statistics-item count">
+              <span class="label">总条数：</span>
+              <span class="value">{{ statistics.totalCount }}</span>
+            </div>
           </div>
         </div>
       </template>
@@ -353,6 +375,8 @@
  * @desc 查询区重构为 Web 专用布局，统一时间模型、排序方式与共享筛选项
  * @update 2026-04-03 @Wangsongsong
  * @desc Web 端统计区补充当前查询条数，便于无分页模式下确认命中结果规模
+ * @update 2026-07-08 @Wangsongsong
+ * @desc Web 端统计区扩展实际统计与全量统计，支持剔除已报销垫付方后的展示口径
  */
 import dayjs from 'dayjs'
 import type { TableInstance } from '@arco-design/web-vue'
@@ -1021,14 +1045,6 @@ const {
   { immediate: false },
 )
 
-/** 当前查询结果条数，优先展示后端统计总数，兜底使用当前列表长度。 */
-const detailRecordCount = computed(() => {
-  if (detailQueryMode.total > 0) {
-    return detailQueryMode.total
-  }
-  return dataList.value.length
-})
-
 const tablePagination = computed(() => (detailQueryMode.pageMode ? pagination : false))
 const currentTableOffset = computed(() => (detailQueryMode.pageMode ? (pagination.current - 1) * pagination.pageSize : 0))
 
@@ -1037,12 +1053,21 @@ const currentTableOffset = computed(() => (detailQueryMode.pageMode ? (paginatio
  *
  * @author Wangsongsong
  * @date 2026-03-19
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 补齐实际统计与总条数字段，保证接口失败时仍有完整兜底结构
  */
-const statistics = ref({
+const createDefaultStatistics = () => ({
+  actualTotalExpense: 0,
+  actualTotalIncome: 0,
+  actualNetIncome: 0,
+  actualTotalCount: 0,
   totalExpense: 0,
   totalIncome: 0,
   netIncome: 0,
+  totalCount: 0,
 })
+
+const statistics = ref(createDefaultStatistics())
 
 /**
  * 查询当前筛选结果是否超过阈值。
@@ -1065,10 +1090,10 @@ const loadDetailQueryMode = async () => {
 const loadStatistics = async () => {
   try {
     const { data } = await getDetailStatistics(buildDetailQuery())
-    statistics.value = data
+    statistics.value = { ...createDefaultStatistics(), ...data }
   } catch {
     // 加载失败不影响列表展示
-    statistics.value = { totalExpense: 0, totalIncome: 0, netIncome: 0 }
+    statistics.value = createDefaultStatistics()
   }
 }
 
@@ -1541,9 +1566,42 @@ onUnmounted(() => {
 // 统计数据样式
 .statistics-container {
   display: flex;
-  align-items: center;
-  gap: 20px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   margin-right: 12px;
+
+  .statistics-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    white-space: nowrap;
+
+    &.actual {
+      .statistics-row-title {
+        color: var(--color-white);
+        background: var(--color-primary-light-4);
+      }
+    }
+
+    &.total {
+      opacity: 0.86;
+    }
+  }
+
+  .statistics-row-title {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    color: var(--color-text-2);
+    background: var(--color-fill-2);
+    font-size: 12px;
+    font-weight: 600;
+  }
 
   .statistics-item {
     display: flex;
@@ -1648,9 +1706,14 @@ onUnmounted(() => {
   }
 
   .statistics-container {
-    flex-wrap: wrap;
     gap: 10px;
     margin-right: 0;
+
+    .statistics-row {
+      flex-wrap: wrap;
+      gap: 10px;
+      white-space: normal;
+    }
   }
 }
 

@@ -13,6 +13,11 @@
  * 5. 分类切换后的科目联动校验
  *
  * 页面差异项（例如时间范围、排序方式、日历视图、统计周期）仍由各页面自行维护。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充共享筛选项职责边界和页面差异项说明
  */
 import { computed, ref, watch } from 'vue'
 import { useDetailUserOptions } from './useDetailUserOptions'

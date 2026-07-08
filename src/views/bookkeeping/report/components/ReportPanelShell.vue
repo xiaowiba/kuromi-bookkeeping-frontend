@@ -18,6 +18,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 报表卡片通用外壳。
+ *
+ * 统一标题、描述、loading 和内容区域布局，降低各报表卡片的重复结构。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充报表卡片外壳职责说明
+ */
 defineOptions({ name: 'ReportPanelShell' })
 
 withDefaults(defineProps<{

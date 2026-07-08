@@ -20,6 +20,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 报表洞察卡片。
+ *
+ * 展示后端返回的文字洞察列表，用于在图表之外补充当前筛选周期的关键结论。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充报表洞察组件职责说明
+ */
 import ReportPanelShell from './ReportPanelShell.vue'
 
 withDefaults(defineProps<{

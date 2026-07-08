@@ -142,8 +142,12 @@
 /**
  * Web 账单管理页面
  *
- * @author Codex
+ * 用于按月或按年汇总记账明细，并复用记账通用筛选项控制统计口径。
+ *
+ * @author Wangsongsong
  * @date 2026-04-26
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 完善页面职责说明，强调账单页与通用筛选口径的关系
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -167,6 +171,14 @@ const userStore = useUserStore()
 const currentYear = String(new Date().getFullYear())
 const currentUserId = computed(() => String(userStore.userInfo.id ?? ''))
 
+/**
+ * 创建账单查询默认条件。
+ *
+ * 默认查看当前登录人的本年度月账单，管理员进入后会由权限监听切换为全部用户口径。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ */
 const createDefaultBillQueryForm = (): T.BillFilterForm => ({
   billType: 'monthly',
   year: currentYear,

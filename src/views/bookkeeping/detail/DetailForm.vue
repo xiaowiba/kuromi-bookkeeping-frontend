@@ -13,6 +13,17 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 明细新增/编辑表单。
+ *
+ * 集中维护明细字段、分类-科目-标签三级联动、支付账号加载、报销角色互斥和隐私隐藏标记。
+ * 弹窗外壳只负责显隐与保存确认，表单自身负责数据准备、校验和提交。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 完善明细表单职责说明和关键业务联动注释
+ */
 import { Message } from '@arco-design/web-vue'
 import { computed, h, reactive, ref, watch } from 'vue'
 import { useDetailUserOptions } from '../shared/useDetailUserOptions'
@@ -286,12 +297,28 @@ watch(() => form.category, (val) => {
   }
 })
 
+/**
+ * 加载科目选项。
+ *
+ * 科目列表在弹窗生命周期内缓存，分类切换时再基于缓存做前端过滤。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ */
 const loadSubjectOptions = async () => {
   if (allSubjects.value.length) return
   const { data } = await listSubject({ sort: ['sort,asc'], page: 1, size: 200 } as any)
   allSubjects.value = data.list
 }
 
+/**
+ * 加载支付账号选项。
+ *
+ * 管理员为指定用户新增或编辑时按目标用户查询，普通用户只查询自己的账号。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ */
 const loadPaymentAccountOptions = async (targetUserId?: string | number) => {
   try {
     const response = targetUserId
@@ -313,6 +340,14 @@ const loadPaymentAccountOptions = async (targetUserId?: string | number) => {
   }
 }
 
+/**
+ * 加载科目标签选项。
+ *
+ * 编辑历史明细时允许保留当前已选停用标签，避免打开后立即丢失原有关联。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ */
 const loadSubjectTagOptions = async (
   subjectId: string | number,
   selectedTagId?: string | number,
@@ -388,7 +423,14 @@ const reset = () => {
   subjectTagOptions.value = [{ label: '不选择标签', value: '' }]
 }
 
-/** 保存 */
+/**
+ * 保存明细。
+ *
+ * 提交前统一转换空标签、空支付账号、报销角色和隐藏状态，保证后端收到的字段口径稳定。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ */
 const save = async () => {
   try {
     const isInvalid = await formRef.value?.formRef?.validate()
@@ -445,7 +487,15 @@ const onAdd = async () => {
   }
 }
 
-/** 为指定用户新增 */
+/**
+ * 为指定用户新增明细。
+ *
+ * 该入口主要供报销/垫付关联弹窗的右侧快捷新增使用，
+ * 可锁定金额、分类和报销角色，避免用户误改关联口径。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ */
 const onAddForUser = async (options: AddForUserOptions) => {
   reset()
   dataId.value = ''
@@ -468,7 +518,14 @@ const onAddForUser = async (options: AddForUserOptions) => {
   isReimburseOtherDisabled.value = !!options.isReimburseOtherDisabled
 }
 
-/** 修改 */
+/**
+ * 修改明细。
+ *
+ * 先加载基础选项，再回填详情数据；金额统一取绝对值展示，支出/收入方向由分类和后端字段共同确定。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ */
 const onUpdate = async (id: string) => {
   reset()
   dataId.value = id

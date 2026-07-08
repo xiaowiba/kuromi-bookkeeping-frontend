@@ -57,6 +57,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 关注管理列表页。
+ *
+ * 用于维护用户之间的关注关系，并控制被关注用户是否允许关注者切换到自己的账户。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充页面职责说明和切换授权语义说明
+ */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message, Switch } from '@arco-design/web-vue'
 import { h, onMounted, reactive, ref } from 'vue'

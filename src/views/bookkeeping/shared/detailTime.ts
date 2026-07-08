@@ -1,3 +1,13 @@
+/**
+ * 明细时间筛选共享工具。
+ *
+ * 明细列表、报表筛选和关联弹窗共用这里的时间模式、默认范围和周/月/季/年范围计算。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充时间筛选共享范围和计算口径说明
+ */
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import quarterOfYear from 'dayjs/plugin/quarterOfYear'

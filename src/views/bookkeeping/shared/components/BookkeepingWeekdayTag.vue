@@ -11,6 +11,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 记账日期星期标签。
+ *
+ * 根据明细日期生成星期文案和样式类，供明细表格、排行表等场景复用。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充星期标签组件职责说明
+ */
 import dayjs from 'dayjs'
 import { computed } from 'vue'
 

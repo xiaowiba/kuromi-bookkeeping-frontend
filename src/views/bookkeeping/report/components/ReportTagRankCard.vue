@@ -11,6 +11,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 标签排行卡片。
+ *
+ * 将图表点击参数转换为标准标签排行数据，并向父级抛出标签钻取事件。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充标签排行图表点击和钻取数据转换说明
+ */
 import type { EChartsOption } from 'echarts'
 import { computed } from 'vue'
 import ReportPanelShell from './ReportPanelShell.vue'

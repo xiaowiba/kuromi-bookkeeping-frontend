@@ -11,6 +11,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 收支趋势图卡片。
+ *
+ * 负责承载趋势图配置和 loading 状态，图表配置由报表 options 工具统一生成。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充趋势图卡片职责说明
+ */
 import type { EChartsOption } from 'echarts'
 import Chart from '@/components/Chart/index.vue'
 import ReportPanelShell from './ReportPanelShell.vue'

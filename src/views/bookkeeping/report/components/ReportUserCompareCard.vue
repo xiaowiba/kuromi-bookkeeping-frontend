@@ -11,6 +11,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 用户对比图卡片。
+ *
+ * 负责展示多用户收支对比图，图表配置由报表 options 工具统一生成。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充用户对比卡片职责说明
+ */
 import type { EChartsOption } from 'echarts'
 import Chart from '@/components/Chart/index.vue'
 import ReportPanelShell from './ReportPanelShell.vue'

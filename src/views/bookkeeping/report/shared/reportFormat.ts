@@ -1,3 +1,14 @@
+/**
+ * 报表中心格式化与查询参数工具。
+ *
+ * 统一处理金额、比例、日期、支付方式文案和报表查询参数裁剪，
+ * 避免各报表卡片重复维护展示口径。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充报表格式化工具职责和查询参数裁剪说明
+ */
 import dayjs from 'dayjs'
 import { REPORT_DATE_PRESET_OPTIONS } from './reportConstants'
 import type * as T from '@/apis/bookkeeping/type'
@@ -126,6 +137,14 @@ export const formatTrendAxisLabel = (label: string, granularity: 'day' | 'month'
   return compact ? dayjs(label).format('M/D') : dayjs(label).format('MM-DD')
 }
 
+/**
+ * 构建报表查询参数。
+ *
+ * 只提交有意义的筛选条件，并把非快捷时间统一转为 custom + startDate/endDate。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ */
 export const buildReportQuery = (
   form: T.ReportFilterForm,
   privacyMode = false,

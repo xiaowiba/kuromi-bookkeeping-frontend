@@ -15,6 +15,8 @@
  * @desc 明细模型补充支付方式字段及查询条件，统一桌面端与移动端类型定义
  * @update 2026-04-03 @Wangsongsong
  * @desc 增加日历报表查询与响应类型，供 Web 端日历报表页面使用
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 扩展明细统计响应字段，支持实际统计与全量统计同时展示
  */
 
 /** 科目响应类型 */
@@ -198,12 +200,22 @@ export interface DetailQueryModeResp {
  * @date 2026-03-19
  */
 export interface DetailStatisticsResp {
+  /** 实际总支出 */
+  actualTotalExpense: number
+  /** 实际总收入 */
+  actualTotalIncome: number
+  /** 实际净收入 */
+  actualNetIncome: number
+  /** 实际总条数 */
+  actualTotalCount: number
   /** 总支出 */
   totalExpense: number
   /** 总收入 */
   totalIncome: number
   /** 净收入 */
   netIncome: number
+  /** 总条数 */
+  totalCount: number
 }
 
 /** 关注响应类型 */

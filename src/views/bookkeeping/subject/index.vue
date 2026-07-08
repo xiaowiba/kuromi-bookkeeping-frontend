@@ -234,6 +234,11 @@
  * 1. 左侧负责科目的查询、分页和增删改。
  * 2. 右侧只展示当前选中科目下的标签列表。
  * 3. 删除标签前先走后端预检查接口，明确提示影响范围和迁移目标。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充双栏结构、科目选择和默认标签保护规则说明
  */
 import type { TableInstance } from '@arco-design/web-vue'
 import { Message, Modal } from '@arco-design/web-vue'

@@ -222,6 +222,17 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * Web 端报表筛选栏。
+ *
+ * 复用明细时间筛选口径，并通过 v-model 回写父级 filterForm，
+ * 让报表总览、排行和钻取查询共用同一份筛选状态。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充报表筛选栏与父级筛选状态的同步关系说明
+ */
 import dayjs from 'dayjs'
 import { computed, nextTick, reactive, watch } from 'vue'
 import type { DetailDatePreset, DetailTimeMode, ReportFilterForm } from '@/apis/bookkeeping/type'
@@ -388,6 +399,14 @@ function triggerSearch() {
   })
 }
 
+/**
+ * 统一写入报表时间筛选字段。
+ *
+ * 报表查询最终依赖 timeMode、startDate、endDate，dateRange 仅用于范围选择器回显。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ */
 const applyTimeRangeToFilter = (options: {
   timeMode: DetailTimeMode
   startDate: string

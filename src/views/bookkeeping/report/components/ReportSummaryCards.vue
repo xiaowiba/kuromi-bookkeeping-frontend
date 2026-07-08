@@ -21,6 +21,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 报表概览卡片组。
+ *
+ * 将总收入、总支出、结余、记录数等概览指标转换为统一卡片结构。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充报表概览卡片组职责说明
+ */
 import { IconBook, IconCalendar, IconFire, IconGift, IconStorage, IconTag } from '@arco-design/web-vue/es/icon'
 import { computed } from 'vue'
 import type { Component } from 'vue'

@@ -16,6 +16,13 @@
 <script setup lang="ts">
 /**
  * 明细新增/编辑弹窗外壳
+ *
+ * 负责控制弹窗显隐和保存回调，具体表单字段与校验逻辑下沉到 DetailForm。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充弹窗外壳与明细表单的职责边界说明
  */
 import { computed, ref, nextTick } from 'vue'
 import { isMobile } from '@/utils'

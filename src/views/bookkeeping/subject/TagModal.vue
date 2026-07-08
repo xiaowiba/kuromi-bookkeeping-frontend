@@ -51,6 +51,11 @@
  *
  * 当前弹窗只服务于“右侧标签列表”，因此所属科目不在表单内切换，
  * 而是直接绑定当前选中的科目，避免出现跨科目误操作。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充标签弹窗所属科目绑定关系和误操作防护说明
  */
 import { Message } from '@arco-design/web-vue'
 import { useWindowSize } from '@vueuse/core'

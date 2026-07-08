@@ -37,6 +37,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 支付方式占比卡片。
+ *
+ * 支持突出主支付方式，并可在“其余方式”和“全部方式”图表视角间切换。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充支付方式卡片展示模式和主支付方式说明
+ */
 import type { EChartsOption } from 'echarts'
 import { computed, ref, watch } from 'vue'
 import { formatReportCurrency, formatReportRatio, resolveReportPaymentMethodLabel } from '../shared/reportFormat'

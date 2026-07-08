@@ -24,6 +24,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 分类占比报表卡片。
+ *
+ * 左侧展示分类占比图，右侧展示分类明细列表，并向父级抛出分类钻取事件。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-02 @Wangsongsong
+ * @desc 补充分类占比卡片展示结构和钻取事件说明
+ */
 import type { EChartsOption } from 'echarts'
 import { formatReportCurrency, formatReportRatio } from '../shared/reportFormat'
 import ReportPanelShell from './ReportPanelShell.vue'

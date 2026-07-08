@@ -17,6 +17,8 @@
  * @desc 增加日历报表查询与响应类型，供 Web 端日历报表页面使用
  * @update 2026-07-08 @Wangsongsong
  * @desc 扩展明细统计响应字段，支持实际统计与全量统计同时展示
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 增加报表中心报销角色汇总响应类型，支持展示垫付、被报销和报销他人数据
  */
 
 /** 科目响应类型 */
@@ -527,6 +529,22 @@ export interface ReportUserCompareItemResp {
   income: number
 }
 
+/** 报表报销角色汇总 */
+export interface ReportReimbursementRoleSummaryResp {
+  advanceAmount: number
+  advanceCount: number
+  reimbursedAdvanceAmount: number
+  reimbursedAdvanceCount: number
+  pendingAdvanceAmount: number
+  pendingAdvanceCount: number
+  reimburseOtherAmount: number
+  reimburseOtherCount: number
+  linkedReimburseOtherAmount: number
+  linkedReimburseOtherCount: number
+  pendingReimburseOtherAmount: number
+  pendingReimburseOtherCount: number
+}
+
 /** 报表看板响应 */
 export interface ReportDashboardResp {
   overview: ReportOverviewResp
@@ -536,6 +554,7 @@ export interface ReportDashboardResp {
   tagRank: ReportTagRankItemResp[]
   paymentMethodShare: ReportPaymentMethodShareItemResp[]
   userCompare: ReportUserCompareItemResp[]
+  reimbursementRoleSummary: ReportReimbursementRoleSummaryResp
   insight: string[]
 }
 

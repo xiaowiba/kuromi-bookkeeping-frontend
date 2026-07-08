@@ -7,6 +7,8 @@
  * @date 2026-07-02
  * @update 2026-07-02 @Wangsongsong
  * @desc 补充报表默认口径和空态模型说明
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 补充报表中心报销角色汇总空态，避免页面加载和异常回退时出现空字段
  */
 import type * as T from '@/apis/bookkeeping/type'
 import type { LabelValueState } from '@/types/global'
@@ -60,6 +62,20 @@ export const createEmptyReportDashboard = (): T.ReportDashboardResp => ({
   tagRank: [],
   paymentMethodShare: [],
   userCompare: [],
+  reimbursementRoleSummary: {
+    advanceAmount: 0,
+    advanceCount: 0,
+    reimbursedAdvanceAmount: 0,
+    reimbursedAdvanceCount: 0,
+    pendingAdvanceAmount: 0,
+    pendingAdvanceCount: 0,
+    reimburseOtherAmount: 0,
+    reimburseOtherCount: 0,
+    linkedReimburseOtherAmount: 0,
+    linkedReimburseOtherCount: 0,
+    pendingReimburseOtherAmount: 0,
+    pendingReimburseOtherCount: 0,
+  },
   insight: [],
 })
 

@@ -28,6 +28,12 @@
 
       <!-- 报表顶部汇总卡：展示总支出、总收入、结余、记录数等核心概览指标 -->
       <ReportSummaryCards :overview="dashboard.overview" :loading="dashboardLoading" />
+      <ReportReimbursementRoleCard
+        :summary="dashboard.reimbursementRoleSummary"
+        :all-user-scope="dashboardFilterForm.userScope === 'all'"
+        :loading="dashboardLoading"
+        @drilldown="handleReimbursementRoleDrilldown"
+      />
       <ReportInsightPanel :insight="dashboard.insight" :loading="dashboardLoading" />
 
       <div class="report-grid report-grid--top">
@@ -108,6 +114,11 @@
  *
  * 你可以把这个页面理解为“报表模块总控台”：
  * 当前保留的子组件只负责展示，真正的数据请求、状态管理、交互串联都在这里完成。
+ *
+ * @author Wangsongsong
+ * @date 2026-07-02
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 增加报销角色汇总卡片和明细钻取入口，展示垫付、被报销和报销他人数据
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -121,6 +132,7 @@ import ReportCategoryShareCard from './components/ReportCategoryShareCard.vue'
 import ReportFilterBar from './components/ReportFilterBar.vue'
 import ReportInsightPanel from './components/ReportInsightPanel.vue'
 import ReportPaymentMethodCard from './components/ReportPaymentMethodCard.vue'
+import ReportReimbursementRoleCard from './components/ReportReimbursementRoleCard.vue'
 import ReportSubjectRankCard from './components/ReportSubjectRankCard.vue'
 import ReportSummaryCards from './components/ReportSummaryCards.vue'
 import ReportTagRankCard from './components/ReportTagRankCard.vue'
@@ -136,8 +148,11 @@ defineOptions({ name: 'BookkeepingReport' })
 
 const DETAIL_ROUTE_PATH = '/bookkeeping/detail'
 const DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK = 'reportTagRank'
+const DETAIL_ROUTE_SOURCE_REPORT_REIMBURSEMENT_ROLE = 'reportReimbursementRole'
 const DETAIL_TAG_MODE_EXACT = 'exact'
 const DETAIL_TAG_MODE_UNSELECTED = 'unselected'
+
+type ReportReimbursementRoleDrilldownType = 'advance' | 'reimburseOther'
 
 const router = useRouter()
 const privacyStore = usePrivacyStore()
@@ -268,6 +283,66 @@ const buildDetailRouteQueryFromTagRank = (payload: T.ReportTagRankItemResp) => {
   return routeQuery
 }
 
+const appendDashboardRouteQuery = (
+  routeQuery: Record<string, string>,
+  overrides: Partial<Record<'isAdvance' | 'isReimburseOther', string>>,
+) => {
+  const dashboardQuery = buildDashboardQuery()
+
+  if (dashboardQuery.userId) {
+    routeQuery.userId = String(dashboardQuery.userId)
+  }
+  if (dashboardQuery.category) {
+    routeQuery.category = dashboardQuery.category
+  }
+  if (dashboardQuery.subjectId) {
+    routeQuery.subjectId = String(dashboardQuery.subjectId)
+  }
+  if (dashboardQuery.tagId) {
+    routeQuery.tagId = String(dashboardQuery.tagId)
+    routeQuery.tagMode = DETAIL_TAG_MODE_EXACT
+  }
+  if (dashboardQuery.paymentMethod) {
+    routeQuery.paymentMethod = dashboardQuery.paymentMethod
+  }
+  if (dashboardQuery.paymentAccountId) {
+    routeQuery.paymentAccountId = String(dashboardQuery.paymentAccountId)
+  }
+  if (dashboardQuery.isNecessary !== '' && dashboardQuery.isNecessary !== null && dashboardQuery.isNecessary !== undefined) {
+    routeQuery.isNecessary = String(dashboardQuery.isNecessary)
+  }
+  if (dashboardQuery.hidden !== '' && dashboardQuery.hidden !== null && dashboardQuery.hidden !== undefined) {
+    routeQuery.hidden = String(dashboardQuery.hidden)
+  }
+  if (overrides.isAdvance !== undefined) {
+    routeQuery.isAdvance = overrides.isAdvance
+  }
+  if (overrides.isReimburseOther !== undefined) {
+    routeQuery.isReimburseOther = overrides.isReimburseOther
+  }
+}
+
+const buildDetailRouteQueryFromReimbursementRole = (type: ReportReimbursementRoleDrilldownType) => {
+  const routeQuery: Record<string, string> = {
+    from: DETAIL_ROUTE_SOURCE_REPORT_REIMBURSEMENT_ROLE,
+    timeMode: dashboardFilterForm.timeMode,
+    startDate: dashboardFilterForm.startDate,
+    endDate: dashboardFilterForm.endDate,
+  }
+
+  if (dashboardFilterForm.timeMode === 'preset' && dashboardFilterForm.datePreset && dashboardFilterForm.datePreset !== 'custom') {
+    routeQuery.datePreset = dashboardFilterForm.datePreset
+  }
+
+  appendDashboardRouteQuery(
+    routeQuery,
+    type === 'advance'
+      ? { isAdvance: '1' }
+      : { isReimburseOther: '1' },
+  )
+  return routeQuery
+}
+
 const openDetailPageByTagRank = (payload: T.ReportTagRankItemResp) => {
   const resolvedRoute = router.resolve({
     path: DETAIL_ROUTE_PATH,
@@ -276,8 +351,20 @@ const openDetailPageByTagRank = (payload: T.ReportTagRankItemResp) => {
   window.open(resolvedRoute.href, '_blank')
 }
 
+const openDetailPageByReimbursementRole = (type: ReportReimbursementRoleDrilldownType) => {
+  const resolvedRoute = router.resolve({
+    path: DETAIL_ROUTE_PATH,
+    query: buildDetailRouteQueryFromReimbursementRole(type),
+  })
+  window.open(resolvedRoute.href, '_blank')
+}
+
 const handleTagRankSelect = (payload: T.ReportTagRankItemResp) => {
   openDetailPageByTagRank(payload)
+}
+
+const handleReimbursementRoleDrilldown = (type: ReportReimbursementRoleDrilldownType) => {
+  openDetailPageByReimbursementRole(type)
 }
 
 const handleDrilldownTagRankClick = (params: any) => {
@@ -320,9 +407,12 @@ const loadDashboard = async () => {
   dashboardLoading.value = true
   try {
     const { data } = await getReportDashboard(buildDashboardQuery())
+    const emptyDashboard = createEmptyReportDashboard()
     dashboard.value = data
       ? {
+          ...emptyDashboard,
           ...data,
+          reimbursementRoleSummary: data.reimbursementRoleSummary ?? emptyDashboard.reimbursementRoleSummary,
           paymentMethodShare: (data.paymentMethodShare ?? []).map((item) => ({
             ...item,
             label: resolveReportPaymentMethodLabel(item.key, item.label, dashboardPaymentMethodOptions.value),

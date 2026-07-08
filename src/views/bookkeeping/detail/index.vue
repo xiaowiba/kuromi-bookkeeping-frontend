@@ -377,6 +377,8 @@
  * @desc Web 端统计区补充当前查询条数，便于无分页模式下确认命中结果规模
  * @update 2026-07-08 @Wangsongsong
  * @desc Web 端统计区扩展实际统计与全量统计，支持剔除已报销垫付方后的展示口径
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 增加报表中心报销角色钻取来源，支持从报表页跳转查看垫付和报销他人明细
  */
 import dayjs from 'dayjs'
 import type { TableInstance } from '@arco-design/web-vue'
@@ -425,6 +427,7 @@ import { formatPaymentAccountName } from '@/utils/paymentAccountDisplay'
 defineOptions({ name: 'BookkeepingDetail' })
 
 const DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK = 'reportTagRank'
+const DETAIL_ROUTE_SOURCE_REPORT_REIMBURSEMENT_ROLE = 'reportReimbursementRole'
 const DETAIL_ROUTE_SOURCE_LINKED_DETAIL = 'linkedDetail'
 const DETAIL_ROUTE_TAG_MODE_UNSELECTED = 'unselected'
 const DETAIL_UNSELECTED_TAG_VALUE = '__UNSELECTED__'
@@ -656,7 +659,9 @@ const applyDetailRouteTimeQuery = () => {
  */
 const applyDetailRouteQuery = async () => {
   const from = getSingleRouteQueryValue(route.query.from)
-  if (from !== DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK && from !== DETAIL_ROUTE_SOURCE_LINKED_DETAIL) {
+  if (from !== DETAIL_ROUTE_SOURCE_REPORT_TAG_RANK
+    && from !== DETAIL_ROUTE_SOURCE_REPORT_REIMBURSEMENT_ROLE
+    && from !== DETAIL_ROUTE_SOURCE_LINKED_DETAIL) {
     return false
   }
 
@@ -701,12 +706,13 @@ const applyDetailRouteQuery = async () => {
 
   queryForm.paymentMethod = getSingleRouteQueryValue(route.query.paymentMethod)
   queryForm.paymentAccountId = getSingleRouteQueryValue(route.query.paymentAccountId)
+  // 通用“是/否”筛选项的选项值是字符串，路由回填也保留字符串，避免 radio-group 因类型不一致无法选中。
   const isNecessary = getSingleRouteQueryValue(route.query.isNecessary)
-  queryForm.isNecessary = isNecessary === '' ? '' : Number(isNecessary)
+  queryForm.isNecessary = isNecessary
   const isReimburseOther = getSingleRouteQueryValue(route.query.isReimburseOther)
-  queryForm.isReimburseOther = isReimburseOther === '' ? '' : Number(isReimburseOther)
+  queryForm.isReimburseOther = isReimburseOther
   const isAdvance = getSingleRouteQueryValue(route.query.isAdvance)
-  queryForm.isAdvance = isAdvance === '' ? '' : Number(isAdvance)
+  queryForm.isAdvance = isAdvance
 
   const hidden = getSingleRouteQueryValue(route.query.hidden)
   queryForm.hidden = hidden === '' ? '' : Number(hidden)

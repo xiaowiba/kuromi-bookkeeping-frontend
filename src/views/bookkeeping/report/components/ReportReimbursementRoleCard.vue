@@ -39,13 +39,15 @@
  *
  * @author Wangsongsong
  * @date 2026-07-08
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 支持已被报销和待报销指标钻取到明细管理列表
  */
 import { computed } from 'vue'
 import ReportPanelShell from './ReportPanelShell.vue'
 import type { ReportReimbursementRoleSummaryResp } from '@/apis/bookkeeping/type'
 import { formatReportAmount, formatReportCurrency } from '../shared/reportFormat'
 
-type ReimbursementRoleDrilldownType = 'advance' | 'reimburseOther'
+type ReimbursementRoleDrilldownType = 'advance' | 'reimbursedAdvance' | 'pendingAdvance' | 'reimburseOther'
 
 interface RoleCard {
   key: string
@@ -98,6 +100,7 @@ const roleCards = computed<RoleCard[]>(() => [
     amountText: formatReportCurrency(props.summary?.reimbursedAdvanceAmount),
     countText: `${formatReportAmount(props.summary?.reimbursedAdvanceCount, { compact: true })} 笔`,
     hint: '垫付中已经关联报销方的部分',
+    drilldownType: 'reimbursedAdvance',
   },
   {
     key: 'pending',
@@ -105,6 +108,7 @@ const roleCards = computed<RoleCard[]>(() => [
     amountText: formatReportCurrency(props.summary?.pendingAdvanceAmount),
     countText: `${formatReportAmount(props.summary?.pendingAdvanceCount, { compact: true })} 笔`,
     hint: '垫付中尚未关联报销方的部分',
+    drilldownType: 'pendingAdvance',
   },
   {
     key: 'reimburse-other',

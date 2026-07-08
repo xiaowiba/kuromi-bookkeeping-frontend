@@ -119,6 +119,8 @@
  * @date 2026-07-02
  * @update 2026-07-08 @Wangsongsong
  * @desc 增加报销角色汇总卡片和明细钻取入口，展示垫付、被报销和报销他人数据
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 补充已被报销和待报销钻取参数，支持按垫付报销状态打开明细管理
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -152,7 +154,7 @@ const DETAIL_ROUTE_SOURCE_REPORT_REIMBURSEMENT_ROLE = 'reportReimbursementRole'
 const DETAIL_TAG_MODE_EXACT = 'exact'
 const DETAIL_TAG_MODE_UNSELECTED = 'unselected'
 
-type ReportReimbursementRoleDrilldownType = 'advance' | 'reimburseOther'
+type ReportReimbursementRoleDrilldownType = 'advance' | 'reimbursedAdvance' | 'pendingAdvance' | 'reimburseOther'
 
 const router = useRouter()
 const privacyStore = usePrivacyStore()
@@ -285,7 +287,7 @@ const buildDetailRouteQueryFromTagRank = (payload: T.ReportTagRankItemResp) => {
 
 const appendDashboardRouteQuery = (
   routeQuery: Record<string, string>,
-  overrides: Partial<Record<'isAdvance' | 'isReimburseOther', string>>,
+  overrides: Partial<Record<'isAdvance' | 'isReimburseOther' | 'isReimbursed', string>>,
 ) => {
   const dashboardQuery = buildDashboardQuery()
 
@@ -320,6 +322,26 @@ const appendDashboardRouteQuery = (
   if (overrides.isReimburseOther !== undefined) {
     routeQuery.isReimburseOther = overrides.isReimburseOther
   }
+  if (overrides.isReimbursed !== undefined) {
+    routeQuery.isReimbursed = overrides.isReimbursed
+  }
+}
+
+const resolveReimbursementRoleRouteOverrides = (
+  type: ReportReimbursementRoleDrilldownType,
+): Partial<Record<'isAdvance' | 'isReimburseOther' | 'isReimbursed', string>> => {
+  switch (type) {
+    case 'advance':
+      return { isAdvance: '1' }
+    case 'reimbursedAdvance':
+      return { isAdvance: '1', isReimbursed: '1' }
+    case 'pendingAdvance':
+      return { isAdvance: '1', isReimbursed: '0' }
+    case 'reimburseOther':
+      return { isReimburseOther: '1' }
+    default:
+      return {}
+  }
 }
 
 const buildDetailRouteQueryFromReimbursementRole = (type: ReportReimbursementRoleDrilldownType) => {
@@ -336,9 +358,7 @@ const buildDetailRouteQueryFromReimbursementRole = (type: ReportReimbursementRol
 
   appendDashboardRouteQuery(
     routeQuery,
-    type === 'advance'
-      ? { isAdvance: '1' }
-      : { isReimburseOther: '1' },
+    resolveReimbursementRoleRouteOverrides(type),
   )
   return routeQuery
 }

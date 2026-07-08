@@ -379,6 +379,8 @@
  * @desc Web 端统计区扩展实际统计与全量统计，支持剔除已报销垫付方后的展示口径
  * @update 2026-07-08 @Wangsongsong
  * @desc 增加报表中心报销角色钻取来源，支持从报表页跳转查看垫付和报销他人明细
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 支持接收报表中心已被报销和待报销钻取参数，按 isReimbursed 隐藏条件过滤明细
  */
 import dayjs from 'dayjs'
 import type { TableInstance } from '@arco-design/web-vue'
@@ -485,6 +487,7 @@ const createDefaultDetailQueryForm = () => {
     isNecessary: '',
     isReimburseOther: '',
     isAdvance: '',
+    isReimbursed: '',
     remark: '',
     timeMode: DETAIL_DEFAULT_TIME_MODE as DetailTimeMode,
     datePreset: DETAIL_DEFAULT_DATE_PRESET as DetailDatePreset,
@@ -713,6 +716,8 @@ const applyDetailRouteQuery = async () => {
   queryForm.isReimburseOther = isReimburseOther
   const isAdvance = getSingleRouteQueryValue(route.query.isAdvance)
   queryForm.isAdvance = isAdvance
+  const isReimbursed = getSingleRouteQueryValue(route.query.isReimbursed)
+  queryForm.isReimbursed = isReimbursed
 
   const hidden = getSingleRouteQueryValue(route.query.hidden)
   queryForm.hidden = hidden === '' ? '' : Number(hidden)
@@ -1024,6 +1029,11 @@ const buildDetailQuery = () => {
     query.isAdvance = Number(query.isAdvance)
   } else {
     delete (query as typeof query & { isAdvance?: string | number }).isAdvance
+  }
+  if (query.isReimbursed !== '' && query.isReimbursed !== null && query.isReimbursed !== undefined) {
+    query.isReimbursed = Number(query.isReimbursed)
+  } else {
+    delete (query as typeof query & { isReimbursed?: string | number }).isReimbursed
   }
   if (query.tagId === DETAIL_UNSELECTED_TAG_VALUE) {
     query.unselectedTagOnly = true

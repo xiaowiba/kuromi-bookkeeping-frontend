@@ -5,7 +5,7 @@
       :data="tableData"
       :columns="columns"
       :loading="loading"
-      :scroll="{ x: '100%', y: '100%', minWidth: 760 }"
+      :scroll="{ x: '100%', y: '100%', minWidth: tableMinWidth }"
       :pagination="false"
       :disabled-tools="['size']"
       @refresh="searchMethod"
@@ -134,6 +134,30 @@
           {{ record.recordCount || 0 }} 笔
         </a-tag>
       </template>
+
+      <template #actualTotalExpense="{ record }">
+        <span class="bill-amount bill-amount--expense">
+          {{ formatAmount(record.actualTotalExpense) }}
+        </span>
+      </template>
+
+      <template #actualTotalIncome="{ record }">
+        <span class="bill-amount bill-amount--income">
+          {{ formatAmount(record.actualTotalIncome) }}
+        </span>
+      </template>
+
+      <template #actualBalance="{ record }">
+        <span class="bill-amount" :class="resolveBalanceClass(record.actualBalance)">
+          {{ formatBalance(record.actualBalance) }}
+        </span>
+      </template>
+
+      <template #actualRecordCount="{ record }">
+        <a-tag size="small" color="arcoblue">
+          {{ record.actualRecordCount || 0 }} 笔
+        </a-tag>
+      </template>
     </GiTable>
   </GiPageLayout>
 </template>
@@ -148,6 +172,8 @@
  * @date 2026-04-26
  * @update 2026-07-02 @Wangsongsong
  * @desc 完善页面职责说明，强调账单页与通用筛选口径的关系
+ * @update 2026-07-09 @Wangsongsong
+ * @desc 月账单模式增加实际统计与总统计展示，表格列采用平铺方式兼容列设置
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -323,28 +349,84 @@ const currentSummary = computed(() =>
   queryForm.billType === 'monthly' ? monthlyBill.value.summary : yearlyBill.value.summary,
 )
 
-const summaryCards = computed(() => [
-  {
-    label: '支出',
-    value: formatAmount(currentSummary.value.totalExpense),
-    tone: 'expense',
-  },
-  {
-    label: '收入',
-    value: formatAmount(currentSummary.value.totalIncome),
-    tone: 'income',
-  },
-  {
-    label: '结余',
-    value: formatBalance(currentSummary.value.balance),
-    tone: resolveSummaryTone(currentSummary.value.balance),
-  },
-  {
-    label: '记录数',
-    value: `${currentSummary.value.recordCount || 0} 笔`,
-    tone: 'neutral',
-  },
-])
+// 月账单增加了实际统计与总统计两组列，需要更宽的横向滚动空间；年账单保持原宽度。
+const tableMinWidth = computed(() => queryForm.billType === 'monthly' ? 1480 : 760)
+
+/**
+ * 构建顶部汇总卡片。
+ *
+ * 月账单展示当前年份维度的实际统计与总统计；年账单暂时保持原有四项总览，
+ * 避免把本次“每个月份中展示两套统计”的需求扩展到年账单行展示。
+ */
+const summaryCards = computed(() => {
+  if (queryForm.billType === 'monthly') {
+    return [
+      {
+        label: '实际总支出',
+        value: formatAmount(currentSummary.value.actualTotalExpense),
+        tone: 'expense',
+      },
+      {
+        label: '实际总收入',
+        value: formatAmount(currentSummary.value.actualTotalIncome),
+        tone: 'income',
+      },
+      {
+        label: '实际总结余',
+        value: formatBalance(currentSummary.value.actualBalance),
+        tone: resolveSummaryTone(currentSummary.value.actualBalance),
+      },
+      {
+        label: '实际总条数',
+        value: `${currentSummary.value.actualRecordCount || 0} 笔`,
+        tone: 'neutral',
+      },
+      {
+        label: '总支出',
+        value: formatAmount(currentSummary.value.totalExpense),
+        tone: 'expense',
+      },
+      {
+        label: '总收入',
+        value: formatAmount(currentSummary.value.totalIncome),
+        tone: 'income',
+      },
+      {
+        label: '总结余',
+        value: formatBalance(currentSummary.value.balance),
+        tone: resolveSummaryTone(currentSummary.value.balance),
+      },
+      {
+        label: '总条数',
+        value: `${currentSummary.value.recordCount || 0} 笔`,
+        tone: 'neutral',
+      },
+    ]
+  }
+
+  return [
+    {
+      label: '支出',
+      value: formatAmount(currentSummary.value.totalExpense),
+      tone: 'expense',
+    },
+    {
+      label: '收入',
+      value: formatAmount(currentSummary.value.totalIncome),
+      tone: 'income',
+    },
+    {
+      label: '结余',
+      value: formatBalance(currentSummary.value.balance),
+      tone: resolveSummaryTone(currentSummary.value.balance),
+    },
+    {
+      label: '记录数',
+      value: `${currentSummary.value.recordCount || 0} 笔`,
+      tone: 'neutral',
+    },
+  ]
+})
 
 const tableData = computed<Array<(T.BillMonthItemResp | T.BillYearItemResp) & { id: string }>>(() => {
   if (queryForm.billType === 'monthly') {
@@ -362,15 +444,79 @@ const tableData = computed<Array<(T.BillMonthItemResp | T.BillYearItemResp) & { 
 
 const columns = computed<TableColumnData[]>(() => {
   const periodTitle = queryForm.billType === 'monthly' ? '月份' : '年份'
+  const periodColumn: TableColumnData = {
+    title: periodTitle,
+    dataIndex: 'period',
+    slotName: 'period',
+    width: 180,
+    align: 'center',
+  }
+
+  if (queryForm.billType === 'monthly') {
+    // GiTable 的列设置按顶层列存储，平铺列比分组列更稳，也便于用户按单项统计控制显示。
+    return [
+      periodColumn,
+      {
+        title: '实际总支出',
+        dataIndex: 'actualTotalExpense',
+        slotName: 'actualTotalExpense',
+        width: 150,
+        align: 'right',
+      },
+      {
+        title: '实际总收入',
+        dataIndex: 'actualTotalIncome',
+        slotName: 'actualTotalIncome',
+        width: 150,
+        align: 'right',
+      },
+      {
+        title: '实际总结余',
+        dataIndex: 'actualBalance',
+        slotName: 'actualBalance',
+        width: 150,
+        align: 'right',
+      },
+      {
+        title: '实际总条数',
+        dataIndex: 'actualRecordCount',
+        slotName: 'actualRecordCount',
+        width: 130,
+        align: 'center',
+      },
+      {
+        title: '总支出',
+        dataIndex: 'expense',
+        slotName: 'expense',
+        width: 140,
+        align: 'right',
+      },
+      {
+        title: '总收入',
+        dataIndex: 'income',
+        slotName: 'income',
+        width: 140,
+        align: 'right',
+      },
+      {
+        title: '总结余',
+        dataIndex: 'balance',
+        slotName: 'balance',
+        width: 140,
+        align: 'right',
+      },
+      {
+        title: '总条数',
+        dataIndex: 'recordCount',
+        slotName: 'recordCount',
+        width: 120,
+        align: 'center',
+      },
+    ]
+  }
 
   return [
-    {
-      title: periodTitle,
-      dataIndex: 'period',
-      slotName: 'period',
-      width: 180,
-      align: 'center',
-    },
+    periodColumn,
     {
       title: '收入',
       dataIndex: 'income',
@@ -536,7 +682,7 @@ onMounted(async () => {
 <style scoped lang="scss">
 .bill-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 10px;
   width: 100%;
   margin: 18px 0 12px;
@@ -647,12 +793,6 @@ onMounted(async () => {
 
 .bill-amount--balance {
   color: var(--color-text-1);
-}
-
-@media (max-width: 1440px) {
-  .bill-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 768px) {

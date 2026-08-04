@@ -9,6 +9,8 @@
  *
  * @author Wangsongsong
  * @date 2026-04-03
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 补充日历报表实际统计空态，支持搜索区同时展示实际统计和全量统计
  */
 import dayjs from 'dayjs'
 import type * as T from '@/apis/bookkeeping/type'
@@ -83,6 +85,10 @@ export const createEmptyReportCalendar = (): T.ReportCalendarResp => ({
   rangeStart: '',
   rangeEnd: '',
   summary: {
+    actualTotalExpense: 0,
+    actualTotalIncome: 0,
+    actualBalance: 0,
+    actualRecordCount: 0,
     totalExpense: 0,
     totalIncome: 0,
     balance: 0,

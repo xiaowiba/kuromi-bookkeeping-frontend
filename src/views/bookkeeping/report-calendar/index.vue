@@ -11,18 +11,33 @@
           @reset="handleReset"
         >
           <template #prefix-extra>
-            <a-button
-              v-if="privacyStore.isPrivacyMode"
-              status="warning"
-              size="small"
-              @click="onExitPrivacy"
-            >
-              <template #icon><icon-lock /></template>
-              退出隐私模式
-            </a-button>
-            <a-tag v-if="privacyStore.isPrivacyMode" size="small" color="orange">
-              剩余 {{ privacyStore.remainingDurationText }}
-            </a-tag>
+            <div class="report-calendar-search-extra">
+              <div class="report-calendar-summary">
+                <div
+                  v-for="item in summaryCards"
+                  :key="item.label"
+                  class="report-calendar-summary__item"
+                  :class="item.tone"
+                >
+                  <span class="report-calendar-summary__label">{{ item.label }}</span>
+                  <strong class="report-calendar-summary__value">{{ item.value }}</strong>
+                </div>
+              </div>
+
+              <div v-if="privacyStore.isPrivacyMode" class="report-calendar-search-extra__privacy">
+                <a-button
+                  status="warning"
+                  size="small"
+                  @click="onExitPrivacy"
+                >
+                  <template #icon><icon-lock /></template>
+                  退出隐私模式
+                </a-button>
+                <a-tag size="small" color="orange">
+                  剩余 {{ privacyStore.remainingDurationText }}
+                </a-tag>
+              </div>
+            </div>
           </template>
 
           <template #subjectId>
@@ -137,18 +152,6 @@
         >
           <template #toolbar>
             <div class="report-calendar-toolbar">
-              <div class="report-calendar-summary">
-                <div
-                  v-for="item in summaryCards"
-                  :key="item.label"
-                  class="report-calendar-summary__item"
-                  :class="item.tone"
-                >
-                  <span class="report-calendar-summary__label">{{ item.label }}</span>
-                  <strong class="report-calendar-summary__value">{{ item.value }}</strong>
-                </div>
-              </div>
-
               <div class="report-calendar-toolbar__actions">
                 <a-button-group>
                   <a-button @click="handleShiftPeriod(-1)">上一{{ queryForm.viewMode === 'month' ? '月' : '年' }}</a-button>
@@ -381,6 +384,11 @@
  * 1. 提供按用户、分类、科目、标签、支付方式筛选的日历报表入口。
  * 2. 支持月视图、年视图切换和周期跳转。
  * 3. 左侧展示日历聚合，右侧展示选中日期的完整明细。
+ *
+ * @author Wangsongsong
+ * @date 2026-04-03
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 将日历范围汇总移动到搜索按钮左侧，并扩展为实际统计和全量统计两组数据
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
@@ -608,6 +616,26 @@ const summaryCards = computed(() => {
   const summary = calendarData.value.summary
   return [
     {
+      label: '实际总支出',
+      value: formatReportCurrency(summary.actualTotalExpense),
+      tone: 'expense',
+    },
+    {
+      label: '实际总收入',
+      value: formatReportCurrency(summary.actualTotalIncome),
+      tone: 'income',
+    },
+    {
+      label: '实际总结余',
+      value: formatBalanceCurrency(summary.actualBalance),
+      tone: getBalanceTone(summary.actualBalance),
+    },
+    {
+      label: '实际总条数',
+      value: `${summary.actualRecordCount} 笔`,
+      tone: 'neutral',
+    },
+    {
       label: '总支出',
       value: formatReportCurrency(summary.totalExpense),
       tone: 'expense',
@@ -618,12 +646,12 @@ const summaryCards = computed(() => {
       tone: 'income',
     },
     {
-      label: '结余',
+      label: '总结余',
       value: formatBalanceCurrency(summary.balance),
       tone: getBalanceTone(summary.balance),
     },
     {
-      label: '记录数',
+      label: '总条数',
       value: `${summary.recordCount} 笔`,
       tone: 'neutral',
     },
@@ -762,7 +790,17 @@ const loadCalendar = async (preferredDate?: string) => {
   calendarLoading.value = true
   try {
     const { data } = await getReportCalendar(buildCalendarQuery(preferredDate ? { date: preferredDate } : {}))
-    calendarData.value = data || createEmptyReportCalendar()
+    const emptyCalendar = createEmptyReportCalendar()
+    calendarData.value = data
+      ? {
+          ...emptyCalendar,
+          ...data,
+          summary: {
+            ...emptyCalendar.summary,
+            ...(data.summary ?? {}),
+          },
+        }
+      : emptyCalendar
     queryForm.viewMode = calendarData.value.viewMode || queryForm.viewMode
     queryForm.anchorDate = normalizeCalendarAnchorDate(calendarData.value.anchorDate || queryForm.anchorDate, queryForm.viewMode)
   } catch {
@@ -952,15 +990,20 @@ onMounted(async () => {
 
   :deep(.arco-grid > .arco-grid-item:last-child > .arco-space) {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     width: 100%;
     gap: 8px;
   }
 
   :deep(.arco-grid > .arco-grid-item:last-child .arco-space-item) {
     flex: 0 0 auto;
+  }
+
+  :deep(.arco-grid > .arco-grid-item:last-child .arco-space-item:first-child) {
+    flex: 1 1 760px;
+    min-width: 0;
   }
 }
 
@@ -1018,10 +1061,25 @@ onMounted(async () => {
   }
 }
 
+.report-calendar-search-extra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.report-calendar-search-extra__privacy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .report-calendar-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
   margin-bottom: 0;
   flex: 1 1 auto;
   min-width: 0;
@@ -1031,11 +1089,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  flex: 1 1 180px;
+  gap: 8px;
   min-height: 32px;
-  padding: 0 10px;
-  border-radius: 12px;
+  padding: 0 8px;
+  border-radius: 10px;
   border: 1px solid rgba(229, 230, 235, 0.7);
   background: rgba(255, 255, 255, 0.92);
 }
@@ -1056,13 +1113,13 @@ onMounted(async () => {
 
 .report-calendar-summary__label {
   color: var(--color-text-2);
-  font-size: 12px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
 .report-calendar-summary__value {
   color: var(--color-text-1);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1098,7 +1155,7 @@ onMounted(async () => {
 .report-calendar-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 14px;
   width: 100%;
   min-width: 0;

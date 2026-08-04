@@ -3,6 +3,8 @@
  *
  * @author Codex
  * @date 2026-04-26
+ * @update 2026-07-09 @Wangsongsong
+ * @desc 补齐账单实际统计默认值，避免接口空态下页面读取缺失字段
  */
 import type * as T from './type'
 import http from '@/utils/http'
@@ -24,6 +26,10 @@ export function getYearlyBill(query: T.BillYearlyQuery) {
 /** 创建空账单汇总 */
 export function createEmptyBillSummary(): T.BillSummaryResp {
   return {
+    actualTotalIncome: 0,
+    actualTotalExpense: 0,
+    actualBalance: 0,
+    actualRecordCount: 0,
     totalIncome: 0,
     totalExpense: 0,
     balance: 0,
@@ -43,6 +49,10 @@ export function createEmptyMonthlyBillResp(year: number | string): T.BillMonthly
       return {
         month: `${numericYear}-${String(monthNumber).padStart(2, '0')}`,
         monthNumber,
+        actualTotalIncome: 0,
+        actualTotalExpense: 0,
+        actualBalance: 0,
+        actualRecordCount: 0,
         income: 0,
         expense: 0,
         balance: 0,

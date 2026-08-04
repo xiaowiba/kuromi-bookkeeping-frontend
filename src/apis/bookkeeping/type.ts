@@ -19,6 +19,10 @@
  * @desc 扩展明细统计响应字段，支持实际统计与全量统计同时展示
  * @update 2026-07-08 @Wangsongsong
  * @desc 增加报表中心报销角色汇总响应类型，支持展示垫付、被报销和报销他人数据
+ * @update 2026-07-08 @Wangsongsong
+ * @desc 扩展日历报表汇总响应字段，支持实际统计与全量统计同时展示
+ * @update 2026-07-09 @Wangsongsong
+ * @desc 扩展账单汇总与月账单响应字段，支持实际统计与全量统计同时展示
  */
 
 /** 科目响应类型 */
@@ -381,6 +385,10 @@ export interface BillFilterForm {
 
 /** 账单汇总响应 */
 export interface BillSummaryResp {
+  actualTotalIncome: number
+  actualTotalExpense: number
+  actualBalance: number
+  actualRecordCount: number
   totalIncome: number
   totalExpense: number
   balance: number
@@ -391,6 +399,10 @@ export interface BillSummaryResp {
 export interface BillMonthItemResp {
   month: string
   monthNumber: number
+  actualTotalIncome: number
+  actualTotalExpense: number
+  actualBalance: number
+  actualRecordCount: number
   income: number
   expense: number
   balance: number
@@ -604,6 +616,10 @@ export interface ReportCalendarQuery extends ReportQuery {
 
 /** 日历报表汇总 */
 export interface ReportCalendarSummaryResp {
+  actualTotalExpense: number
+  actualTotalIncome: number
+  actualBalance: number
+  actualRecordCount: number
   totalExpense: number
   totalIncome: number
   balance: number

@@ -1,7 +1,7 @@
 {
   "name": "kuromi-bookkeeping-frontend",
   "type": "module",
-  "version": "v3.0.0.2026.0614.2251",
+  "version": "v3.0.0.2026.0807.2105",
   "private": "true",
   "scripts": {
     "bootstrap": "pnpm install --registry=https://registry.npmmirror.com",

@@ -1,13 +1,13 @@
 <template>
   <div class="login pc" :class="{ 'login--dark': isDark }">
-    <div class="login-hero">
+    <!-- div class="login-hero">
       <div class="login-banner-container">
         <Transition name="fade" mode="out-in">
           <LoginHeroBannerSkeleton v-if="!bannerLoaded" key="skeleton" class="login-banner" />
           <LoginHeroBanner v-else key="banner" class="login-banner" />
         </Transition>
       </div>
-    </div>
+    </div -->
 
     <div class="login-box">
       <div class="login-right">
@@ -102,10 +102,7 @@
 import { computed, ref } from 'vue'
 import Background from './components/background/index.vue'
 import AccountLogin from './components/account/index.vue'
-import PhoneLogin from './components/phone/index.vue'
 import EmailLogin from './components/email/index.vue'
-import LoginHeroBanner from './components/LoginHeroBanner.vue'
-import LoginHeroBannerSkeleton from './components/LoginHeroBannerSkeleton.vue'
 import { socialAuth } from '@/apis/auth'
 import { useAppStore } from '@/stores'
 import { useTenantStore } from '@/stores/modules/tenant'

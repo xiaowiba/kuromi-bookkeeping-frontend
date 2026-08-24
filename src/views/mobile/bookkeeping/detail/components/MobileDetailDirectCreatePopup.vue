@@ -46,6 +46,31 @@
             </div>
           </div>
 
+          <div v-if="isExpenseCategory" class="mobile-field">
+            <label class="mobile-field__label">是否垫付</label>
+            <div class="mobile-direct-create__necessary-group" role="radiogroup" aria-label="是否垫付">
+              <t-button
+                v-for="item in isAdvanceOptions"
+                :key="item.value"
+                block
+                size="large"
+                variant="text"
+                class="mobile-direct-create__necessary-btn"
+                :class="{ 'is-active': Number(form.isAdvance) === Number(item.value) }"
+                :disabled="isAdvanceFieldLocked"
+                role="radio"
+                :aria-checked="Number(form.isAdvance) === Number(item.value)"
+                :aria-disabled="isAdvanceFieldLocked"
+                @click="handleAdvanceChange(Number(item.value))"
+              >
+                {{ item.label }}
+              </t-button>
+            </div>
+            <small v-if="isAdvanceFieldHint" class="mobile-direct-create__switch-desc">
+              {{ isAdvanceFieldHint }}
+            </small>
+          </div>
+
           <div class="mobile-field">
             <label class="mobile-field__label">科目</label>
             <t-button
@@ -447,6 +472,8 @@
  * @date 2026-03-27
  * @update 2026-03-27 @Wangsongsong
  * @desc 新增移动端直达填写明细交互，新增与编辑入口复用同一表单组件，在表单内通过 Popup 选择分类科目和支付方式
+ * @update 2026-08-16 @Wangsongsong
+ * @desc 支出分类增加是否垫付单选，编辑已关联明细时锁定报销角色并按白名单提交，避免移动端误改关联关系
  */
 import dayjs from 'dayjs'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
@@ -573,7 +600,13 @@ const isNecessaryOptions = computed(() => {
     value: Number(item.value ?? 0),
   }))
 })
-const necessaryFieldLabel = computed(() => (form.category === 'income' ? '是否必要收入' : '是否必要支出'))
+const isAdvanceOptions = computed(() => {
+  const options = commonYesNo.value?.length ? commonYesNo.value : yesNoFallbackOptions
+  return options.map((item) => ({
+    label: String(item.label ?? ''),
+    value: Number(item.value ?? 0),
+  }))
+})
 
 const createDefaultForm = () => ({
   userId: String(userStore.userInfo.id || ''),
@@ -586,11 +619,27 @@ const createDefaultForm = () => ({
   paymentMethod: 'default',
   paymentAccountId: '',
   isNecessary: 1,
+  isAdvance: 0,
+  isReimburseOther: 0,
+  linkedDetailId: '',
   remark: '',
   hidden: 0,
 })
 
 const form = reactive(createDefaultForm())
+
+const necessaryFieldLabel = computed(() => (form.category === 'income' ? '是否必要收入' : '是否必要支出'))
+const isExpenseCategory = computed(() => form.category === 'expense')
+const isAdvanceFieldLocked = computed(() =>
+  isUpdate.value && (!!form.linkedDetailId || Number(form.isReimburseOther) === 1),
+)
+const isAdvanceFieldHint = computed(() => {
+  if (!isAdvanceFieldLocked.value) return ''
+  if (form.linkedDetailId) {
+    return '需要先解除关联后才能修改报销角色'
+  }
+  return '当前明细为报销他人角色，移动端不支持切换为垫付'
+})
 
 const selectedCategoryLabel = computed(() => {
   const current = categoryOptions.value.find((item) => item.value === form.category)
@@ -719,7 +768,6 @@ const fillFormByDetail = async (id: string) => {
   const name = String(data.name || '')
 
   Object.assign(form, createDefaultForm(), {
-    ...data,
     userId: String(data.userId || userStore.userInfo.id || ''),
     category,
     subjectId: data.subjectId || '',
@@ -730,6 +778,9 @@ const fillFormByDetail = async (id: string) => {
     paymentMethod: data.paymentMethod || 'default',
     paymentAccountId: data.paymentAccountId ? String(data.paymentAccountId) : '',
     isNecessary: Number(data.isNecessary ?? 1),
+    isAdvance: Number(data.isAdvance ?? 0) === 1 ? 1 : 0,
+    isReimburseOther: Number(data.isReimburseOther ?? 0) === 1 ? 1 : 0,
+    linkedDetailId: data.linkedDetailId ? String(data.linkedDetailId) : '',
     remark: data.remark || '',
     hidden: data.hidden ?? 0,
   })
@@ -760,11 +811,29 @@ const resetSubjectAndName = () => {
 const handleCategoryChange = (category: string) => {
   const changed = form.category !== category
   form.category = category
+  if (category === 'income') {
+    // 收入明细不承载报销角色，切换分类时立即清除支出专属的垫付状态。
+    form.isAdvance = 0
+    form.isReimburseOther = 0
+  }
   if (changed) {
     resetSubjectAndName()
   }
   tempSubjectId.value = form.subjectId
   subjectPickerVisible.value = true
+}
+
+/**
+ * 更新移动端表单中的垫付角色。
+ *
+ * 已关联明细和报销他人明细由后端关联流程维护角色，移动端只读展示，不能在这里切换。
+ */
+const handleAdvanceChange = (value: number) => {
+  if (isAdvanceFieldLocked.value) return
+  form.isAdvance = value === 1 ? 1 : 0
+  if (form.isAdvance === 1) {
+    form.isReimburseOther = 0
+  }
 }
 
 const openSubjectPicker = () => {
@@ -916,15 +985,21 @@ const validateForm = () => {
 const handleSubmit = async () => {
   if (!validateForm()) return
 
+  const isExpense = form.category === 'expense'
   const payload = {
-    ...form,
-    tagId: form.tagId ? form.tagId : null,
-    paymentAccountId: form.paymentAccountId ? form.paymentAccountId : null,
-    name: String(form.name || '').trim(),
-    remark: String(form.remark || '').trim(),
-    amount: Number(form.amount),
-    isNecessary: Number(form.isNecessary ?? 1),
     userId: isAdmin.value ? form.userId : String(userStore.userInfo.id || ''),
+    subjectId: form.subjectId,
+    tagId: form.tagId ? form.tagId : null,
+    name: String(form.name || '').trim(),
+    amount: Number(form.amount),
+    detailDate: form.detailDate,
+    paymentMethod: form.paymentMethod,
+    paymentAccountId: form.paymentAccountId ? form.paymentAccountId : null,
+    isNecessary: Number(form.isNecessary ?? 1),
+    isAdvance: isExpense && Number(form.isReimburseOther) !== 1 && Number(form.isAdvance) === 1 ? 1 : 0,
+    isReimburseOther: isExpense && Number(form.isReimburseOther) === 1 ? 1 : 0,
+    remark: String(form.remark || '').trim(),
+    hidden: form.hidden,
   }
 
   submitting.value = true

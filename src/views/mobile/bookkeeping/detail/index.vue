@@ -571,6 +571,8 @@
  * @desc 下调返回顶部按钮的底部固定位置，避免遮挡明细列表最后一行金额
  * @update 2026-03-23 @Wangsongsong
  * @desc 继续下调返回顶部按钮位置，进一步避开明细列表末尾金额展示区域
+ * @update 2026-08-16 @Wangsongsong
+ * @desc 统一移动端报销角色和状态标签，垫付方使用待报销/已报销，报销他人方使用待关联/已关联
  */
 import { Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
@@ -912,7 +914,10 @@ interface MobileLinkedDetailInfoItem {
 
 /**
  * 为移动端明细补充报销语义标签。
- * 列表里优先展示“角色 + 关联状态”，让用户不进弹窗也能快速识别垫付/报销数据。
+ *
+ * 垫付方等待的是对方报销，因此使用“待报销/已报销”；报销他人方等待的是
+ * 对方垫付明细关联，因此只能使用“待关联/已关联”。状态只依据当前明细的
+ * 业务角色和真实关联 ID 判断，不以前端自行推断的 isReimbursed 覆盖角色语义。
  */
 const buildReimburseTags = (detail?: DetailResp | null): MobileReimburseTag[] => {
   if (!detail) return []
@@ -923,20 +928,18 @@ const buildReimburseTags = (detail?: DetailResp | null): MobileReimburseTag[] =>
 
   if (isAdvance) {
     tags.push({ key: 'advance-role', label: '垫付', theme: 'warning' })
-  }
-  if (isReimburseOther) {
-    tags.push({ key: 'reimburse-role', label: '报销他人', theme: 'primary' })
-  }
-  if (hasLinkedDetail) {
     tags.push({
-      key: 'linked-status',
-      label: detail.linkedUserNickname ? `已关联·${detail.linkedUserNickname}` : '已关联',
-      theme: 'success',
+      key: 'advance-status',
+      label: hasLinkedDetail ? '已报销' : '待报销',
+      theme: hasLinkedDetail ? 'success' : 'warning',
     })
-  } else if (isAdvance) {
-    tags.push({ key: 'advance-status', label: '待报销', theme: 'warning' })
   } else if (isReimburseOther) {
-    tags.push({ key: 'reimburse-status', label: '待关联', theme: 'default' })
+    tags.push({ key: 'reimburse-role', label: '报销他人', theme: 'primary' })
+    tags.push({
+      key: 'reimburse-status',
+      label: hasLinkedDetail ? '已关联' : '待关联',
+      theme: hasLinkedDetail ? 'success' : 'default',
+    })
   }
   return tags
 }

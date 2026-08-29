@@ -104,22 +104,33 @@
               <span class="mobile-bill-table__cell">月支出</span>
               <span class="mobile-bill-table__cell">月结余</span>
             </div>
-            <article
-              v-for="item in monthlyItems"
-              :key="item.month"
-              class="mobile-bill-table__row"
-              :class="{ 'is-empty': isEmptyMonth(item) }"
-            >
-              <span class="mobile-bill-table__cell is-month">{{ item.monthNumber }}月</span>
-              <span class="mobile-bill-table__cell is-income">{{ formatAmount(item.income) }}</span>
-              <span class="mobile-bill-table__cell is-expense">{{ formatAmount(item.expense) }}</span>
-              <span
-                class="mobile-bill-table__cell is-balance"
-                :class="resolveBalanceClass(item.balance)"
+            <template v-for="item in monthlyItems" :key="item.month">
+              <article
+                class="mobile-bill-table__row"
+                :class="{ 'is-empty': isEmptyMonth(item) }"
               >
-                {{ formatBalance(item.balance) }}
-              </span>
-            </article>
+                <span class="mobile-bill-table__cell is-month">{{ item.monthNumber }}月</span>
+                <span class="mobile-bill-table__cell is-income">{{ formatAmount(item.income) }}</span>
+                <span class="mobile-bill-table__cell is-expense">{{ formatAmount(item.expense) }}</span>
+                <span
+                  class="mobile-bill-table__cell is-balance"
+                  :class="resolveBalanceClass(item.balance)"
+                >
+                  {{ formatBalance(item.balance) }}
+                </span>
+              </article>
+              <article class="mobile-bill-table__row is-actual">
+                <span class="mobile-bill-table__cell is-month">实际</span>
+                <span class="mobile-bill-table__cell is-income">{{ formatAmount(item.actualTotalIncome) }}</span>
+                <span class="mobile-bill-table__cell is-expense">{{ formatAmount(item.actualTotalExpense) }}</span>
+                <span
+                  class="mobile-bill-table__cell is-balance"
+                  :class="resolveBalanceClass(item.actualBalance)"
+                >
+                  {{ formatBalance(item.actualBalance) }}
+                </span>
+              </article>
+            </template>
           </div>
         </template>
 
@@ -166,6 +177,8 @@
  * @date 2026-04-26
  * @update 2026-08-29 @Wangsongsong
  * @desc 月账单模式补充实际总支出、实际总收入、实际总结余和实际总条数展示，与 Web 端统计口径保持一致
+ * @update 2026-08-29 @Wangsongsong
+ * @desc 月账单列表在每个月份数据下补充实际收入、实际支出和实际结余
  */
 import { computed, onMounted, ref } from 'vue'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
@@ -596,6 +609,34 @@ onMounted(async () => {
 
 .mobile-bill-table__row.is-empty {
   opacity: 0.58;
+}
+
+.mobile-bill-table__row.is-actual {
+  min-height: 22px;
+  border-top: none;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.mobile-bill-table__row.is-actual .mobile-bill-table__cell {
+  color: rgba(102, 77, 35, 0.62);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.mobile-bill-table__row.is-actual .mobile-bill-table__cell.is-income {
+  color: color-mix(in srgb, var(--amount-income-primary) 72%, #ffffff);
+}
+
+.mobile-bill-table__row.is-actual .mobile-bill-table__cell.is-expense {
+  color: color-mix(in srgb, var(--amount-expense-primary) 72%, #ffffff);
+}
+
+.mobile-bill-table__row.is-actual .mobile-bill-table__cell.is-balance.is-income {
+  color: color-mix(in srgb, var(--amount-income-primary) 72%, #ffffff);
+}
+
+.mobile-bill-table__row.is-actual .mobile-bill-table__cell.is-balance.is-expense {
+  color: color-mix(in srgb, var(--amount-expense-primary) 72%, #ffffff);
 }
 
 .mobile-bill-table.is-yearly .mobile-bill-table__head,

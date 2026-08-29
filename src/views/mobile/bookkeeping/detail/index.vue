@@ -61,7 +61,6 @@
 
         <button type="button" class="mobile-detail-hero__month-main" @click="openMonthPicker">
           <span class="mobile-detail-hero__month-text">{{ currentMonthText }}</span>
-          <small class="mobile-detail-hero__month-meta">{{ monthMetaText }}</small>
         </button>
 
         <button
@@ -75,20 +74,46 @@
       </div>
 
       <div class="mobile-detail-hero__summary">
-        <article class="mobile-detail-hero__summary-item">
-          <span>收入</span>
-          <strong class="is-income">¥{{ formatNumber(statistics.totalIncome) }}</strong>
-        </article>
-        <article class="mobile-detail-hero__summary-item">
-          <span>支出</span>
-          <strong class="is-expense">¥{{ formatNumber(statistics.totalExpense) }}</strong>
-        </article>
-        <article class="mobile-detail-hero__summary-item">
-          <span>结余</span>
-          <strong :class="statistics.netIncome >= 0 ? 'is-income' : 'is-expense'">
-            {{ formatBalanceNumber(statistics.netIncome) }}
-          </strong>
-        </article>
+        <!-- 实际口径（重点行）：已剔除「已关联报销方的垫付方」明细，反映真实财务数据；条数并入口径标签 -->
+        <div class="mobile-detail-hero__summary-row mobile-detail-hero__summary-row--actual">
+          <span class="mobile-detail-hero__summary-caption">实际 · {{ statistics.actualTotalCount }} 笔</span>
+          <div class="mobile-detail-hero__summary-metrics">
+            <article class="mobile-detail-hero__summary-item">
+              <span>收入</span>
+              <strong class="is-income">¥{{ formatNumber(statistics.actualTotalIncome) }}</strong>
+            </article>
+            <article class="mobile-detail-hero__summary-item">
+              <span>支出</span>
+              <strong class="is-expense">¥{{ formatNumber(statistics.actualTotalExpense) }}</strong>
+            </article>
+            <article class="mobile-detail-hero__summary-item">
+              <span>结余</span>
+              <strong :class="statistics.actualNetIncome >= 0 ? 'is-income' : 'is-expense'">
+                {{ formatBalanceNumber(statistics.actualNetIncome) }}
+              </strong>
+            </article>
+          </div>
+        </div>
+        <!-- 全部口径（弱化行）：含垫付在内的原始口径；条数并入口径标签 -->
+        <div class="mobile-detail-hero__summary-row mobile-detail-hero__summary-row--total">
+          <span class="mobile-detail-hero__summary-caption">全部 · {{ statistics.totalCount }} 笔</span>
+          <div class="mobile-detail-hero__summary-metrics">
+            <article class="mobile-detail-hero__summary-item">
+              <span>收入</span>
+              <strong class="is-income">¥{{ formatNumber(statistics.totalIncome) }}</strong>
+            </article>
+            <article class="mobile-detail-hero__summary-item">
+              <span>支出</span>
+              <strong class="is-expense">¥{{ formatNumber(statistics.totalExpense) }}</strong>
+            </article>
+            <article class="mobile-detail-hero__summary-item">
+              <span>结余</span>
+              <strong :class="statistics.netIncome >= 0 ? 'is-income' : 'is-expense'">
+                {{ formatBalanceNumber(statistics.netIncome) }}
+              </strong>
+            </article>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -180,10 +205,6 @@
 
     <section class="mobile-detail-ledger">
       <header class="mobile-detail-ledger__header">
-        <div>
-          <!-- h2 class="mobile-detail-ledger__title">明细账本</h2 -->
-          <p class="mobile-detail-ledger__meta">{{ ledgerMetaText }}</p>
-        </div>
         <div class="mobile-detail-ledger__actions">
           <!-- button
             type="button"
@@ -573,6 +594,13 @@
  * @desc 继续下调返回顶部按钮位置，进一步避开明细列表末尾金额展示区域
  * @update 2026-08-16 @Wangsongsong
  * @desc 统一移动端报销角色和状态标签，垫付方使用待报销/已报销，报销他人方使用待关联/已关联
+ * @update 2026-08-24 @Wangsongsong
+ * @desc 顶部统计补齐「实际/全部」两组口径：新增实际支出/收入/结余/条数展示，
+ *       采用「实际」重点行 + 「全部」弱化行的双行同屏布局，条数并入口径标签
+ * @update 2026-08-29 @Wangsongsong
+ * @desc 移除明细列表上方重复的年月、分类和条数摘要，保留顶部统计及日期分组信息
+ * @update 2026-08-29 @Wangsongsong
+ * @desc 移除月份切换按钮内重复的明细条数，并统一压缩三枚月份按钮高度
  */
 import { Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
@@ -618,11 +646,31 @@ const filterVisible = ref(false)
 const monthPickerVisible = ref(false)
 const monthPickerValue = ref('')
 const details = ref<DetailResp[]>([])
-const statistics = ref({
+
+/**
+ * 构造移动端统计默认结构。
+ *
+ * 后端 /bookkeeping/detail/statistics 返回「实际」与「全部」两组共 8 个字段，
+ * 这里显式声明全部字段并以 0 兜底，用于初始化以及请求失败/字段缺失时的回退，
+ * 避免模板取值为 undefined 导致渲染报错。
+ *
+ * @author Wangsongsong
+ * @date 2026-08-24
+ */
+const createDefaultStatistics = () => ({
+  // 实际口径：已剔除「已关联报销方的垫付方」明细
+  actualTotalExpense: 0,
+  actualTotalIncome: 0,
+  actualNetIncome: 0,
+  actualTotalCount: 0,
+  // 全部口径：当前筛选条件下的全部明细
   totalExpense: 0,
   totalIncome: 0,
   netIncome: 0,
+  totalCount: 0,
 })
+
+const statistics = ref(createDefaultStatistics())
 const showBackTop = ref(false)
 const actionPopupVisible = ref(false)
 const activeDetail = ref<DetailResp | null>(null)
@@ -677,11 +725,6 @@ const followUserOptions = computed(() =>
 )
 const isCurrentMonth = computed(() => query.month === getCurrentMonth())
 const currentMonthText = computed(() => dayjs(`${query.month}-01`).format('YYYY年M月'))
-const monthMetaText = computed(() => `${details.value.length} 笔明细`)
-const ledgerMetaText = computed(() => {
-  const categoryLabel = subjectCategoryLabel(query.category)
-  return `${currentMonthText.value} · ${categoryLabel} · ${details.value.length} 笔`
-})
 const canUpdateDetail = computed(() => has.hasPermOr(['bookkeeping:detail:update']))
 const canDeleteDetail = computed(() => has.hasPermOr(['bookkeeping:detail:delete']))
 const canEditActiveDetail = computed(() => {
@@ -751,8 +794,11 @@ const loadData = async () => {
     ])
 
     details.value = detailRes.data
-    statistics.value = statisticsRes.data
+    // 与默认结构合并，避免后端个别字段缺失时模板取值为 undefined
+    statistics.value = { ...createDefaultStatistics(), ...statisticsRes.data }
   } catch (error) {
+    // 加载失败时回退为 0 结构，保证统计不残留上一次数据，也不影响列表展示
+    statistics.value = createDefaultStatistics()
     mobileToast.error(error instanceof Error && error.message ? error.message : '加载明细失败，请稍后重试')
   } finally {
     loading.value = false
@@ -1090,7 +1136,8 @@ onUnmounted(() => {
 }
 
 .mobile-detail-hero__month-nav {
-  padding: 16px 8px;
+  height: 40px;
+  padding: 0 8px;
   border-radius: 18px;
 }
 
@@ -1128,8 +1175,10 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 50px;
-  padding: 8px 12px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  box-sizing: border-box;
   border: none;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.3);
@@ -1137,16 +1186,9 @@ onUnmounted(() => {
 }
 
 .mobile-detail-hero__month-text {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
   line-height: 1.1;
-}
-
-.mobile-detail-hero__month-meta {
-  margin-top: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  opacity: 0.72;
 }
 
 .mobile-month-picker-popup {
@@ -1162,10 +1204,32 @@ onUnmounted(() => {
 }
 
 .mobile-detail-hero__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+/* 单组口径（实际 / 全部）：口径标签在上，三项金额在下 */
+.mobile-detail-hero__summary-row {
+  min-width: 0;
+}
+
+/* 口径标签，条数并入其中，避免单独占用金额格宽度 */
+.mobile-detail-hero__summary-caption {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #6b5426;
+}
+
+/* 三项金额：收入 / 支出 / 结余，三等分 */
+.mobile-detail-hero__summary-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 8px;
   overflow: hidden;
 }
 
@@ -1176,6 +1240,33 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.24);
   color: #6b5426;
   overflow: hidden;
+}
+
+/* 实际口径为重点：背景略深，字号维持 */
+.mobile-detail-hero__summary-row--actual .mobile-detail-hero__summary-item {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* 全部口径弱化：标签颜色更淡 */
+.mobile-detail-hero__summary-row--total .mobile-detail-hero__summary-caption {
+  font-weight: 700;
+  color: rgba(107, 84, 38, 0.6);
+}
+
+/* 全部口径弱化：背景更浅、内边距更紧凑 */
+.mobile-detail-hero__summary-row--total .mobile-detail-hero__summary-item {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.mobile-detail-hero__summary-row--total .mobile-detail-hero__summary-item span {
+  font-size: 11px;
+  color: rgba(107, 84, 38, 0.7);
+}
+
+/* 全部口径弱化：金额字号更小，优先保证「实际」行完整可读 */
+.mobile-detail-hero__summary-row--total .mobile-detail-hero__summary-item strong {
+  font-size: 13px;
 }
 
 .mobile-detail-hero__summary-item span {
@@ -1301,7 +1392,7 @@ onUnmounted(() => {
 .mobile-detail-ledger__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   //margin-bottom: 12px;
   padding: 0 8px 6px;
@@ -1318,13 +1409,6 @@ onUnmounted(() => {
   color: #312111;
   font-size: 20px;
   font-weight: 800;
-}
-
-.mobile-detail-ledger__meta {
-  margin: 0;
-  color: #8a7a68;
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .mobile-detail-ledger__action {

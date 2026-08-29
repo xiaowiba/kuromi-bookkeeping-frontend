@@ -3,8 +3,8 @@ import qs from 'query-string'
 import type { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { useTenantStore } from '@/stores/modules/tenant'
 import { useUserStore } from '@/stores'
-import { getToken } from '@/utils/auth'
-import modalErrorWrapper from '@/utils/modal-error-wrapper'
+import { getEntryLoginKey, getToken } from '@/utils/auth'
+import authExpiredModal from '@/utils/auth-expired-modal'
 import messageErrorWrapper from '@/utils/message-error-wrapper'
 import notificationErrorWrapper from '@/utils/notification-error-wrapper'
 import router from '@/router'
@@ -80,34 +80,122 @@ const canRetryByEntryLogin = (config?: RequestConfig, msg?: string) => {
   return !url.includes('/auth/login') && !url.includes('/auth/entry-login') && !url.includes('/auth/logout')
 }
 
+/**
+ * 打开认证失效弹窗
+ *
+ * 根据场景区分为：
+ * 1. 顶下线：保留专属入口重新登录与回登录页两个动作
+ * 2. 踢下线：仅允许回登录页
+ * 3. 普通过期：沿用单一回登录页动作
+ *
+ * @author Wangsongsong
+ * @date 2026-08-28
+ */
+const openAuthExpiredModal = (options: {
+  content: string
+  entryKey?: string
+  allowEntryLogin: boolean
+  onEntryLogin: () => Promise<void> | void
+  onBackToLogin: () => Promise<void> | void
+}) => {
+  const hasEntryLogin = options.allowEntryLogin && !!options.entryKey
+  authExpiredModal({
+    title: '提示',
+    content: options.content,
+    okText: hasEntryLogin ? '重新登录' : '回登录页',
+    cancelText: '回登录页',
+    hideCancel: !hasEntryLogin,
+    async onOk() {
+      if (hasEntryLogin) {
+        await options.onEntryLogin()
+        return
+      }
+      await options.onBackToLogin()
+    },
+    async onCancel() {
+      await options.onBackToLogin()
+    },
+  })
+}
+
+/**
+ * 处理认证失效弹窗
+ *
+ * 顶下线场景保留专属入口重新登录和回登录页两个动作；
+ * 踢下线与普通认证失效场景仅允许回登录页。
+ *
+ * @author Wangsongsong
+ * @date 2026-08-28
+ * @update 2026-08-28 @Wangsongsong
+ * @desc 拆分顶下线与踢下线的弹窗交互，避免强制退出时误走无感续登
+ */
 const handleAuthExpired = (msg: string) => {
   if (authExpiredHandling) {
     return
   }
   authExpiredHandling = true
-  modalErrorWrapper({
-    title: '提示',
+  const userStore = useUserStore()
+  const expiredPath = router.currentRoute.value.fullPath || '/'
+  const entryKey = getEntryLoginKey()
+  const canEntryLogin = userStore.canEntryLogin() && !!entryKey
+
+  const redirectToLogin = async () => {
+    const loginTarget = router.resolve({
+      path: '/login',
+      query: { redirect: expiredPath },
+    }).fullPath
+    try {
+      await userStore.logoutCallBack()
+    } finally {
+      authExpiredHandling = false
+    }
+    window.location.replace(loginTarget)
+  }
+
+  const redirectToEntryLogin = async () => {
+    // 必须在退出回调清理本地入口状态前生成地址，但使用已捕获的 key，确保快捷登录参数不丢失
+    const loginTarget = router.resolve({
+      path: '/login',
+      query: { redirect: expiredPath },
+      // Vue Router 的 hash 参数必须包含 #，否则会被错误拼接到 redirect 路径末尾
+      hash: `#entryKey=${encodeURIComponent(entryKey || '')}`,
+    }).fullPath
+    try {
+      await userStore.logoutCallBack()
+    } finally {
+      authExpiredHandling = false
+    }
+    window.location.replace(loginTarget)
+  }
+
+  if (msg === BE_REPLACED_MSG) {
+    // 被顶下线时保留专属入口重新登录能力，用户可以主动接回当前账户
+    openAuthExpiredModal({
+      content: msg,
+      entryKey: canEntryLogin ? entryKey : '',
+      allowEntryLogin: true,
+      onEntryLogin: redirectToEntryLogin,
+      onBackToLogin: redirectToLogin,
+    })
+    return
+  }
+
+  // 被踢下线或普通认证过期时，按普通回登录页处理
+  openAuthExpiredModal({
     content: msg,
-    maskClosable: false,
-    escToClose: false,
-    okText: '重新登录',
-    async onOk() {
-      try {
-        const expiredPath = router.currentRoute.value.fullPath || '/'
-        const userStore = useUserStore()
-        await userStore.logoutCallBack()
-        const loginTarget = router.resolve({
-          path: '/login',
-          query: { redirect: expiredPath },
-        }).fullPath
-        window.location.replace(loginTarget)
-      } finally {
-        authExpiredHandling = false
-      }
-    },
+    entryKey: '',
+    allowEntryLogin: false,
+    onEntryLogin: redirectToLogin,
+    onBackToLogin: redirectToLogin,
   })
 }
 
+/**
+ * 使用本地专属入口静默恢复登录
+ *
+ * @author Wangsongsong
+ * @date 2026-08-28
+ */
 const tryRestoreByEntryLogin = async () => {
   const userStore = useUserStore()
   if (!userStore.canEntryLogin()) {
@@ -175,8 +263,9 @@ http.interceptors.response.use(
 
     const requestConfig = response.config as RequestConfig
     if (code === '401') {
-      // 用户被强退后，必须清理本地专属入口信息，避免下一次请求又自动登录回来
-      if (isForcedOfflineMessage(msg)) {
+      // 被踢下线时直接清理本地专属入口信息，避免继续保留可自动续登的痕迹
+      // 被顶下线时要先保留 entryKey，供弹窗里的“重新登录”继续走无感登录
+      if (msg === KICK_OUT_MSG) {
         const userStore = useUserStore()
         userStore.clearEntryLoginState()
       }

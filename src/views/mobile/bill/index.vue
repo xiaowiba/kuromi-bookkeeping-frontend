@@ -40,26 +40,51 @@
 
       <section v-if="!loading" class="mobile-panel mobile-bill-summary">
         <div class="mobile-bill-overview">
-          <div class="mobile-bill-overview__head">
-            <div class="mobile-bill-overview__headline">
-              <p class="mobile-bill-overview__label">{{ overviewBalanceLabel }}</p>
-              <strong
-                class="mobile-bill-overview__balance"
-                :class="resolveBalanceClass(currentSummary.balance)"
+          <div v-if="activeBillType === 'monthly'" class="mobile-bill-overview__actual">
+            <div class="mobile-bill-overview__actual-grid">
+              <div class="mobile-bill-overview__actual-item is-expense">
+                <span>实际总支出</span>
+                <strong>{{ formatAmount(currentSummary.actualTotalExpense) }}</strong>
+              </div>
+              <div class="mobile-bill-overview__actual-item is-income">
+                <span>实际总收入</span>
+                <strong>{{ formatAmount(currentSummary.actualTotalIncome) }}</strong>
+              </div>
+              <div
+                class="mobile-bill-overview__actual-item"
+                :class="resolveBalanceClass(currentSummary.actualBalance)"
               >
-                {{ formatBalance(currentSummary.balance) }}
-              </strong>
+                <span>实际总结余</span>
+                <strong>{{ formatBalance(currentSummary.actualBalance) }}</strong>
+              </div>
+              <div class="mobile-bill-overview__actual-item is-count">
+                <span>实际总条数</span>
+                <strong>{{ currentSummary.actualRecordCount || 0 }} 笔</strong>
+              </div>
             </div>
           </div>
 
-          <div class="mobile-bill-overview__stats">
-            <div class="mobile-bill-overview__stat is-income">
-              <span>{{ overviewIncomeLabel }}</span>
-              <strong>{{ formatAmount(currentSummary.totalIncome) }}</strong>
-            </div>
-            <div class="mobile-bill-overview__stat is-expense">
-              <span>{{ overviewExpenseLabel }}</span>
-              <strong>{{ formatAmount(currentSummary.totalExpense) }}</strong>
+          <div class="mobile-bill-overview__actual mobile-bill-overview__total">
+            <div class="mobile-bill-overview__actual-grid">
+              <div class="mobile-bill-overview__actual-item is-expense">
+                <span>总支出</span>
+                <strong>{{ formatAmount(currentSummary.totalExpense) }}</strong>
+              </div>
+              <div class="mobile-bill-overview__actual-item is-income">
+                <span>总收入</span>
+                <strong>{{ formatAmount(currentSummary.totalIncome) }}</strong>
+              </div>
+              <div
+                class="mobile-bill-overview__actual-item"
+                :class="resolveBalanceClass(currentSummary.balance)"
+              >
+                <span>总结余</span>
+                <strong>{{ formatBalance(currentSummary.balance) }}</strong>
+              </div>
+              <div class="mobile-bill-overview__actual-item is-count">
+                <span>总条数</span>
+                <strong>{{ currentSummary.recordCount || 0 }} 笔</strong>
+              </div>
             </div>
           </div>
 
@@ -71,13 +96,6 @@
 
     <div v-if="!loading" class="mobile-bill-page__scroll">
       <section class="mobile-panel mobile-bill-list">
-        <div class="mobile-bill-list__header is-compact">
-          <div>
-            <h2 class="mobile-section-title">{{ listTitle }}</h2>
-          </div>
-          <span class="mobile-chip is-active">共 {{ currentSummary.recordCount || 0 }} 笔</span>
-        </div>
-
         <template v-if="activeBillType === 'monthly'">
           <div class="mobile-bill-table">
             <div class="mobile-bill-table__head">
@@ -146,6 +164,8 @@
  *
  * @author Codex
  * @date 2026-04-26
+ * @update 2026-08-29 @Wangsongsong
+ * @desc 月账单模式补充实际总支出、实际总收入、实际总结余和实际总条数展示，与 Web 端统计口径保持一致
  */
 import { computed, onMounted, ref } from 'vue'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
@@ -191,12 +211,6 @@ const monthlyItems = computed(() => {
   }
   return createEmptyMonthlyBillResp(selectedYear.value).months
 })
-
-const overviewBalanceLabel = computed(() => (activeBillType.value === 'monthly' ? `${selectedYear.value} 年结余` : '总结余'))
-const overviewIncomeLabel = computed(() => (activeBillType.value === 'monthly' ? '年收入' : '总收入'))
-const overviewExpenseLabel = computed(() => (activeBillType.value === 'monthly' ? '年支出' : '总支出'))
-
-const listTitle = computed(() => (activeBillType.value === 'monthly' ? `${selectedYear.value} 年月账单` : '全部年账单'))
 
 function buildBaseQuery(): T.BillQuery {
   return {
@@ -450,96 +464,77 @@ onMounted(async () => {
   box-shadow: 0 10px 24px rgba(217, 169, 42, 0.22);
 }
 
-.mobile-bill-overview__head {
+.mobile-bill-overview__actual {
   position: relative;
   z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(137, 91, 0, 0.14);
 }
 
-.mobile-bill-overview__headline {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
+/* 总统计位于汇总区域底部，不再额外保留底部空白或分隔线 */
+.mobile-bill-overview__total {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
-.mobile-bill-overview__label {
-  margin: 0;
-  color: rgba(92, 57, 0, 0.74);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.mobile-bill-overview__balance {
-  display: inline-block;
-  margin-top: 0;
-  color: #3d2b00;
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.4px;
-  white-space: nowrap;
-}
-
-.mobile-bill-overview__balance.is-income {
-  color: #d32f2f;
-}
-
-.mobile-bill-overview__balance.is-expense {
-  color: #389e0d;
-}
-
-.mobile-bill-overview__balance.is-balance {
-  color: #3d2b00;
-}
-
-.mobile-bill-overview__stats {
-  position: relative;
-  z-index: 1;
+.mobile-bill-overview__actual-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 6px;
+  gap: 6px;
 }
 
-.mobile-bill-overview__stat {
+.mobile-bill-overview__actual-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.24);
 }
 
-.mobile-bill-overview__stat span {
-  display: inline-block;
-  color: rgba(91, 56, 0, 0.62);
+.mobile-bill-overview__actual-item span,
+.mobile-bill-overview__actual-item strong {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.mobile-bill-overview__actual-item span {
+  overflow: hidden;
+  color: rgba(91, 56, 0, 0.68);
   font-size: 10px;
   font-weight: 600;
-  line-height: 1.2;
-  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.mobile-bill-overview__stat strong {
-  display: inline-block;
-  margin-top: 0;
-  color: #4a3200;
-  font-size: 15px;
+.mobile-bill-overview__actual-item strong {
+  font-size: 12px;
   font-weight: 800;
-  line-height: 1;
-  white-space: nowrap;
+  line-height: 1.2;
 }
 
-.mobile-bill-overview__stat.is-income strong {
+.mobile-bill-overview__actual-item.is-income strong {
   color: var(--amount-income-primary);
 }
 
-.mobile-bill-overview__stat.is-expense strong {
+.mobile-bill-overview__actual-item.is-expense strong {
   color: var(--amount-expense-primary);
+}
+
+.mobile-bill-overview__actual-item.is-positive strong {
+  color: var(--amount-income-primary);
+}
+
+.mobile-bill-overview__actual-item.is-negative strong {
+  color: var(--amount-expense-primary);
+}
+
+.mobile-bill-overview__actual-item.is-balance strong,
+.mobile-bill-overview__actual-item.is-count strong {
+  color: #6d5b3a;
 }
 
 .mobile-bill-overview__watermark {
@@ -556,29 +551,6 @@ onMounted(async () => {
 .mobile-bill-list {
   padding: 0 12px 12px;
   border-radius: 0;
-}
-
-.mobile-bill-list__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  margin: 0 -12px 0;
-  padding: 8px 12px 8px;
-  background: rgba(255, 250, 240, 0.96);
-  backdrop-filter: blur(10px);
-}
-
-.mobile-bill-list__header.is-compact {
-  margin-bottom: 8px;
-}
-
-.mobile-bill-list__header.is-compact .mobile-section-title {
-  margin-bottom: 0;
-  font-size: 14px;
 }
 
 .mobile-bill-list__note {
@@ -600,10 +572,6 @@ onMounted(async () => {
   border-radius: 0;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: inset 0 0 0 1px rgba(238, 223, 194, 0.7);
-}
-
-.mobile-bill-list .mobile-chip {
-  border-radius: 14px;
 }
 
 .mobile-bill-table__head,
@@ -785,14 +753,6 @@ onMounted(async () => {
 
   .mobile-bill-overview {
     padding: 10px 10px 9px;
-  }
-
-  .mobile-bill-overview__balance {
-    font-size: 22px;
-  }
-
-  .mobile-bill-overview__stat strong {
-    font-size: 13px;
   }
 
   .mobile-bill-table__head,

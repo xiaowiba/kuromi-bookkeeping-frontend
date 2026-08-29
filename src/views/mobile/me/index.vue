@@ -188,8 +188,8 @@ let versionClickTimer: ReturnType<typeof window.setTimeout> | null = null
 
 const shortcutItems = [
   { title: '明细管理', path: '/m/bookkeeping/detail' },
-  { title: '报表中心', path: '/m/report' },
   { title: '账单管理', path: '/m/bill' },
+  { title: '报表中心', path: '/m/report' },
 ] as const
 
 const shortcutIconMap = {

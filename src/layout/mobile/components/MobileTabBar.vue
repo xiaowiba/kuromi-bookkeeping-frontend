@@ -22,6 +22,13 @@
       记账
     </t-tab-bar-item>
 
+    <t-tab-bar-item value="bill">
+      <template #icon>
+        <icon-file />
+      </template>
+      账单
+    </t-tab-bar-item>
+
     <t-tab-bar-item value="report">
       <template #icon>
         <icon-bar-chart />
@@ -48,6 +55,8 @@
  * @desc 调整为 TDesign 默认图标加文字标签栏，保留记账标签点击后打开移动端新增弹层
  * @update 2026-03-22 @Wangsongsong
  * @desc 统一底部标签栏选中态与背景配色，使其与移动端黄色系主题保持一致
+ * @update 2026-08-29 @Wangsongsong
+ * @desc 新增账单底部导航入口，跳转至移动端账单页面
  */
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -55,18 +64,22 @@ import mittBus from '@/utils/mitt'
 
 defineOptions({ name: 'MobileTabBar' })
 
-type MobileTab = 'detail' | 'report' | 'me'
+type MobileTab = 'detail' | 'bill' | 'report' | 'me'
 
 const route = useRoute()
 const router = useRouter()
 
 const tabRouteMap: Record<MobileTab, string> = {
   detail: '/m/bookkeeping/detail',
+  bill: '/m/bill',
   report: '/m/report',
   me: '/m/me',
 }
 
 const activeTab = computed<MobileTab>(() => {
+  if (route.path.startsWith('/m/bill')) {
+    return 'bill'
+  }
   if (route.path.startsWith('/m/report')) {
     return 'report'
   }

@@ -35,19 +35,6 @@
             {{ item.label }}
           </button>
         </div>
-
-        <div class="mobile-detail-hero__chip-group mobile-detail-hero__chip-group--category">
-          <button
-            v-for="item in bkSubjectCategory"
-            :key="item.value"
-            type="button"
-            class="mobile-detail-hero__chip mobile-detail-hero__chip--compact"
-            :class="{ 'is-active': query.category === String(item.value) }"
-            @click="handleCategoryFilterChange(String(item.value))"
-          >
-            {{ item.label.slice(0, 1) }}
-          </button>
-        </div>
       </div>
 
       <div class="mobile-detail-hero__month-strip">
@@ -71,6 +58,19 @@
         >
           下月
         </button>
+
+        <div class="mobile-detail-hero__chip-group mobile-detail-hero__chip-group--category mobile-detail-hero__month-category">
+          <button
+            v-for="item in bkSubjectCategory"
+            :key="item.value"
+            type="button"
+            class="mobile-detail-hero__chip mobile-detail-hero__chip--compact"
+            :class="{ 'is-active': query.category === String(item.value) }"
+            @click="handleCategoryFilterChange(String(item.value))"
+          >
+            {{ item.label.slice(0, 1) }}
+          </button>
+        </div>
       </div>
 
       <div class="mobile-detail-hero__summary">
@@ -601,6 +601,12 @@
  * @desc 移除明细列表上方重复的年月、分类和条数摘要，保留顶部统计及日期分组信息
  * @update 2026-08-29 @Wangsongsong
  * @desc 移除月份切换按钮内重复的明细条数，并统一压缩三枚月份按钮高度
+ * @update 2026-08-29 @Wangsongsong
+ * @desc 将支出/收入筛选按钮移动到明细刷新操作行左侧
+ * @update 2026-08-29 @Wangsongsong
+ * @desc 进一步缩小上月、当前月份和下月按钮的高度，减少顶部区域占用
+ * @update 2026-08-29 @Wangsongsong
+ * @desc 将支出/收入筛选按钮放回月份查询行最右侧，刷新操作行仅保留刷新相关操作
  */
 import { Modal } from '@arco-design/web-vue'
 import dayjs from 'dayjs'
@@ -1055,6 +1061,7 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .mobile-detail-page {
+  position: relative;
   min-height: 100%;
   padding-bottom: calc(0.32rem + env(safe-area-inset-bottom));
   overflow-x: hidden;
@@ -1093,6 +1100,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   margin-top: 12px;
+  padding-right: 96px;
 }
 
 .mobile-detail-hero__chip-group {
@@ -1136,9 +1144,9 @@ onUnmounted(() => {
 }
 
 .mobile-detail-hero__month-nav {
-  height: 40px;
+  height: 34px;
   padding: 0 8px;
-  border-radius: 18px;
+  border-radius: 14px;
 }
 
 .mobile-detail-hero__chip.is-active {
@@ -1155,10 +1163,14 @@ onUnmounted(() => {
 .mobile-detail-hero__month-strip {
   position: relative;
   display: grid;
-  grid-template-columns: 72px 1fr 72px;
+  grid-template-columns: 72px minmax(0, 1fr) 72px auto;
   gap: 10px;
   align-items: center;
   margin-top: 6px;
+}
+
+.mobile-detail-hero__month-category {
+  gap: 6px;
 }
 
 .mobile-detail-hero__month-nav {
@@ -1175,12 +1187,12 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 40px;
-  min-height: 40px;
+  height: 34px;
+  min-height: 34px;
   padding: 0 12px;
   box-sizing: border-box;
   border: none;
-  border-radius: 18px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.3);
   color: #3a2607;
 }
@@ -1390,12 +1402,15 @@ onUnmounted(() => {
 }
 
 .mobile-detail-ledger__header {
+  position: absolute;
+  z-index: 3;
+  top: 18px;
+  right: 8px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 12px;
-  //margin-bottom: 12px;
-  padding: 0 8px 6px;
+  padding: 0;
 }
 
 .mobile-detail-ledger__actions {

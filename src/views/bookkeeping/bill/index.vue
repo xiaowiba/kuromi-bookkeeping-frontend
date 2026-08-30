@@ -131,7 +131,7 @@
       </template>
 
       <template #income="{ record }">
-        <span class="bill-amount bill-amount--income-soft">
+        <span class="bill-amount bill-amount--income">
           {{ formatAmount(record.income) }}
         </span>
       </template>
@@ -211,6 +211,8 @@
  * @desc 月账单列表统一简化结余和条数双行标签，首行隐藏总值标签，次行统一显示实际
  * @update 2026-08-30 @Wangsongsong
  * @desc 年账单统计和列表复用月账单的总值/实际值双行展示结构
+ * @update 2026-08-30 @Wangsongsong
+ * @desc Web 账单总收入卡片和收入列统一使用项目收入红色样式，移除蓝色收入样式
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -412,7 +414,7 @@ const summaryCards = computed<SummaryCard[]>(() => {
     {
       label: '总收入',
       value: formatAmount(currentSummary.value.totalIncome),
-      tone: 'income-soft',
+      tone: 'income',
     },
     {
       label: '支出',
@@ -726,10 +728,6 @@ onMounted(async () => {
   background: linear-gradient(135deg, var(--amount-income-bg), rgba(255, 255, 255, 0.98));
 }
 
-.bill-summary__card.is-income-soft {
-  background: linear-gradient(135deg, rgba(219, 234, 254, 0.92), rgba(255, 255, 255, 0.98));
-}
-
 .bill-summary__card.is-expense {
   background: linear-gradient(135deg, var(--amount-expense-bg), rgba(255, 255, 255, 0.98));
 }
@@ -764,10 +762,6 @@ onMounted(async () => {
 
 .bill-summary__card.is-income .bill-summary__value {
   color: var(--amount-income-primary);
-}
-
-.bill-summary__card.is-income-soft .bill-summary__value {
-  color: #2563eb;
 }
 
 .bill-summary__card.is-expense .bill-summary__value {
@@ -852,10 +846,6 @@ onMounted(async () => {
 
 .bill-amount--income {
   color: var(--amount-income-primary);
-}
-
-.bill-amount--income-soft {
-  color: #2563eb;
 }
 
 .bill-amount--expense {

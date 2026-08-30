@@ -2,88 +2,86 @@
   <div class="mobile-page mobile-bill-page">
     <div class="mobile-bill-page__fixed">
       <section class="mobile-panel mobile-bill-hero">
-      <div class="mobile-bill-hero__tab-group">
-        <button
-          v-for="item in billTypeOptions"
-          :key="item.value"
-          type="button"
-          class="mobile-bill-hero__tab"
-          :class="{ 'is-active': activeBillType === item.value }"
-          @click="handleBillTypeChange(item.value)"
-        >
-          {{ item.label }}
-        </button>
-      </div>
-
-      <div v-if="activeBillType === 'monthly'" class="mobile-bill-hero__year-switch">
-        <button type="button" class="mobile-bill-hero__year-btn" @click="handleYearChange(-1)">
-          上一年
-        </button>
-        <div class="mobile-bill-hero__year-value">
-          <span>{{ selectedYear }}</span>
+        <div class="mobile-bill-hero__mode-row">
+          <div class="mobile-bill-hero__tab-group">
+            <button
+              v-for="item in billTypeOptions"
+              :key="item.value"
+              type="button"
+              class="mobile-bill-hero__tab"
+              :class="{ 'is-active': activeBillType === item.value }"
+              @click="handleBillTypeChange(item.value)"
+            >
+              {{ item.label }}
+            </button>
+          </div>
+          <div class="mobile-bill-hero__income">
+            <span>总收入</span>
+            <strong>{{ formatAmount(currentSummary.totalIncome) }}</strong>
+          </div>
         </div>
-        <button type="button" class="mobile-bill-hero__year-btn" @click="handleYearChange(1)">
-          下一年
-        </button>
-        <button
-          type="button"
-          class="mobile-bill-hero__year-btn is-ghost"
-          :disabled="selectedYear === currentYear"
-          @click="handleResetCurrentYear"
-        >
-          今年
-        </button>
-      </div>
 
-      <!-- 删除描述文字 -->
+        <div v-if="activeBillType === 'monthly'" class="mobile-bill-hero__year-switch">
+          <button type="button" class="mobile-bill-hero__year-btn" @click="handleYearChange(-1)">
+            上一年
+          </button>
+          <div class="mobile-bill-hero__year-value">
+            <span>{{ selectedYear }}</span>
+          </div>
+          <button type="button" class="mobile-bill-hero__year-btn" @click="handleYearChange(1)">
+            下一年
+          </button>
+          <button
+            type="button"
+            class="mobile-bill-hero__year-btn is-ghost"
+            :disabled="selectedYear === currentYear"
+            @click="handleResetCurrentYear"
+          >
+            今年
+          </button>
+        </div>
+
+        <!-- 删除描述文字 -->
       </section>
 
       <section v-if="!loading" class="mobile-panel mobile-bill-summary">
         <div class="mobile-bill-overview">
-          <div v-if="activeBillType === 'monthly'" class="mobile-bill-overview__actual">
-            <div class="mobile-bill-overview__actual-grid">
-              <div class="mobile-bill-overview__actual-item is-expense">
-                <span>实际总支出</span>
-                <strong>{{ formatAmount(currentSummary.actualTotalExpense) }}</strong>
-              </div>
-              <div class="mobile-bill-overview__actual-item is-income">
-                <span>实际总收入</span>
-                <strong>{{ formatAmount(currentSummary.actualTotalIncome) }}</strong>
-              </div>
-              <div
-                class="mobile-bill-overview__actual-item"
-                :class="resolveBalanceClass(currentSummary.actualBalance)"
-              >
-                <span>实际总结余</span>
-                <strong>{{ formatBalance(currentSummary.actualBalance) }}</strong>
-              </div>
-              <div class="mobile-bill-overview__actual-item is-count">
-                <span>实际总条数</span>
-                <strong>{{ currentSummary.actualRecordCount || 0 }} 笔</strong>
-              </div>
-            </div>
-          </div>
-
-          <div class="mobile-bill-overview__actual mobile-bill-overview__total">
-            <div class="mobile-bill-overview__actual-grid">
-              <div class="mobile-bill-overview__actual-item is-expense">
+          <div class="mobile-bill-overview__metric-grid">
+            <!-- 支出和结余使用双行结构，避免总值与实际值占用两个独立统计块。 -->
+            <div class="mobile-bill-overview__metric-card">
+              <div class="mobile-bill-overview__metric-row is-expense">
                 <span>总支出</span>
                 <strong>{{ formatAmount(currentSummary.totalExpense) }}</strong>
               </div>
-              <div class="mobile-bill-overview__actual-item is-income">
-                <span>总收入</span>
-                <strong>{{ formatAmount(currentSummary.totalIncome) }}</strong>
+              <div class="mobile-bill-overview__metric-row is-actual is-expense">
+                <span>实际</span>
+                <strong>{{ formatAmount(currentSummary.actualTotalExpense) }}</strong>
               </div>
+            </div>
+            <div class="mobile-bill-overview__metric-card">
               <div
-                class="mobile-bill-overview__actual-item"
+                class="mobile-bill-overview__metric-row"
                 :class="resolveBalanceClass(currentSummary.balance)"
               >
                 <span>总结余</span>
                 <strong>{{ formatBalance(currentSummary.balance) }}</strong>
               </div>
-              <div class="mobile-bill-overview__actual-item is-count">
+              <div
+                class="mobile-bill-overview__metric-row is-actual"
+                :class="resolveBalanceClass(currentSummary.actualBalance)"
+              >
+                <span>实际</span>
+                <strong>{{ formatBalance(currentSummary.actualBalance) }}</strong>
+              </div>
+            </div>
+            <!-- 条数保持单行展示，总条数和实际条数在同一个统计格内横向排列。 -->
+            <div class="mobile-bill-overview__metric-card is-count">
+              <div class="mobile-bill-overview__count-value">
                 <span>总条数</span>
                 <strong>{{ currentSummary.recordCount || 0 }} 笔</strong>
+                <i aria-hidden="true">/</i>
+                <span>实际</span>
+                <strong>{{ currentSummary.actualRecordCount || 0 }} 笔</strong>
               </div>
             </div>
           </div>
@@ -179,6 +177,20 @@
  * @desc 月账单模式补充实际总支出、实际总收入、实际总结余和实际总条数展示，与 Web 端统计口径保持一致
  * @update 2026-08-29 @Wangsongsong
  * @desc 月账单列表在每个月份数据下补充实际收入、实际支出和实际结余
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 月账单顶部将实际总收入和总收入合并到统计区最顶部同一行展示
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 月账单顶部仅保留一个总收入展示，取消实际总收入的重复显示
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 将唯一的总收入展示移动到月账单/年账单切换行右侧并保持垂直对齐
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 总收入采用与上一年按钮一致的胶囊样式，统一顶部控件视觉
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 将总支出与实际总支出、总结余与实际总结余合并为双行统计格
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 将总条数与实际总条数合并到同一行统计格中
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 统计卡金额颜色改为按每个数值自身的收支方向分别匹配列表颜色逻辑
  */
 import { computed, onMounted, ref } from 'vue'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
@@ -371,8 +383,17 @@ onMounted(async () => {
   border-radius: 0 0 20px 20px;
 }
 
+.mobile-bill-hero__mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
 .mobile-bill-hero__tab-group {
   display: inline-flex;
+  flex-shrink: 0;
   gap: 6px;
   padding: 3px;
   border-radius: 18px;
@@ -399,6 +420,43 @@ onMounted(async () => {
   color: #fff;
   box-shadow: 0 4px 12px rgba(217, 169, 42, 0.35);
   transform: scale(1.02);
+}
+
+.mobile-bill-hero__income {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(197, 138, 18, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #7a6542;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.mobile-bill-hero__income span,
+.mobile-bill-hero__income strong {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.mobile-bill-hero__income span {
+  overflow: hidden;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.mobile-bill-hero__income strong {
+  color: var(--amount-income-primary);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .mobile-bill-hero__year-switch {
@@ -477,45 +535,45 @@ onMounted(async () => {
   box-shadow: 0 10px 24px rgba(217, 169, 42, 0.22);
 }
 
-.mobile-bill-overview__actual {
-  position: relative;
-  z-index: 1;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(137, 91, 0, 0.14);
-}
-
-/* 总统计位于汇总区域底部，不再额外保留底部空白或分隔线 */
-.mobile-bill-overview__total {
-  margin-bottom: 0;
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.mobile-bill-overview__actual-grid {
+.mobile-bill-overview__metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
 
-.mobile-bill-overview__actual-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
+.mobile-bill-overview__metric-card {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   padding: 6px 8px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.24);
 }
 
-.mobile-bill-overview__actual-item span,
-.mobile-bill-overview__actual-item strong {
+.mobile-bill-overview__metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mobile-bill-overview__metric-row + .mobile-bill-overview__metric-row {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(137, 91, 0, 0.12);
+}
+
+.mobile-bill-overview__metric-row span,
+.mobile-bill-overview__metric-row strong,
+.mobile-bill-overview__count-value span,
+.mobile-bill-overview__count-value strong {
   min-width: 0;
   white-space: nowrap;
 }
 
-.mobile-bill-overview__actual-item span {
+.mobile-bill-overview__metric-row span,
+.mobile-bill-overview__count-value span {
   overflow: hidden;
   color: rgba(91, 56, 0, 0.68);
   font-size: 10px;
@@ -523,31 +581,46 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 
-.mobile-bill-overview__actual-item strong {
+.mobile-bill-overview__metric-row strong,
+.mobile-bill-overview__count-value strong {
   font-size: 12px;
   font-weight: 800;
   line-height: 1.2;
 }
 
-.mobile-bill-overview__actual-item.is-income strong {
+.mobile-bill-overview__metric-row.is-income strong,
+.mobile-bill-overview__metric-row.is-positive strong {
   color: var(--amount-income-primary);
 }
 
-.mobile-bill-overview__actual-item.is-expense strong {
+.mobile-bill-overview__metric-row.is-expense strong,
+.mobile-bill-overview__metric-row.is-negative strong {
   color: var(--amount-expense-primary);
 }
 
-.mobile-bill-overview__actual-item.is-positive strong {
-  color: var(--amount-income-primary);
-}
-
-.mobile-bill-overview__actual-item.is-negative strong {
-  color: var(--amount-expense-primary);
-}
-
-.mobile-bill-overview__actual-item.is-balance strong,
-.mobile-bill-overview__actual-item.is-count strong {
+.mobile-bill-overview__metric-row.is-balance strong,
+.mobile-bill-overview__metric-row.is-count strong,
+.mobile-bill-overview__count-value strong {
   color: #6d5b3a;
+}
+
+.mobile-bill-overview__metric-card.is-count {
+  grid-column: 1 / -1;
+}
+
+.mobile-bill-overview__count-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.mobile-bill-overview__count-value i {
+  color: rgba(91, 56, 0, 0.42);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
 }
 
 .mobile-bill-overview__watermark {

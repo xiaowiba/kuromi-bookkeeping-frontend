@@ -146,14 +146,33 @@
               class="mobile-bill-table__row"
               :class="{ 'is-empty': isEmptyYear(item) }"
             >
-              <span class="mobile-bill-table__cell is-month">{{ item.year }}年</span>
-              <span class="mobile-bill-table__cell is-income">{{ formatAmount(item.income) }}</span>
-              <span class="mobile-bill-table__cell is-expense">{{ formatAmount(item.expense) }}</span>
+              <span class="mobile-bill-table__cell is-month is-stacked">
+                <span class="mobile-bill-table__cell-line">{{ item.year }}年</span>
+                <span class="mobile-bill-table__cell-line is-actual">实际</span>
+              </span>
+              <span class="mobile-bill-table__cell is-income is-stacked">
+                <span class="mobile-bill-table__cell-line">{{ formatAmount(item.income) }}</span>
+                <span class="mobile-bill-table__cell-line is-actual is-income">
+                  {{ formatAmount(item.actualTotalIncome) }}
+                </span>
+              </span>
+              <span class="mobile-bill-table__cell is-expense is-stacked">
+                <span class="mobile-bill-table__cell-line">{{ formatAmount(item.expense) }}</span>
+                <span class="mobile-bill-table__cell-line is-actual is-expense">
+                  {{ formatAmount(item.actualTotalExpense) }}
+                </span>
+              </span>
               <span
-                class="mobile-bill-table__cell is-balance"
+                class="mobile-bill-table__cell is-balance is-stacked"
                 :class="resolveBalanceClass(item.balance)"
               >
-                {{ formatBalance(item.balance) }}
+                <span class="mobile-bill-table__cell-line">{{ formatBalance(item.balance) }}</span>
+                <span
+                  class="mobile-bill-table__cell-line is-actual"
+                  :class="resolveBalanceClass(item.actualBalance)"
+                >
+                  {{ formatBalance(item.actualBalance) }}
+                </span>
               </span>
             </article>
           </div>
@@ -191,6 +210,8 @@
  * @desc 将总条数与实际总条数合并到同一行统计格中
  * @update 2026-08-30 @Wangsongsong
  * @desc 统计卡金额颜色改为按每个数值自身的收支方向分别匹配列表颜色逻辑
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 年账单列表各单元格增加第二行实际统计数据，与月账单实际数据展示保持一致
  */
 import { computed, onMounted, ref } from 'vue'
 import MobilePageSkeleton from '@/views/mobile/components/MobilePageSkeleton.vue'
@@ -726,6 +747,45 @@ onMounted(async () => {
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+.mobile-bill-table__cell.is-stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 2px;
+  min-height: 38px;
+}
+
+.mobile-bill-table__cell-line {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-bill-table__cell-line.is-actual {
+  color: rgba(102, 77, 35, 0.62);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.mobile-bill-table__cell-line.is-actual.is-income {
+  color: color-mix(in srgb, var(--amount-income-primary) 72%, #ffffff);
+}
+
+.mobile-bill-table__cell-line.is-actual.is-expense {
+  color: color-mix(in srgb, var(--amount-expense-primary) 72%, #ffffff);
+}
+
+.mobile-bill-table__cell-line.is-actual.is-balance.is-income {
+  color: color-mix(in srgb, var(--amount-income-primary) 72%, #ffffff);
+}
+
+.mobile-bill-table__cell-line.is-actual.is-balance.is-expense {
+  color: color-mix(in srgb, var(--amount-expense-primary) 72%, #ffffff);
 }
 
 .mobile-bill-table__head .mobile-bill-table__cell {

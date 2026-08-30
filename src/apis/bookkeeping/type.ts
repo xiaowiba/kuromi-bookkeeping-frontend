@@ -416,9 +416,21 @@ export interface BillMonthlyResp {
   months: BillMonthItemResp[]
 }
 
-/** 年账单项 */
+/**
+ * 年账单项。
+ *
+ * 年度行级数据同时提供总统计和实际统计，实际统计沿用已完成报销闭环的
+ * 垫付方明细剔除口径，便于账单页面按统一结构展示。
+ *
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 增加年账单行级实际统计字段
+ */
 export interface BillYearItemResp {
   year: number
+  actualTotalIncome: number
+  actualTotalExpense: number
+  actualBalance: number
+  actualRecordCount: number
   income: number
   expense: number
   balance: number

@@ -131,16 +131,13 @@
       </template>
 
       <template #income="{ record }">
-        <span
-          class="bill-amount"
-          :class="queryForm.billType === 'monthly' ? 'bill-amount--income-soft' : 'bill-amount--income'"
-        >
+        <span class="bill-amount bill-amount--income-soft">
           {{ formatAmount(record.income) }}
         </span>
       </template>
 
       <template #expense="{ record }">
-        <div v-if="queryForm.billType === 'monthly'" class="bill-comparison">
+        <div class="bill-comparison">
           <div class="bill-comparison__row">
             <strong class="bill-amount bill-amount--expense">
               {{ formatAmount(record.expense) }}
@@ -153,13 +150,10 @@
             </strong>
           </div>
         </div>
-        <span v-else class="bill-amount bill-amount--expense">
-          {{ formatAmount(record.expense) }}
-        </span>
       </template>
 
       <template #balance="{ record }">
-        <div v-if="queryForm.billType === 'monthly'" class="bill-comparison">
+        <div class="bill-comparison">
           <div class="bill-comparison__row">
             <strong class="bill-amount" :class="resolveBalanceClass(record.balance)">
               {{ formatBalance(record.balance) }}
@@ -172,13 +166,10 @@
             </strong>
           </div>
         </div>
-        <span v-else class="bill-amount" :class="resolveBalanceClass(record.balance)">
-          {{ formatBalance(record.balance) }}
-        </span>
       </template>
 
       <template #recordCount="{ record }">
-        <div v-if="queryForm.billType === 'monthly'" class="bill-comparison">
+        <div class="bill-comparison">
           <div class="bill-comparison__row">
             <a-tag size="small" color="gray">
               {{ record.recordCount || 0 }} 笔
@@ -191,9 +182,6 @@
             </a-tag>
           </div>
         </div>
-        <a-tag v-else size="small" color="gray">
-          {{ record.recordCount || 0 }} 笔
-        </a-tag>
       </template>
     </GiTable>
   </GiPageLayout>
@@ -221,6 +209,8 @@
  * @desc 月账单列表移除月份实际标识，支出首行隐藏总支出标签并将次行标签简化为实际
  * @update 2026-08-30 @Wangsongsong
  * @desc 月账单列表统一简化结余和条数双行标签，首行隐藏总值标签，次行统一显示实际
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 年账单统计和列表复用月账单的总值/实际值双行展示结构
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -396,14 +386,14 @@ const currentSummary = computed(() =>
   queryForm.billType === 'monthly' ? monthlyBill.value.summary : yearlyBill.value.summary,
 )
 
-// 月账单将支出、结余、条数的总统计与实际统计合并到各自单元格中；年账单保持原宽度。
-const tableMinWidth = computed(() => queryForm.billType === 'monthly' ? 920 : 760)
+// 月、年账单均将支出、结余、条数的总统计与实际统计合并到各自单元格中。
+const tableMinWidth = computed(() => 920)
 
 /**
  * 构建顶部汇总卡片。
  *
- * 月账单展示当前年份维度的实际统计与总统计；年账单暂时保持原有四项总览，
- * 避免把本次“每个月份中展示两套统计”的需求扩展到年账单行展示。
+ * 月账单和年账单都展示总统计与实际统计；实际总收入与总收入当前业务口径一致，
+ * 因此页面只保留总收入，避免重复展示。
  */
 interface SummaryCard {
   label: string
@@ -418,84 +408,58 @@ interface SummaryCard {
 }
 
 const summaryCards = computed<SummaryCard[]>(() => {
-  if (queryForm.billType === 'monthly') {
-    // 实际总收入与总收入当前业务口径一致，页面只保留总收入，避免重复展示。
-    return [
-      {
-        label: '总收入',
-        value: formatAmount(currentSummary.value.totalIncome),
-        tone: 'income-soft',
-      },
-      {
-        label: '支出',
-        rows: [
-          {
-            label: '总支出',
-            value: formatAmount(currentSummary.value.totalExpense),
-          },
-          {
-            label: '实际总支出',
-            value: formatAmount(currentSummary.value.actualTotalExpense),
-          },
-        ],
-        tone: 'expense',
-        stacked: true,
-      },
-      {
-        label: '结余',
-        rows: [
-          {
-            label: '总结余',
-            value: formatBalance(currentSummary.value.balance),
-            tone: resolveBalanceTone(currentSummary.value.balance),
-          },
-          {
-            label: '实际总结余',
-            value: formatBalance(currentSummary.value.actualBalance),
-            tone: resolveBalanceTone(currentSummary.value.actualBalance),
-          },
-        ],
-        tone: 'neutral',
-        stacked: true,
-      },
-      {
-        label: '条数',
-        rows: [
-          {
-            label: '总条数',
-            value: `${currentSummary.value.recordCount || 0} 笔`,
-          },
-          {
-            label: '实际总条数',
-            value: `${currentSummary.value.actualRecordCount || 0} 笔`,
-          },
-        ],
-        tone: 'neutral',
-        stacked: true,
-      },
-    ]
-  }
-
   return [
     {
-      label: '支出',
-      value: formatAmount(currentSummary.value.totalExpense),
-      tone: 'expense',
+      label: '总收入',
+      value: formatAmount(currentSummary.value.totalIncome),
+      tone: 'income-soft',
     },
     {
-      label: '收入',
-      value: formatAmount(currentSummary.value.totalIncome),
-      tone: 'income',
+      label: '支出',
+      rows: [
+        {
+          label: '总支出',
+          value: formatAmount(currentSummary.value.totalExpense),
+        },
+        {
+          label: '实际总支出',
+          value: formatAmount(currentSummary.value.actualTotalExpense),
+        },
+      ],
+      tone: 'expense',
+      stacked: true,
     },
     {
       label: '结余',
-      value: formatBalance(currentSummary.value.balance),
-      tone: resolveSummaryTone(currentSummary.value.balance),
+      rows: [
+        {
+          label: '总结余',
+          value: formatBalance(currentSummary.value.balance),
+          tone: resolveBalanceTone(currentSummary.value.balance),
+        },
+        {
+          label: '实际总结余',
+          value: formatBalance(currentSummary.value.actualBalance),
+          tone: resolveBalanceTone(currentSummary.value.actualBalance),
+        },
+      ],
+      tone: 'neutral',
+      stacked: true,
     },
     {
-      label: '记录数',
-      value: `${currentSummary.value.recordCount || 0} 笔`,
+      label: '条数',
+      rows: [
+        {
+          label: '总条数',
+          value: `${currentSummary.value.recordCount || 0} 笔`,
+        },
+        {
+          label: '实际总条数',
+          value: `${currentSummary.value.actualRecordCount || 0} 笔`,
+        },
+      ],
       tone: 'neutral',
+      stacked: true,
     },
   ]
 })
@@ -525,7 +489,7 @@ const columns = computed<TableColumnData[]>(() => {
   }
 
   if (queryForm.billType === 'monthly') {
-    // 月账单的总统计与实际统计在单元格内按上下两行展示，避免同一月份横向拆散。
+    // 月、年账单的总统计与实际统计均在单元格内按上下两行展示，避免同一周期横向拆散。
     return [
       periodColumn,
       {
@@ -562,31 +526,31 @@ const columns = computed<TableColumnData[]>(() => {
   return [
     periodColumn,
     {
-      title: '收入',
+      title: '总收入',
       dataIndex: 'income',
       slotName: 'income',
-      width: 160,
+      width: 140,
       align: 'right',
     },
     {
       title: '支出',
       dataIndex: 'expense',
       slotName: 'expense',
-      width: 160,
+      width: 185,
       align: 'right',
     },
     {
       title: '结余',
       dataIndex: 'balance',
       slotName: 'balance',
-      width: 160,
+      width: 185,
       align: 'right',
     },
     {
-      title: '记录数',
+      title: '条数',
       dataIndex: 'recordCount',
       slotName: 'recordCount',
-      width: 120,
+      width: 165,
       align: 'center',
     },
   ]

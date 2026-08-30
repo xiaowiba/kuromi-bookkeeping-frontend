@@ -97,65 +97,102 @@
             v-for="item in summaryCards"
             :key="item.label"
             class="bill-summary__card"
-            :class="`is-${item.tone}`"
+            :class="[`is-${item.tone}`, { 'is-stacked': item.stacked }]"
           >
-            <p class="bill-summary__label">{{ item.label }}</p>
-            <strong class="bill-summary__value">{{ item.value }}</strong>
+            <template v-if="item.rows">
+              <div
+                v-for="row in item.rows"
+                :key="row.label"
+                class="bill-summary__row"
+              >
+                <span class="bill-summary__label">{{ row.label }}</span>
+                <strong
+                  class="bill-summary__value"
+                  :class="row.tone ? `bill-amount--${row.tone}` : undefined"
+                >
+                  {{ row.value }}
+                </strong>
+              </div>
+            </template>
+            <template v-else>
+              <p class="bill-summary__label">{{ item.label }}</p>
+              <strong class="bill-summary__value">{{ item.value }}</strong>
+            </template>
           </div>
         </div>
       </template>
 
       <template #period="{ record }">
-        <span class="bill-period">
-          {{ queryForm.billType === 'monthly' ? record.month : `${record.year} 年` }}
-        </span>
+        <div class="bill-period-cell">
+          <span class="bill-period">
+            {{ queryForm.billType === 'monthly' ? record.month : `${record.year} 年` }}
+          </span>
+        </div>
       </template>
 
       <template #income="{ record }">
-        <span class="bill-amount bill-amount--income">
+        <span
+          class="bill-amount"
+          :class="queryForm.billType === 'monthly' ? 'bill-amount--income-soft' : 'bill-amount--income'"
+        >
           {{ formatAmount(record.income) }}
         </span>
       </template>
 
       <template #expense="{ record }">
-        <span class="bill-amount bill-amount--expense">
+        <div v-if="queryForm.billType === 'monthly'" class="bill-comparison">
+          <div class="bill-comparison__row">
+            <strong class="bill-amount bill-amount--expense">
+              {{ formatAmount(record.expense) }}
+            </strong>
+          </div>
+          <div class="bill-comparison__row">
+            <span class="bill-comparison__label">实际</span>
+            <strong class="bill-amount bill-amount--expense">
+              {{ formatAmount(record.actualTotalExpense) }}
+            </strong>
+          </div>
+        </div>
+        <span v-else class="bill-amount bill-amount--expense">
           {{ formatAmount(record.expense) }}
         </span>
       </template>
 
       <template #balance="{ record }">
-        <span class="bill-amount" :class="resolveBalanceClass(record.balance)">
+        <div v-if="queryForm.billType === 'monthly'" class="bill-comparison">
+          <div class="bill-comparison__row">
+            <strong class="bill-amount" :class="resolveBalanceClass(record.balance)">
+              {{ formatBalance(record.balance) }}
+            </strong>
+          </div>
+          <div class="bill-comparison__row">
+            <span class="bill-comparison__label">实际</span>
+            <strong class="bill-amount" :class="resolveBalanceClass(record.actualBalance)">
+              {{ formatBalance(record.actualBalance) }}
+            </strong>
+          </div>
+        </div>
+        <span v-else class="bill-amount" :class="resolveBalanceClass(record.balance)">
           {{ formatBalance(record.balance) }}
         </span>
       </template>
 
       <template #recordCount="{ record }">
-        <a-tag size="small" color="gray">
+        <div v-if="queryForm.billType === 'monthly'" class="bill-comparison">
+          <div class="bill-comparison__row">
+            <a-tag size="small" color="gray">
+              {{ record.recordCount || 0 }} 笔
+            </a-tag>
+          </div>
+          <div class="bill-comparison__row">
+            <span class="bill-comparison__label">实际</span>
+            <a-tag size="small" color="arcoblue">
+              {{ record.actualRecordCount || 0 }} 笔
+            </a-tag>
+          </div>
+        </div>
+        <a-tag v-else size="small" color="gray">
           {{ record.recordCount || 0 }} 笔
-        </a-tag>
-      </template>
-
-      <template #actualTotalExpense="{ record }">
-        <span class="bill-amount bill-amount--expense">
-          {{ formatAmount(record.actualTotalExpense) }}
-        </span>
-      </template>
-
-      <template #actualTotalIncome="{ record }">
-        <span class="bill-amount bill-amount--income">
-          {{ formatAmount(record.actualTotalIncome) }}
-        </span>
-      </template>
-
-      <template #actualBalance="{ record }">
-        <span class="bill-amount" :class="resolveBalanceClass(record.actualBalance)">
-          {{ formatBalance(record.actualBalance) }}
-        </span>
-      </template>
-
-      <template #actualRecordCount="{ record }">
-        <a-tag size="small" color="arcoblue">
-          {{ record.actualRecordCount || 0 }} 笔
         </a-tag>
       </template>
     </GiTable>
@@ -174,6 +211,16 @@
  * @desc 完善页面职责说明，强调账单页与通用筛选口径的关系
  * @update 2026-07-09 @Wangsongsong
  * @desc 月账单模式增加实际统计与总统计展示，表格列采用平铺方式兼容列设置
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 合并月账单实际总收入与总收入展示，统一保留总收入并置于最左侧
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 合并月账单总支出与实际总支出，使用同一卡片分两行展示
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 月账单列表参考移动端双行口径展示，合并总支出与实际总支出
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 月账单列表移除月份实际标识，支出首行隐藏总支出标签并将次行标签简化为实际
+ * @update 2026-08-30 @Wangsongsong
+ * @desc 月账单列表统一简化结余和条数双行标签，首行隐藏总值标签，次行统一显示实际
  */
 import { Message } from '@arco-design/web-vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
@@ -349,8 +396,8 @@ const currentSummary = computed(() =>
   queryForm.billType === 'monthly' ? monthlyBill.value.summary : yearlyBill.value.summary,
 )
 
-// 月账单增加了实际统计与总统计两组列，需要更宽的横向滚动空间；年账单保持原宽度。
-const tableMinWidth = computed(() => queryForm.billType === 'monthly' ? 1480 : 760)
+// 月账单将支出、结余、条数的总统计与实际统计合并到各自单元格中；年账单保持原宽度。
+const tableMinWidth = computed(() => queryForm.billType === 'monthly' ? 920 : 760)
 
 /**
  * 构建顶部汇总卡片。
@@ -358,48 +405,73 @@ const tableMinWidth = computed(() => queryForm.billType === 'monthly' ? 1480 : 7
  * 月账单展示当前年份维度的实际统计与总统计；年账单暂时保持原有四项总览，
  * 避免把本次“每个月份中展示两套统计”的需求扩展到年账单行展示。
  */
-const summaryCards = computed(() => {
+interface SummaryCard {
+  label: string
+  value?: string
+  tone: string
+  stacked?: boolean
+  rows?: Array<{
+    label: string
+    value: string
+    tone?: string
+  }>
+}
+
+const summaryCards = computed<SummaryCard[]>(() => {
   if (queryForm.billType === 'monthly') {
+    // 实际总收入与总收入当前业务口径一致，页面只保留总收入，避免重复展示。
     return [
-      {
-        label: '实际总支出',
-        value: formatAmount(currentSummary.value.actualTotalExpense),
-        tone: 'expense',
-      },
-      {
-        label: '实际总收入',
-        value: formatAmount(currentSummary.value.actualTotalIncome),
-        tone: 'income',
-      },
-      {
-        label: '实际总结余',
-        value: formatBalance(currentSummary.value.actualBalance),
-        tone: resolveSummaryTone(currentSummary.value.actualBalance),
-      },
-      {
-        label: '实际总条数',
-        value: `${currentSummary.value.actualRecordCount || 0} 笔`,
-        tone: 'neutral',
-      },
-      {
-        label: '总支出',
-        value: formatAmount(currentSummary.value.totalExpense),
-        tone: 'expense',
-      },
       {
         label: '总收入',
         value: formatAmount(currentSummary.value.totalIncome),
-        tone: 'income',
+        tone: 'income-soft',
       },
       {
-        label: '总结余',
-        value: formatBalance(currentSummary.value.balance),
-        tone: resolveSummaryTone(currentSummary.value.balance),
+        label: '支出',
+        rows: [
+          {
+            label: '总支出',
+            value: formatAmount(currentSummary.value.totalExpense),
+          },
+          {
+            label: '实际总支出',
+            value: formatAmount(currentSummary.value.actualTotalExpense),
+          },
+        ],
+        tone: 'expense',
+        stacked: true,
       },
       {
-        label: '总条数',
-        value: `${currentSummary.value.recordCount || 0} 笔`,
+        label: '结余',
+        rows: [
+          {
+            label: '总结余',
+            value: formatBalance(currentSummary.value.balance),
+            tone: resolveBalanceTone(currentSummary.value.balance),
+          },
+          {
+            label: '实际总结余',
+            value: formatBalance(currentSummary.value.actualBalance),
+            tone: resolveBalanceTone(currentSummary.value.actualBalance),
+          },
+        ],
         tone: 'neutral',
+        stacked: true,
+      },
+      {
+        label: '条数',
+        rows: [
+          {
+            label: '总条数',
+            value: `${currentSummary.value.recordCount || 0} 笔`,
+          },
+          {
+            label: '实际总条数',
+            value: `${currentSummary.value.actualRecordCount || 0} 笔`,
+          },
+        ],
+        tone: 'neutral',
+        stacked: true,
       },
     ]
   }
@@ -453,44 +525,9 @@ const columns = computed<TableColumnData[]>(() => {
   }
 
   if (queryForm.billType === 'monthly') {
-    // GiTable 的列设置按顶层列存储，平铺列比分组列更稳，也便于用户按单项统计控制显示。
+    // 月账单的总统计与实际统计在单元格内按上下两行展示，避免同一月份横向拆散。
     return [
       periodColumn,
-      {
-        title: '实际总支出',
-        dataIndex: 'actualTotalExpense',
-        slotName: 'actualTotalExpense',
-        width: 150,
-        align: 'right',
-      },
-      {
-        title: '实际总收入',
-        dataIndex: 'actualTotalIncome',
-        slotName: 'actualTotalIncome',
-        width: 150,
-        align: 'right',
-      },
-      {
-        title: '实际总结余',
-        dataIndex: 'actualBalance',
-        slotName: 'actualBalance',
-        width: 150,
-        align: 'right',
-      },
-      {
-        title: '实际总条数',
-        dataIndex: 'actualRecordCount',
-        slotName: 'actualRecordCount',
-        width: 130,
-        align: 'center',
-      },
-      {
-        title: '总支出',
-        dataIndex: 'expense',
-        slotName: 'expense',
-        width: 140,
-        align: 'right',
-      },
       {
         title: '总收入',
         dataIndex: 'income',
@@ -499,17 +536,24 @@ const columns = computed<TableColumnData[]>(() => {
         align: 'right',
       },
       {
-        title: '总结余',
-        dataIndex: 'balance',
-        slotName: 'balance',
-        width: 140,
+        title: '支出',
+        dataIndex: 'expense',
+        slotName: 'expense',
+        width: 185,
         align: 'right',
       },
       {
-        title: '总条数',
+        title: '结余',
+        dataIndex: 'balance',
+        slotName: 'balance',
+        width: 185,
+        align: 'right',
+      },
+      {
+        title: '条数',
         dataIndex: 'recordCount',
         slotName: 'recordCount',
-        width: 120,
+        width: 165,
         align: 'center',
       },
     ]
@@ -700,8 +744,26 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.92);
 }
 
+.bill-summary__card.is-stacked {
+  display: block;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.bill-summary__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 25px;
+}
+
 .bill-summary__card.is-income {
   background: linear-gradient(135deg, var(--amount-income-bg), rgba(255, 255, 255, 0.98));
+}
+
+.bill-summary__card.is-income-soft {
+  background: linear-gradient(135deg, rgba(219, 234, 254, 0.92), rgba(255, 255, 255, 0.98));
 }
 
 .bill-summary__card.is-expense {
@@ -740,6 +802,10 @@ onMounted(async () => {
   color: var(--amount-income-primary);
 }
 
+.bill-summary__card.is-income-soft .bill-summary__value {
+  color: #2563eb;
+}
+
 .bill-summary__card.is-expense .bill-summary__value {
   color: var(--amount-expense-primary);
 }
@@ -753,8 +819,45 @@ onMounted(async () => {
 }
 
 .bill-period {
+  display: block;
   color: var(--color-text-1);
   font-weight: 600;
+}
+
+.bill-period-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.2;
+}
+
+.bill-comparison {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 170px;
+  text-align: right;
+}
+
+.bill-comparison__row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: 22px;
+  white-space: nowrap;
+}
+
+.bill-comparison__row + .bill-comparison__row {
+  padding-top: 3px;
+  border-top: 1px solid rgba(229, 230, 235, 0.7);
+}
+
+.bill-comparison__label {
+  color: var(--color-text-3);
+  font-size: 11px;
+  line-height: 1.2;
 }
 
 .bill-query-radio-scroll {
@@ -785,6 +888,10 @@ onMounted(async () => {
 
 .bill-amount--income {
   color: var(--amount-income-primary);
+}
+
+.bill-amount--income-soft {
+  color: #2563eb;
 }
 
 .bill-amount--expense {
